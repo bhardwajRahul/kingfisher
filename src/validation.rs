@@ -107,7 +107,8 @@ fn validation_dedup_key(m: &OwnedBlobMatch) -> u64 {
     let mut hasher = xxhash_rust::xxh3::Xxh3::new();
     m.rule.syntax().id.hash(&mut hasher);
 
-    // Use the first capture (primary secret) for deduplication
+    // Use the first capture (primary secret) for deduplication.
+    // Note: capture_value is stored in a variable because it's also used in trace! below.
     let capture_value = m.captures.captures.get(0).map(|c| c.raw_value());
     if let Some(val) = capture_value {
         val.hash(&mut hasher);

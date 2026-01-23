@@ -237,12 +237,12 @@ fn decompress_once(path: &Path, base_dir: Option<&Path>) -> Result<CompressedCon
             }
             "gz" | "gzip" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = GzDecoder::new(safe_open_for_read(path)?);
+                let decoder = GzDecoder::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             "bz2" | "bzip2" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = DecoderReader::new(safe_open_for_read(path)?);
+                let decoder = DecoderReader::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             "xz" => {
@@ -251,7 +251,7 @@ fn decompress_once(path: &Path, base_dir: Option<&Path>) -> Result<CompressedCon
             }
             "zlib" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = ZlibDecoder::new(safe_open_for_read(path)?);
+                let decoder = ZlibDecoder::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             _ => {}
