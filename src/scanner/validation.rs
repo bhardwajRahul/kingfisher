@@ -15,6 +15,7 @@ use liquid::Parser;
 use reqwest::{Client, StatusCode};
 use rustc_hash::FxHashMap;
 use tokio::{sync::Notify, time::timeout};
+use tracing::trace;
 
 use crate::{
     access_map::AccessMapRequest,
@@ -156,15 +157,34 @@ pub async fn run_secret_validation(
     if !simple_matches.is_empty() {
         let mut groups: FxHashMap<String, Vec<Arc<FindingsStoreMessage>>> = FxHashMap::default();
         for arc_msg in simple_matches {
-            let secret = arc_msg
-                .2
-                .groups
-                .captures
-                .get(1)
-                .or_else(|| arc_msg.2.groups.captures.get(0))
-                .map_or("", |c| c.raw_value());
-            groups.entry(format!("{}|{}", arc_msg.2.rule.id(), secret)).or_default().push(arc_msg);
+            // VALIDATION DEDUP: Use get(0) to get the first/primary capture for grouping.
+            //
+            // This differs from fingerprint/reporting code (which uses get(1).or_else(get(0)))
+            // for backward compatibility reasons - changing fingerprint calculation would break
+            // historical baselines and dedup entries.
+            //
+            // For validation deduplication, we need the PRIMARY secret value to ensure each
+            // unique secret triggers a separate validation request. Using get(1) first would
+            // incorrectly pick up inner unnamed groups when patterns have nested captures
+            // like (?<REGEX>...(ABC|DEF)...), causing all matches to share the same
+            // validation result.
+            let secret = arc_msg.2.groups.captures.get(0).map_or("", |c| c.raw_value());
+            let group_key = format!("{}|{}", arc_msg.2.rule.id(), secret);
+            trace!(
+                rule_id = %arc_msg.2.rule.id(),
+                secret_value = %secret,
+                external_fingerprint = arc_msg.2.finding_fingerprint,
+                validation_group_key = %group_key,
+                "Grouping finding for validation"
+            );
+            groups.entry(group_key).or_default().push(arc_msg);
         }
+
+        trace!(
+            total_findings = groups.values().map(|v| v.len()).sum::<usize>(),
+            unique_validation_groups = groups.len(),
+            "Validation grouping complete (internal dedup)"
+        );
 
         let validation_results = DashMap::<String, CachedResponse>::new();
 
@@ -195,13 +215,9 @@ pub async fn run_secret_validation(
             let access_map = access_map.clone();
 
             async move {
-                let secret = rep_arc
-                    .2
-                    .groups
-                    .captures
-                    .get(1)
-                    .or_else(|| rep_arc.2.groups.captures.get(0))
-                    .map_or("", |c| c.raw_value());
+                // VALIDATION DEDUP: Use get(0) for the primary secret value.
+                // See comment above for why this differs from fingerprint/reporting code.
+                let secret = rep_arc.2.groups.captures.get(0).map_or("", |c| c.raw_value());
                 let key = format!("{}|{}", rep_arc.2.rule.id(), secret);
 
                 match val_res.entry(key.clone()) {

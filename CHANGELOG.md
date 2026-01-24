@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.76.0]
+- Fixed validation deduplication for rules with nested unnamed captures (e.g. `(?<REGEX>...(ABC|DEF)...)`) to use the primary capture for grouping, ensuring each unique match triggers a separate validation request.
+- Added trace-level (`-vv`) logging for internal validation dedup keys and grouping to aid debugging.
+- Switched compression dependencies to pure-Rust bzip2/lzma implementations and pared zip features to avoid C-based codecs for bz2/xz handling.
+
 ## [v1.75.0]
 - Enhanced Access Map View: added fingerprint display, enabled searching by fingerprint, and implemented bidirectional navigation between Findings and Access Map nodes.
 - Added Slack Access Map support with granular permissions in the tree view.

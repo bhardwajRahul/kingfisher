@@ -30,6 +30,7 @@ pub fn generate_http_cache_key_parts(
     method: &str,
     url: &Url,
     headers: &BTreeMap<String, String>,
+    body: Option<&str>,
 ) -> String {
     let method = method.to_uppercase(); // ensure "get" == "GET"
     let url = url.as_str(); // canonical form from `reqwest::Url`
@@ -46,6 +47,13 @@ pub fn generate_http_cache_key_parts(
         hasher.update(k.as_bytes());
         hasher.update(b":");
         hasher.update(v.as_bytes());
+        hasher.update(b"\0");
+    }
+
+    // Include the request body in the cache key if present
+    if let Some(b) = body {
+        hasher.update(b"BODY\0");
+        hasher.update(b.as_bytes());
         hasher.update(b"\0");
     }
 
@@ -604,5 +612,35 @@ mod tests {
             result,
             "Should correctly identify HTML even with multi-byte characters at boundary"
         );
+    }
+
+    #[test]
+    fn test_cache_key_includes_body() {
+        let url = Url::from_str("https://example.com/api").unwrap();
+        let headers =
+            BTreeMap::from([("Content-Type".to_string(), "application/json".to_string())]);
+
+        // Same method, url, headers but different bodies should produce different cache keys
+        let key_no_body = generate_http_cache_key_parts("POST", &url, &headers, None);
+        let key_body_a =
+            generate_http_cache_key_parts("POST", &url, &headers, Some(r#"{"value": "abc"}"#));
+        let key_body_b =
+            generate_http_cache_key_parts("POST", &url, &headers, Some(r#"{"value": "xyz"}"#));
+
+        // All three should be different
+        assert_ne!(
+            key_no_body, key_body_a,
+            "Cache key with body should differ from key without body"
+        );
+        assert_ne!(
+            key_no_body, key_body_b,
+            "Cache key with body should differ from key without body"
+        );
+        assert_ne!(key_body_a, key_body_b, "Cache keys with different bodies should be different");
+
+        // Same body should produce same key
+        let key_body_a_dup =
+            generate_http_cache_key_parts("POST", &url, &headers, Some(r#"{"value": "abc"}"#));
+        assert_eq!(key_body_a, key_body_a_dup, "Same inputs should produce same cache key");
     }
 }

@@ -1,18 +1,18 @@
 use std::{
     fs,
-    io::Read,
+    io::{BufReader, Read},
     path::{Component, Path, PathBuf},
 };
 
 use anyhow::Result;
 use asar::AsarReader;
-use bzip2::read::BzDecoder;
+use bzip2_rs::DecoderReader;
 use flate2::read::{GzDecoder, ZlibDecoder};
+use lzma_rs::xz_decompress;
 use memmap2::Mmap;
 use tar::Archive;
 use tempfile::{tempdir, TempDir};
 use uuid::Uuid;
-use xz2::read::XzDecoder;
 use zip::ZipArchive;
 
 /// Formats that are basically a ZIP container.
@@ -175,12 +175,33 @@ fn handle_asar_archive_in_memory(buffer: &[u8], archive_path: &Path) -> Result<C
     }
 }
 
-fn stream_to_file<R: Read>(mut decoder: R, out_path: &Path) -> Result<CompressedContent> {
-    if !is_safe_extract_path(out_path) {
-        anyhow::bail!("unsafe path during decompression: {}", out_path.display());
+/// Validate and open a file for reading, checking for path traversal attacks.
+fn safe_open_for_read(path: &Path) -> Result<fs::File> {
+    if !is_safe_extract_path(path) {
+        anyhow::bail!("unsafe input path during decompression: {}", path.display());
     }
-    let mut out_file = fs::File::create(out_path)?;
+    Ok(fs::File::open(path)?)
+}
+
+/// Validate and create a file for writing, checking for path traversal attacks.
+fn safe_create_for_write(path: &Path) -> Result<fs::File> {
+    if !is_safe_extract_path(path) {
+        anyhow::bail!("unsafe output path during decompression: {}", path.display());
+    }
+    Ok(fs::File::create(path)?)
+}
+
+fn stream_to_file<R: Read>(mut decoder: R, out_path: &Path) -> Result<CompressedContent> {
+    let mut out_file = safe_create_for_write(out_path)?;
     std::io::copy(&mut decoder, &mut out_file)?;
+    Ok(CompressedContent::RawFile(out_path.to_owned()))
+}
+
+fn stream_xz_to_file(path: &Path, out_path: &Path) -> Result<CompressedContent> {
+    let input = safe_open_for_read(path)?;
+    let mut reader = BufReader::new(input);
+    let mut out_file = safe_create_for_write(out_path)?;
+    xz_decompress(&mut reader, &mut out_file)?;
     Ok(CompressedContent::RawFile(out_path.to_owned()))
 }
 
@@ -190,7 +211,7 @@ one *step* of decompression
 fn decompress_once(path: &Path, base_dir: Option<&Path>) -> Result<CompressedContent> {
     let extension = path.extension().and_then(|ext| ext.to_str()).map(|s| s.to_ascii_lowercase());
 
-    let mut file = fs::File::open(path)?;
+    let mut file = safe_open_for_read(path)?;
 
     if let Some(ext) = extension.as_deref() {
         match ext {
@@ -216,22 +237,21 @@ fn decompress_once(path: &Path, base_dir: Option<&Path>) -> Result<CompressedCon
             }
             "gz" | "gzip" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = GzDecoder::new(fs::File::open(path)?);
+                let decoder = GzDecoder::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             "bz2" | "bzip2" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = BzDecoder::new(fs::File::open(path)?);
+                let decoder = DecoderReader::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             "xz" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = XzDecoder::new(fs::File::open(path)?);
-                return stream_to_file(decoder, &out_path);
+                return stream_xz_to_file(path, &out_path);
             }
             "zlib" => {
                 let out_path = make_output_path(path, base_dir, "decomp.tar");
-                let decoder = ZlibDecoder::new(fs::File::open(path)?);
+                let decoder = ZlibDecoder::new(BufReader::new(safe_open_for_read(path)?));
                 return stream_to_file(decoder, &out_path);
             }
             _ => {}

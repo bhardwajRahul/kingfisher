@@ -96,7 +96,15 @@ impl OwnedBlobMatch {
     }
 
     pub fn from_blob_match(blob_match: BlobMatch) -> Self {
-        // Get the matching value from capture group 1 (or 0 if not available)
+        // EXTERNAL FINGERPRINT: Use get(1).or_else(get(0)) for backward compatibility.
+        //
+        // This indexing is intentionally different from the internal `validation_dedup_key()`
+        // (which uses get(0)) to maintain stable external fingerprints. Changing this would break:
+        // - Historical baselines that rely on fingerprint matching
+        // - Dedup entries stored in external systems
+        //
+        // For rules with nested captures like (?<REGEX>...(ABC)...), this may pick up
+        // the inner group, but that behavior is now established and must be preserved.
         let matching_finding = blob_match
             .captures
             .captures
@@ -1021,8 +1029,8 @@ impl Match {
         origin_type: &'a str,
     ) -> Self {
         let offset_span = owned_blob_match.matching_input_offset_span;
-        // Extract the matched secret content. Use capture group 1 if it exists, otherwise fall back
-        // to group 0.
+        // EXTERNAL FINGERPRINT: Use get(1).or_else(get(0)) for backward compatibility.
+        // See comment in from_blob_match() for why this differs from validation_dedup_key().
         let matching_finding_bytes = owned_blob_match
             .captures
             .captures

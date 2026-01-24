@@ -16,7 +16,7 @@ use once_cell::sync::{Lazy, OnceCell};
 use reqwest::{header, header::HeaderValue, multipart, Client, Url};
 use rustc_hash::FxHashMap;
 use tokio::{sync::Notify, time};
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::{
     location::OffsetSpan,
@@ -91,16 +91,38 @@ pub fn set_user_agent_suffix<S: Into<String>>(suffix: Option<S>) {
 // Use SkipMap-based cache instead of a mutex-wrapped FxHashMap.
 type Cache = Arc<SkipMap<String, CachedResponse>>;
 
-/// Returns an opaque 64-bit fingerprint for “same secret under the same rule”.
-fn secret_fingerprint(m: &OwnedBlobMatch) -> u64 {
+/// Returns an opaque 64-bit key for internal validation deduplication.
+///
+/// This is an INTERNAL key used only for validation deduplication within a single scan.
+/// It uses `captures.get(0)` to get the primary secret value.
+///
+/// **Important**: This is distinct from the EXTERNAL `finding_fingerprint` used for:
+/// - Baseline comparisons across scans
+/// - Deduplication entries in external systems
+/// - Reporting output
+///
+/// The external fingerprint uses `get(1).or_else(get(0))` for backward compatibility
+/// and must remain stable. This internal key can evolve independently.
+fn validation_dedup_key(m: &OwnedBlobMatch) -> u64 {
     let mut hasher = xxhash_rust::xxh3::Xxh3::new();
     m.rule.syntax().id.hash(&mut hasher);
 
-    // first capture = the secret text itself
-    if let Some(c0) = m.captures.captures.get(0) {
-        c0.raw_value().hash(&mut hasher);
+    // Use the first capture (primary secret) for deduplication.
+    // Note: capture_value is stored in a variable because it's also used in trace! below.
+    let capture_value = m.captures.captures.get(0).map(|c| c.raw_value());
+    if let Some(val) = capture_value {
+        val.hash(&mut hasher);
     }
-    hasher.finish()
+    let key = hasher.finish();
+
+    trace!(
+        rule_id = %m.rule.syntax().id,
+        capture_value = ?capture_value,
+        validation_dedup_key = key,
+        "Computed internal validation dedup key"
+    );
+
+    key
 }
 
 static VALIDATION_CACHE: OnceCell<DashMap<u64, CachedResponse>> = OnceCell::new();
@@ -171,11 +193,16 @@ pub fn collect_variables_and_dependencies(
 
             if !matching_dependencies.is_empty() {
                 for other_match in matching_dependencies {
+                    // VALIDATION: Use get(0) for the primary capture value when collecting
+                    // dependent variables. This ensures we get the main captured value rather
+                    // than inner unnamed groups from nested captures like (?<REGEX>...(ABC)...).
+                    //
+                    // Note: This differs from fingerprint/reporting code which uses
+                    // get(1).or_else(get(0)) for backward compatibility.
                     let matching_input = other_match
                         .captures
                         .captures
-                        .get(1)
-                        .or_else(|| other_match.captures.captures.get(0))
+                        .get(0)
                         .expect("Expected at least one capture");
                     variable_map
                         .entry(dependency.variable.to_uppercase())
@@ -297,7 +324,7 @@ async fn timed_validate_single_match<'a>(
     // ──────────────────────────────────────────────────────────
     // 1. process-wide fingerprint de-dup
     // ──────────────────────────────────────────────────────────
-    let fp = secret_fingerprint(m);
+    let fp = validation_dedup_key(m);
 
     if let Some(entry) = VALIDATION_CACHE.get_or_init(DashMap::new).get(&fp) {
         if entry.timestamp.elapsed() < Duration::from_secs(VALIDATION_CACHE_SECONDS) {
@@ -453,10 +480,21 @@ async fn timed_validate_single_match<'a>(
                         header_map.insert(name.as_str().to_string(), v.to_string());
                     }
                 }
+
+                // Render the body template to include in cache key
+                let rendered_body =
+                    http_validation.request.body.as_ref().and_then(|body_template| {
+                        parser
+                            .parse(body_template)
+                            .ok()
+                            .and_then(|template| template.render(&globals).ok())
+                    });
+
                 cache_key = httpvalidation::generate_http_cache_key_parts(
                     http_validation.request.method.as_str(),
                     &url,
                     &header_map,
+                    rendered_body.as_deref(),
                 );
                 if let Some(cached) = cache.get(&cache_key) {
                     let c = cached.value();

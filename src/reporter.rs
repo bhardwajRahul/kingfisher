@@ -228,6 +228,12 @@ impl DetailsReporter {
     }
 
     fn normalized_finding_fingerprint(m: &Match, origin: &OriginSet) -> u64 {
+        // EXTERNAL FINGERPRINT: Use get(1).or_else(get(0)) for backward compatibility.
+        //
+        // This indexing is intentionally different from the internal `validation_dedup_key()`
+        // (which uses get(0)) to maintain stable external fingerprints and consistent
+        // reporting output. Changing this would break historical baselines and alter
+        // finding appearance.
         let finding_value = m
             .groups
             .captures
