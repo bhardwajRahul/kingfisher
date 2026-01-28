@@ -1,0 +1,131 @@
+//! Credential validation module for Kingfisher.
+//!
+//! This module provides functionality for validating detected secrets by checking
+//! if they are still active/valid. Validation is gated behind the `validation` feature.
+//!
+//! # Features
+//!
+//! Enable validation features in your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! kingfisher-scanner = { version = "0.1", features = ["validation"] }
+//! ```
+//!
+//! # Available Validators
+//!
+//! - **HTTP**: Generic HTTP-based validation via configurable requests
+//! - **AWS**: AWS credential validation via STS (requires `validation-aws` feature)
+//! - **GCP**: GCP service account validation (requires `validation-gcp` feature)
+//! - **Azure**: Azure Storage credential validation (requires `validation-azure` feature)
+//! - **Databases**: MongoDB, MySQL, Postgres, JDBC (requires `validation-database` feature)
+//! - **JWT**: JWT token validation (requires `validation-jwt` feature)
+
+mod utils;
+mod validation_body;
+
+#[cfg(feature = "validation-http")]
+mod http_validation;
+
+#[cfg(feature = "validation-aws")]
+pub mod aws;
+
+// Re-exports
+pub use utils::{find_closest_variable, process_captures};
+pub use validation_body::{as_str, clone_as_string, from_string, ValidationResponseBody};
+
+#[cfg(feature = "validation-http")]
+pub use http_validation::{
+    build_request_builder, check_url_resolvable, generate_http_cache_key_parts, parse_http_method,
+    process_headers, retry_multipart_request, retry_request, validate_response,
+};
+
+#[cfg(feature = "validation-aws")]
+pub use aws::{
+    aws_key_to_account_number, generate_aws_cache_key, set_aws_skip_account_ids,
+    set_aws_validation_concurrency, should_skip_aws_validation, validate_aws_credentials,
+    validate_aws_credentials_input,
+};
+
+use once_cell::sync::OnceCell;
+use std::time::{Duration, Instant};
+
+/// User agent string used for HTTP validation requests.
+#[cfg(feature = "validation-http")]
+pub static GLOBAL_USER_AGENT: once_cell::sync::Lazy<String> =
+    once_cell::sync::Lazy::new(build_user_agent);
+
+#[cfg(feature = "validation-http")]
+static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
+
+#[cfg(feature = "validation-http")]
+const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
+         AppleWebKit/537.36 (KHTML, like Gecko) \
+         Chrome/140.0.0.0 Safari/537.36";
+
+#[cfg(feature = "validation-http")]
+fn build_user_agent() -> String {
+    let base = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    if let Some(suffix) = USER_AGENT_SUFFIX.get() {
+        format!("{base} {suffix} {BROWSER_USER_AGENT}")
+    } else {
+        format!("{base} {BROWSER_USER_AGENT}")
+    }
+}
+
+/// Configure a user-agent suffix that is appended after the Kingfisher package name/version.
+///
+/// The suffix is inserted before the browser portion of the user-agent. Empty or whitespace-only
+/// values are ignored. This should be called once near program start prior to accessing
+/// [`GLOBAL_USER_AGENT`].
+#[cfg(feature = "validation-http")]
+pub fn set_user_agent_suffix<S: Into<String>>(suffix: Option<S>) {
+    if let Some(suffix) = suffix {
+        let trimmed = suffix.into().trim().to_string();
+        if trimmed.is_empty() {
+            return;
+        }
+        let _ = USER_AGENT_SUFFIX.set(trimmed);
+    }
+}
+
+/// Cache duration for validation results (20 minutes).
+pub const VALIDATION_CACHE_SECONDS: u64 = 1200;
+
+/// A cached validation response.
+#[derive(Clone, Debug)]
+pub struct CachedResponse {
+    /// The response body from validation.
+    pub body: ValidationResponseBody,
+    /// The HTTP status code.
+    pub status: http::StatusCode,
+    /// Whether the credential was valid.
+    pub is_valid: bool,
+    /// When this result was cached.
+    pub timestamp: Instant,
+}
+
+impl CachedResponse {
+    /// Create a new cached response.
+    pub fn new(body: ValidationResponseBody, status: http::StatusCode, is_valid: bool) -> Self {
+        Self { body, status, is_valid, timestamp: Instant::now() }
+    }
+
+    /// Check if this cached response is still valid.
+    pub fn is_still_valid(&self, cache_duration: Duration) -> bool {
+        self.timestamp.elapsed() < cache_duration
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cached_response_expiry() {
+        let response = CachedResponse::new(from_string("test"), http::StatusCode::OK, true);
+
+        assert!(response.is_still_valid(Duration::from_secs(60)));
+        assert!(response.is_still_valid(Duration::from_secs(1)));
+    }
+}

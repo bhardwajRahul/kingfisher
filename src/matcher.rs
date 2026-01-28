@@ -407,8 +407,8 @@ impl<'a> Matcher<'a> {
             self.user_data.raw_matches_scratch.iter().rev()
         {
             let rule_id_usize: usize = rule_id as usize;
-            let rule = Arc::clone(&rules_db.rules[rule_id_usize]);
-            let re = &rules_db.anchored_regexes[rule_id_usize];
+            let rule = Arc::clone(&rules_db.rules()[rule_id_usize]);
+            let re = &rules_db.anchored_regexes()[rule_id_usize];
             let start_idx_usize = start_idx as usize;
             let end_idx_usize = end_idx as usize;
             let current_span = OffsetSpan::from_range(start_idx_usize..end_idx_usize);
@@ -439,8 +439,8 @@ impl<'a> Matcher<'a> {
         if let Some(ref ts_results) = owned_ts_results {
             for (ts_range, ts_match, is_base64_decoded, _original_base64) in ts_results.iter() {
                 if *is_base64_decoded {
-                    for (rule_id_usize, rule) in rules_db.rules.iter().enumerate() {
-                        let re = &rules_db.anchored_regexes[rule_id_usize];
+                    for (rule_id_usize, rule) in rules_db.rules().iter().enumerate() {
+                        let re = &rules_db.anchored_regexes()[rule_id_usize];
                         filter_match(
                             blob,
                             rule.clone(),
@@ -471,8 +471,8 @@ impl<'a> Matcher<'a> {
             let mut b64_stack: Vec<(DecodedData, usize)> =
                 b64_items.drain(..).map(|d| (d, 0)).collect();
             while let Some((item, depth)) = b64_stack.pop() {
-                for (rule_id_usize, rule) in rules_db.rules.iter().enumerate() {
-                    let re = &rules_db.anchored_regexes[rule_id_usize];
+                for (rule_id_usize, rule) in rules_db.rules().iter().enumerate() {
+                    let re = &rules_db.anchored_regexes()[rule_id_usize];
                     filter_match(
                         blob,
                         rule.clone(),
@@ -1221,7 +1221,7 @@ mod test {
 
             let rules_db  = RulesDatabase::from_rules(vec![rule]).unwrap();
             let seen      = BlobIdMap::new();
-            let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+            let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
             let mut m     = Matcher::new(
                 &rules_db,
                 scanner_pool,
@@ -1297,7 +1297,7 @@ mod test {
         let enable_rule_profiling = true;
         // let mut matcher = Matcher::new(&rules_db, &seen_blobs, None,
         // enable_rule_profiling)?;
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher = Matcher::new(
             &rules_db,
             scanner_pool,
@@ -1345,7 +1345,7 @@ mod test {
         let rules_db = RulesDatabase::from_rules(rules)?;
         let input = b"prefixgood prefixtest";
         let seen_blobs: BlobIdMap<bool> = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher = Matcher::new(
             &rules_db,
             scanner_pool,
@@ -1408,7 +1408,7 @@ mod test {
         let rules_db = RulesDatabase::from_rules(rules)?;
         let input = b"prefixgood prefixtest";
         let seen_blobs: BlobIdMap<bool> = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher = Matcher::new(
             &rules_db,
             scanner_pool,
@@ -1522,7 +1522,7 @@ mod test {
 
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut m =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
 
@@ -1560,7 +1560,7 @@ mod test {
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
 
@@ -1593,7 +1593,7 @@ mod test {
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
 
@@ -1638,7 +1638,7 @@ line2
         let origin = OriginSet::from(Origin::from_file(PathBuf::from("compat.txt")));
 
         let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let mut matcher =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
         let matches_without_compat =
@@ -1649,7 +1649,7 @@ line2
         assert_eq!(matches_without_compat, 1, "directive should be ignored without compat flag");
 
         let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
         let extra = vec![String::from("gitleaks:allow")];
         let mut matcher =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &extra, false, true)?;

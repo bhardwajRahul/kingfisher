@@ -1,0 +1,64 @@
+[package]
+name = "kingfisher-rules"
+version = "0.1.0"
+description = "Rule definitions and database for Kingfisher secret scanner"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Internal dependencies
+kingfisher-core = { path = "../kingfisher-core" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+schemars = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Regex
+regex = "1.12"
+lazy_static = "1.5"
+
+# Hashing
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Liquid templating (for checksum validation)
+liquid = "0.26"
+liquid-core = "0.26"
+
+# Crypto for liquid filters
+base64 = "0.22"
+crc32fast = "1.5"
+hmac = "0.12"
+sha1 = "0.10"
+sha2 = "0.10"
+percent-encoding = "2.3"
+time = "0.3"
+uuid = { version = "1.19", features = ["v4"] }
+rand = "0.9"
+
+# Vectorscan for pattern matching
+vectorscan-rs = "0.0.5"
+
+# Logging
+tracing = "0.1"
+
+# File walking
+walkdir = "2.5"
+ignore = "0.4"
+
+# Embedded rule files
+include_dir = "0.7"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+proptest = "1.6"

@@ -9,4 +9,5 @@ pub mod inputs;
 pub mod output;
 pub mod rules;
 pub mod scan;
+pub mod validate;
 pub mod view;

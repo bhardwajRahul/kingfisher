@@ -823,7 +823,7 @@ pub async fn fetch_s3_objects(
     let role_arn = args.input_specifier_args.role_arn.as_deref();
     let profile = args.input_specifier_args.aws_local_profile.as_deref();
 
-    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
     let seen_blobs = BlobIdMap::new();
     let matcher = Matcher::new(
         rules_db,
@@ -905,7 +905,7 @@ pub async fn fetch_gcs_objects(
     let prefix = args.input_specifier_args.gcs_prefix.as_deref();
     let service_account = args.input_specifier_args.gcs_service_account.as_deref();
 
-    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
     let seen_blobs = BlobIdMap::new();
     let matcher = Matcher::new(
         rules_db,

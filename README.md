@@ -39,6 +39,7 @@ Designed for offensive security engineers and blue-teamers alike, Kingfisher hel
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
 - **Built-in Report Viewer**: Visualize and triage findings locally with `kingisher view ./report-file.json`
+- **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
 **Learn more:** [Introducing Kingfisher: Real‑Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -58,7 +59,7 @@ NOTE: Replay has been slowed down for demo
 ![alt text](docs/kingfisher-usage-01.gif)
 
 ## Report Viewer Demo
-Explore Kingfisher’s built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, and GitLab...more coming) can actually access : [Access map outputs and viewer](#access-map-outputs-and-viewer)
+Explore Kingfisher’s built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, GitLab, and Slack...more coming) can actually access : [Access map outputs and viewer](#access-map-outputs-and-viewer)
 
 Note: when you pass `--view-report`, Kingfisher starts a **localhost-only** web server on port `7890` and opens it in your default browser. You’ll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
@@ -117,6 +118,7 @@ kingfisher scan /path/to/scan --access-map --view-report
     - [Access map outputs and viewer](#access-map-outputs-and-viewer)
     - [View access-map reports locally](#view-access-map-reports-locally)
     - [Pipe any text directly into Kingfisher by passing `-`](#pipe-any-text-directly-into-kingfisher-by-passing--)
+    - [Direct secret validation with `kingfisher validate`](#direct-secret-validation-with-kingfisher-validate)
     - [Limit maximum file size scanned (`--max-file-size`)](#limit-maximum-file-size-scanned---max-file-size)
     - [Scan using a rule _family_ with one flag](#scan-using-a-rule-family-with-one-flag)
     - [Display rule performance statistics](#display-rule-performance-statistics)
@@ -189,6 +191,7 @@ kingfisher scan /path/to/scan --access-map --view-report
   - [Rule Performance Profiling](#rule-performance-profiling)
   - [CLI Options](#cli-options)
   - [Lineage and Evolution](#lineage-and-evolution)
+- [Library Usage](#library-usage)
 - [Roadmap](#roadmap)
 - [License](#license)
 
@@ -593,7 +596,7 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 Finding a leaked credential is only the first step. The critical question isn’t just “Is this a secret?”—it’s “What can an attacker do with it?”
 
-Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, or GitLab) to map the full extent of the credential's power. 
+Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, GitLab, or Slack) to map the full extent of the credential's power. 
 
 * Instant Identity Resolution: Immediately identify who the key belongs to—whether it's a specific IAM user, an assumed role, or a service account.
 * Visualize the Blast Radius: See exactly which resources (S3 buckets, EC2 instances, projects, storage containers) are exposed and at risk.
@@ -622,6 +625,77 @@ The `view` subcommand starts a local-only server (default port `7890`) that bund
 ```bash
 cat /path/to/file.py | kingfisher scan -
 
+```
+
+### Direct secret validation with `kingfisher validate`
+
+When you already know a secret's type and have the raw value, use `kingfisher validate` to check if it's still active—without needing the surrounding context that detection rules require.
+
+This is useful for:
+- Re-validating a known secret from a previous scan
+- Checking if a credential is still active before rotation
+- Validating secrets from external sources (password managers, ticketing systems, etc.)
+
+```bash
+# Validate an OpsGenie API key (using rule prefix matching)
+kingfisher validate --rule kingfisher.opsgenie "12345678-9abc-def0-1234-56789abcdef0"
+
+# Validate from stdin
+echo "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | kingfisher validate --rule kingfisher.github -
+
+# JSON output for scripting
+kingfisher validate --rule kingfisher.slack "xoxb-..." --format json
+
+# AWS credentials - use --arg to auto-assign additional values
+kingfisher validate --rule kingfisher.aws --arg AKIAIOSFODNN7EXAMPLE \
+  "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+# Or use --var if you know the variable name
+kingfisher validate --rule kingfisher.aws.2 --var AKID=AKIAIOSFODNN7EXAMPLE \
+  "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+# GCP service account (pass JSON as secret)
+kingfisher validate --rule kingfisher.gcp "$(cat service-account.json)"
+
+# MongoDB connection string
+kingfisher validate --rule kingfisher.mongodb.3 \
+  "mongodb+srv://user:password@cluster.mongodb.net/db"
+
+# PostgreSQL connection
+kingfisher validate --rule kingfisher.postgres \
+  "postgres://admin:password@db.example.com:5432/mydb"
+
+# JWT token
+kingfisher validate --rule kingfisher.jwt \
+  "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Supported validators:** HTTP, AWS, GCP, MongoDB, MySQL, Postgres, JDBC, JWT, Azure Storage, and Coinbase.
+
+**Exit codes:** Returns `0` if any matching rule validates the secret as valid, `1` if all are invalid or an error occurred.
+
+**Passing additional values (`--arg` and `--var`):**
+
+Some validators need more than just the secret. For example, AWS needs both an access key ID and the secret key (see the rule for `dependent_rule` section):
+
+- `--arg VALUE` — Auto-assigns values to template variables (in alphabetical order). Use when you don't know the exact variable name.
+- `--var NAME=VALUE` — Explicitly sets a variable. Use when you know the exact name, or to override `--arg`.
+
+```bash
+# --arg auto-assigns to AKID (the only non-TOKEN variable for AWS)
+kingfisher validate --rule kingfisher.aws --arg AKIAEXAMPLE "secret_key"
+
+# --var for explicit assignment
+kingfisher validate --rule kingfisher.aws --var AKID=AKIAEXAMPLE "secret_key"
+```
+
+**Rule prefix matching:** Use partial rule IDs like `kingfisher.opsgenie` instead of the full `kingfisher.opsgenie.1`. If the prefix matches multiple rules, **all matching rules with compatible variables are tried**:
+
+```bash
+$ kingfisher validate --rule kingfisher.aws --arg AKIAEXAMPLE "secret_key"
+Rule:     AWS Secret Access Key (kingfisher.aws.2)
+Result:   ✓ VALID
+Response: arn:aws:iam::123456789012:user/example
 ```
 
 ### Limit maximum file size scanned (`--max-file-size`)
@@ -1612,6 +1686,41 @@ Since then it has evolved far beyond that starting point, introducing live valid
 - **New storage model** (in-memory + Bloom filter, replacing SQLite)  
 - **Unified workflow** with JSON/BSON/SARIF outputs  
 - **Cross-platform builds** for Linux, macOS, and Windows
+
+# Library Usage
+
+Kingfisher's scanning engine is available as a set of Rust library crates that can be embedded into other applications:
+
+| Crate | Description |
+|-------|-------------|
+| `kingfisher-core` | Core types: `Blob`, `BlobId`, `Location`, `Origin`, entropy calculation |
+| `kingfisher-rules` | Rule definitions, YAML parsing, compiled rule database, 200+ builtin rules |
+| `kingfisher-scanner` | High-level scanning API with `Scanner` and `Finding` types |
+
+**Quick example:**
+
+```rust
+use std::sync::Arc;
+use kingfisher_rules::{get_builtin_rules, RulesDatabase, Rule};
+use kingfisher_scanner::Scanner;
+
+// Load builtin rules and compile
+let rules = get_builtin_rules(None)?;
+let rule_vec: Vec<Rule> = rules.iter_rules()
+    .map(|syntax| Rule::new(syntax.clone()))
+    .collect();
+let rules_db = Arc::new(RulesDatabase::from_rules(rule_vec)?);
+
+// Create scanner and scan
+let scanner = Scanner::new(rules_db);
+let findings = scanner.scan_file("config.yml")?;
+
+for finding in findings {
+    println!("{}: {}", finding.rule_name, finding.secret);
+}
+```
+
+For complete documentation, see **[docs/LIBRARY.md](docs/LIBRARY.md)**.
 
 # Roadmap
 

@@ -25,16 +25,16 @@ use crate::{
     validation_body::{self, ValidationResponseBody},
 };
 
-mod aws;
-mod azure;
-mod coinbase;
+pub mod aws;
+pub mod azure;
+pub mod coinbase;
 pub mod gcp;
-mod httpvalidation;
-mod jdbc;
-mod jwt;
-mod mongodb;
-mod mysql;
-mod postgres;
+pub mod httpvalidation;
+pub mod jdbc;
+pub mod jwt;
+pub mod mongodb;
+pub mod mysql;
+pub mod postgres;
 pub use mysql::validate_mysql;
 pub use postgres::validate_postgres;
 pub mod utils;
