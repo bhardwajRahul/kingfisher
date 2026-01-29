@@ -18,8 +18,8 @@ pub mod rules_database;
 pub use rule::{
     ChecksumActual, ChecksumRequirement, Confidence, DependsOnRule, HttpRequest, HttpValidation,
     MultipartConfig, MultipartPart, PatternRequirementContext, PatternRequirements,
-    PatternValidationResult, ReportResponseData, ResponseMatcher, Rule, RuleSyntax, Validation,
-    RULE_COMMENTS_PATTERN,
+    PatternValidationResult, ReportResponseData, ResponseMatcher, Revocation, Rule, RuleSyntax,
+    Validation, RULE_COMMENTS_PATTERN,
 };
 
 // Re-export Rules collection

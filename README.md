@@ -119,6 +119,7 @@ kingfisher scan /path/to/scan --access-map --view-report
     - [View access-map reports locally](#view-access-map-reports-locally)
     - [Pipe any text directly into Kingfisher by passing `-`](#pipe-any-text-directly-into-kingfisher-by-passing--)
     - [Direct secret validation with `kingfisher validate`](#direct-secret-validation-with-kingfisher-validate)
+    - [Direct secret revocation with `kingfisher revoke`](#direct-secret-revocation-with-kingfisher-revoke)
     - [Limit maximum file size scanned (`--max-file-size`)](#limit-maximum-file-size-scanned---max-file-size)
     - [Scan using a rule _family_ with one flag](#scan-using-a-rule-family-with-one-flag)
     - [Display rule performance statistics](#display-rule-performance-statistics)
@@ -699,6 +700,30 @@ Rule:     AWS Secret Access Key (kingfisher.aws.2)
 Result:   ✓ VALID
 Response: arn:aws:iam::123456789012:user/example
 ```
+
+### Direct secret revocation with `kingfisher revoke`
+
+When you need to invalidate a known token immediately, use `kingfisher revoke` to call the rule's `revocation` configuration without scanning files. Revocation requests use the same Liquid templating and response matchers as `validation`.
+
+This is useful for:
+- Responding to a leaked credential quickly
+- Revoking tokens discovered during incident response
+- Automating cleanup after rotation
+
+```bash
+# Revoke a Slack token
+kingfisher revoke --rule slack "xoxb-..."
+
+# Revoke a GitHub PAT
+kingfisher revoke --rule github "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# JSON output for scripting
+kingfisher revoke --rule slack "xoxb-..." --format json
+```
+
+**Exit codes:** Returns `0` if any matching rule reports a successful revocation, `1` if all are failures or an error occurred.
+
+**Passing additional values (`--arg` and `--var`):** Works the same as `kingfisher validate` when a revocation request requires extra variables.
 
 ### Limit maximum file size scanned (`--max-file-size`)
 

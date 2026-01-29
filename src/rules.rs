@@ -9,6 +9,7 @@ pub mod rule {
 
 // Re-export everything from the rules module
 pub use kingfisher_rules::rules::{Rules, RulesError};
+pub use kingfisher_rules::rule::Revocation;
 pub use kingfisher_rules::{
     ChecksumActual, ChecksumRequirement, Confidence, DependsOnRule, HttpRequest, HttpValidation,
     MultipartConfig, MultipartPart, PatternRequirementContext, PatternRequirements,

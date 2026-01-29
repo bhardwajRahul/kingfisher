@@ -1,12 +1,12 @@
 # Writing Custom Rules for Kingfisher
 
-A _rule_ in Kingfisher is a YAML document that describes how to detect and (optionally) validate secrets in your codebase. With custom rules you can:
+A _rule_ in Kingfisher is a YAML document that describes how to detect and (optionally) validate or revoke secrets in your codebase. With custom rules you can:
 
 - **Extend** Kingfisher without touching Rust code  
 - **Tune** sensitivity via entropy and confidence  
 - **Plug in** live checks against external services  
 
-This document explains how to write custom rules for Kingfisher using a YAML-based rule system. The rules define regular expressions to detect secrets in source code and other textual data, and they can include validation steps to confirm the secret's authenticity. By using a rules-based system, Kingfisher is highly extensible—new rules can be added or existing ones modified without changing the core code.
+This document explains how to write custom rules for Kingfisher using a YAML-based rule system. The rules define regular expressions to detect secrets in source code and other textual data, and they can include validation or revocation steps to confirm or invalidate the secret. By using a rules-based system, Kingfisher is highly extensible—new rules can be added or existing ones modified without changing the core code.
 
 ## 1. Rule Schema
 
@@ -68,6 +68,19 @@ rules:
               header: content-type
               expected: ["application/json"]
             - type: JsonValid
+
+    revocation:                     # (optional) revoke a secret
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.example.com/v1/revoke
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200, 202]
 ```
 
 | Field                   | What it does                                                         |
@@ -82,6 +95,7 @@ rules:
 | depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
 | pattern_requirements  | Require character types and/or exclude placeholder words from matches |
 | validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
+| revocation              | Configure HTTP calls to revoke a detected secret                     |
 
 
 *responser_matcher* variants. Multiple can be used
@@ -394,7 +408,8 @@ When writing custom rules, consider the following best practices:
 1. **Multi-line Regex:** Write your regex patterns over multiple lines for clarity. Use the `(?x)` flag to enable free-spacing mode.
 2. **Optimize for Performance:** Structure your regex to minimize backtracking. Use non-capturing groups where possible and keep the pattern as concise as possible.
 3. **Validation Integration:** Define a `validation` section if you want to verify the detected secret. You can use Liquid templating to insert dynamic values—use the unnamed capture as `TOKEN` and any named captures in uppercase.
-4. **Test with Examples:** Always include examples that should match and, optionally, negative examples to ensure your rule behaves as expected.
+4. **Revocation Integration:** Define a `revocation` section if you want to revoke a detected secret. It uses the same HTTP request format and template variables as `validation`.
+5. **Test with Examples:** Always include examples that should match and, optionally, negative examples to ensure your rule behaves as expected.
 
 ## Examples
 

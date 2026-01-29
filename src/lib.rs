@@ -16,6 +16,7 @@ pub mod confluence;
 pub mod content_type;
 pub mod decompress;
 pub mod defaults;
+pub mod direct_revoke;
 pub mod direct_validate;
 pub mod entropy;
 pub mod finding_data;

@@ -24,6 +24,7 @@ fn make_rule(rule_id: &str, depends_on_rule: Vec<Option<DependsOnRule>>) -> Arc<
         negative_examples: vec![],
         references: vec![],
         validation: None,
+        revocation: None,
         depends_on_rule,
         pattern_requirements: None,
     }))

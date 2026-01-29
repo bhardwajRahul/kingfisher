@@ -8,7 +8,7 @@ use tracing::{debug, debug_span, error};
 
 use std::{collections::BTreeMap, fs::File, io::BufReader, path::Path};
 
-pub use crate::rule::{Confidence, RuleSyntax, Validation};
+pub use crate::rule::{Confidence, Revocation, RuleSyntax, Validation};
 use serde::de::DeserializeOwned;
 
 #[derive(Debug, Error)]
@@ -30,6 +30,9 @@ pub enum RulesError {
 
     #[error("HTTP validation for rule `{rule_id}` in file {path} missing response_matcher")]
     MissingResponseMatcher { path: String, rule_id: String },
+
+    #[error("HTTP revocation for rule `{rule_id}` in file {path} missing response_matcher")]
+    MissingRevocationMatcher { path: String, rule_id: String },
 }
 
 #[derive(Clone, Default)]
@@ -71,6 +74,19 @@ impl Rules {
                                 .map_or(true, |m| m.is_empty())
                             {
                                 bail!(RulesError::MissingResponseMatcher {
+                                    path: path.display().to_string(),
+                                    rule_id: rule_syntax.id.clone(),
+                                });
+                            }
+                        }
+                        if let Some(Revocation::Http(http_revocation)) = &rule_syntax.revocation {
+                            if http_revocation
+                                .request
+                                .response_matcher
+                                .as_ref()
+                                .map_or(true, |m| m.is_empty())
+                            {
+                                bail!(RulesError::MissingRevocationMatcher {
                                     path: path.display().to_string(),
                                     rule_id: rule_syntax.id.clone(),
                                 });
@@ -143,6 +159,19 @@ impl Rules {
                         if http_val.request.response_matcher.as_ref().map_or(true, |m| m.is_empty())
                         {
                             bail!(RulesError::MissingResponseMatcher {
+                                path: path.display().to_string(),
+                                rule_id: rule_syntax.id.clone(),
+                            });
+                        }
+                    }
+                    if let Some(Revocation::Http(http_revocation)) = &rule_syntax.revocation {
+                        if http_revocation
+                            .request
+                            .response_matcher
+                            .as_ref()
+                            .map_or(true, |m| m.is_empty())
+                        {
+                            bail!(RulesError::MissingRevocationMatcher {
                                 path: path.display().to_string(),
                                 rule_id: rule_syntax.id.clone(),
                             });

@@ -694,7 +694,7 @@ pub async fn run_direct_validation(
 }
 
 /// Create minimal scan args for rule loading.
-fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs {
+pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs {
     use crate::cli::commands::{
         azure::AzureRepoType,
         bitbucket::BitbucketAuthArgs,

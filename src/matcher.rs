@@ -1215,6 +1215,7 @@ mod test {
                 negative_examples: vec![],
                 references: vec![],
                 validation: None::<Validation>,          // no HTTP validation needed
+                revocation: None,
                 depends_on_rule: vec![],
                 pattern_requirements: None,
             });
@@ -1279,6 +1280,7 @@ mod test {
                 },
                 multipart: None,
             })),
+            revocation: None,
             depends_on_rule: vec![
                 Some(DependsOnRule {
                     rule_id: "d8f3c34b-015f-4cd6-b411-b1366493104c".to_string(),
@@ -1330,6 +1332,7 @@ mod test {
             negative_examples: vec![],
             references: vec![],
             validation: None,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: Some(PatternRequirements {
                 min_digits: None,
@@ -1393,6 +1396,7 @@ mod test {
             negative_examples: vec![],
             references: vec![],
             validation: None,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: Some(PatternRequirements {
                 min_digits: None,
@@ -1516,6 +1520,7 @@ mod test {
             negative_examples: vec![],
             references: vec![],
             validation: None::<Validation>,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
         });
@@ -1555,6 +1560,7 @@ mod test {
             negative_examples: vec![],
             references: vec![],
             validation: None::<Validation>,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
         });
@@ -1588,6 +1594,7 @@ mod test {
             negative_examples: vec![],
             references: vec![],
             validation: None::<Validation>,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
         });
@@ -1629,6 +1636,7 @@ line2
             negative_examples: vec![],
             references: vec![],
             validation: None::<Validation>,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
         });

@@ -21,6 +21,7 @@
 //!     negative_examples: vec![],
 //!     references: vec![],
 //!     validation: None,
+//!     revocation: None,
 //!     depends_on_rule: vec![],
 //!     pattern_requirements: None,
 //! })];

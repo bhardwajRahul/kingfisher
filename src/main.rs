@@ -48,7 +48,7 @@ use kingfisher::{
         global::Command,
         CommandLineArgs, GlobalArgs,
     },
-    direct_validate, findings_store,
+    direct_revoke, direct_validate, findings_store,
     findings_store::FindingsStore,
     gitea, github, huggingface,
     reporter::{styles::Styles, DetailsReporter},
@@ -93,6 +93,7 @@ fn main() -> anyhow::Result<()> {
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
         Command::Rules(_) => num_cpus::get(), // Default for Rules commands
         Command::Validate(_) => 1, // Single validation request
+        Command::Revoke(_) => 1, // Single revocation request
         Command::AccessMap(_) => 1,
         Command::View(_) => 1,
     };
@@ -205,6 +206,18 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
             direct_validate::print_results(&results, &validate_args.format, use_color);
             // Exit with code 0 if any result is valid, 1 if all invalid
             if direct_validate::any_valid(&results) {
+                Ok(())
+            } else {
+                std::process::exit(1);
+            }
+        }
+        Command::Revoke(revoke_args) => {
+            let results =
+                direct_revoke::run_direct_revocation(&revoke_args, &global_args).await?;
+            let use_color = global_args.use_color(std::io::stdout());
+            direct_revoke::print_results(&results, &revoke_args.format, use_color);
+            // Exit with code 0 if any result revoked, 1 if all failed
+            if direct_revoke::any_revoked(&results) {
                 Ok(())
             } else {
                 std::process::exit(1);
@@ -395,6 +408,9 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                 }
                 Command::Validate(_) => {
                     anyhow::bail!("Validate command should not reach this branch")
+                }
+                Command::Revoke(_) => {
+                    anyhow::bail!("Revoke command should not reach this branch")
                 }
                 Command::SelfUpdate => {
                     anyhow::bail!("SelfUpdate command should not reach this branch")
