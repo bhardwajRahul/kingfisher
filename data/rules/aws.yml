@@ -84,7 +84,7 @@ rules:
     pattern: |
       (?x)
       (
-        ABSKQmVkcm9ja0FQSUtleS[A-Za-z0-9+/=]{110}
+        ABSKQmVkcm9ja0FQSUtleS[A-Za-z0-9+/]{91,}={0,2}
       )
     min_entropy: 3.0
     confidence: medium
