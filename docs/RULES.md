@@ -81,6 +81,21 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200, 202]
+
+```
+
+AWS access key revocation can use:
+
+```yaml
+revocation:
+  type: AWS
+```
+
+GCP service account key revocation can use:
+
+```yaml
+revocation:
+  type: GCP
 ```
 
 | Field                   | What it does                                                         |
@@ -95,7 +110,7 @@ rules:
 | depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
 | pattern_requirements  | Require character types and/or exclude placeholder words from matches |
 | validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
-| revocation              | Configure HTTP calls to revoke a detected secret                     |
+| revocation              | Configure HTTP or AWS revocation actions for a detected secret       |
 
 
 *responser_matcher* variants. Multiple can be used

@@ -717,6 +717,20 @@ kingfisher revoke --rule slack "xoxb-..."
 # Revoke a GitHub PAT
 kingfisher revoke --rule github "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
+# Revoke a GitLab personal access token (self revoke)
+kingfisher revoke --rule gitlab "glpat-xxxxxxxxxxxxxxxxxxxx"
+
+# Revoke an Atlassian API token (requires account_id, tokenId, admin access token)
+kingfisher revoke --rule atlassian --arg "<account_id>" --arg "<token_id>" "<admin_access_token>"
+
+# Revoke AWS credentials (sets access key to Inactive)
+kingfisher revoke --rule aws --arg "AKIAIOSFODNN7EXAMPLE" "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+# Revoke a GCP service account key (JSON key file)
+kingfisher revoke --rule gcp '{"type":"service_account","project_id":"example","private_key_id":"abcd1234","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"example@project.iam.gserviceaccount.com","token_uri":"https://oauth2.googleapis.com/token"}'
+
+kingfisher revoke --rule gcp "$(cat service-account.json)"
+
 # JSON output for scripting
 kingfisher revoke --rule slack "xoxb-..." --format json
 ```

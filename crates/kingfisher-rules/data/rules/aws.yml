@@ -63,6 +63,8 @@ rules:
           },
     validation:
       type: AWS
+    revocation:
+      type: AWS
     depends_on_rule:
       - rule_id: kingfisher.aws.1
         variable: AKID

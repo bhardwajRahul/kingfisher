@@ -35,6 +35,18 @@ rules:
               words:
                 - '"id"'
           url: https://gitlab.com/api/v4/personal_access_tokens/self
+    revocation:
+      type: Http
+      content:
+        request:
+          headers:
+            PRIVATE-TOKEN: '{{ TOKEN }}'
+          method: DELETE
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
+          url: https://gitlab.com/api/v4/personal_access_tokens/self
 
   - name: GitLab Runner Registration Token
     id: kingfisher.gitlab.2
@@ -166,4 +178,16 @@ rules:
             - type: WordMatch
               words:
                 - '"id"'
+          url: https://gitlab.com/api/v4/personal_access_tokens/self
+    revocation:
+      type: Http
+      content:
+        request:
+          headers:
+            PRIVATE-TOKEN: '{{ TOKEN }}'
+          method: DELETE
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
           url: https://gitlab.com/api/v4/personal_access_tokens/self

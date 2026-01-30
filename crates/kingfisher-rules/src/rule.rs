@@ -58,6 +58,8 @@ pub enum Validation {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 #[serde(tag = "type", content = "content")]
 pub enum Revocation {
+    AWS,
+    GCP,
     Http(HttpValidation),
 }
 

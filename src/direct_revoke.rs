@@ -11,7 +11,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use liquid::Object;
-use liquid_core::Value;
+use liquid_core::{Value, ValueView};
 use regex::Regex;
 use reqwest::Client;
 use serde::Serialize;
@@ -22,6 +22,8 @@ use crate::{
     liquid_filters::register_all,
     rule_loader::RuleLoader,
     rules::{rule::Rule, HttpValidation, Revocation},
+    validation::aws::{revoke_aws_access_key, validate_aws_credentials_input},
+    validation::gcp::revoke_gcp_service_account_key,
     validation::httpvalidation::{build_request_builder, retry_request, validate_response},
     validation::GLOBAL_USER_AGENT,
 };
@@ -94,6 +96,13 @@ fn extract_revocation_vars(revocation: &Revocation) -> BTreeSet<String> {
     let mut vars = BTreeSet::new();
 
     match revocation {
+        Revocation::AWS => {
+            vars.insert("AKID".to_string());
+            vars.insert("TOKEN".to_string());
+        }
+        Revocation::GCP => {
+            vars.insert("TOKEN".to_string());
+        }
         Revocation::Http(http) => {
             vars.extend(extract_template_vars(&http.request.url));
             for (key, value) in &http.request.headers {
@@ -107,6 +116,11 @@ fn extract_revocation_vars(revocation: &Revocation) -> BTreeSet<String> {
     }
 
     vars
+}
+
+/// Extract a string value from the globals object.
+fn get_global_var(globals: &Object, name: &str) -> Option<String> {
+    globals.get(name).and_then(|v| v.to_kstr().to_string().into())
 }
 
 /// Build the globals object for Liquid template rendering.
@@ -324,6 +338,62 @@ pub async fn run_direct_revocation(
         }
 
         let mut result = match revocation {
+            Revocation::AWS => {
+                let akid = get_global_var(&globals, "AKID")
+                    .or_else(|| get_global_var(&globals, "ACCESS_KEY_ID"))
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "AWS revocation requires AKID variable. Use: --var AKID=<access_key_id> <secret_access_key>"
+                        )
+                    })?;
+
+                if let Err(err) = validate_aws_credentials_input(&akid, &secret) {
+                    DirectRevocationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        revoked: false,
+                        status_code: None,
+                        message: format!("Invalid AWS credentials: {}", err),
+                    }
+                } else {
+                    match revoke_aws_access_key(&akid, &secret).await {
+                        Ok((revoked, message)) => DirectRevocationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            revoked,
+                            status_code: None,
+                            message,
+                        },
+                        Err(e) => DirectRevocationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            revoked: false,
+                            status_code: None,
+                            message: format!("AWS revocation error: {}", e),
+                        },
+                    }
+                }
+            }
+            Revocation::GCP => {
+                let key_id_override = get_global_var(&globals, "KEY_ID")
+                    .or_else(|| get_global_var(&globals, "PRIVATE_KEY_ID"));
+                match revoke_gcp_service_account_key(&secret, key_id_override.as_deref()).await {
+                    Ok(outcome) => DirectRevocationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        revoked: outcome.revoked,
+                        status_code: outcome.status_code,
+                        message: outcome.message,
+                    },
+                    Err(e) => DirectRevocationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        revoked: false,
+                        status_code: None,
+                        message: format!("GCP revocation error: {}", e),
+                    },
+                }
+            }
             Revocation::Http(http_revocation) => {
                 execute_http_revocation(
                     http_revocation,

@@ -6,6 +6,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{Duration as ChronoDuration, Utc};
 use once_cell::sync::OnceCell;
 use pem::parse;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{Client, Proxy};
 use ring::{rand, signature};
 use serde_json::Value as JsonValue;
@@ -25,6 +26,14 @@ pub struct GcpTokenContext {
     pub access_token: String,
     pub project_id: String,
     pub client_email: String,
+}
+
+/// Result of a GCP service account key revocation attempt.
+#[derive(Debug, Clone)]
+pub struct GcpRevocationOutcome {
+    pub revoked: bool,
+    pub status_code: Option<u16>,
+    pub message: String,
 }
 
 impl GcpValidator {
@@ -79,6 +88,59 @@ impl GcpValidator {
 
         Ok(GcpTokenContext { access_token, project_id, client_email })
     }
+}
+
+/// Revoke a GCP service account key using the IAM API.
+pub async fn revoke_gcp_service_account_key(
+    gcp_json: &str,
+    key_id_override: Option<&str>,
+) -> Result<GcpRevocationOutcome> {
+    let validator = GcpValidator::global()?;
+    let token_info: JsonValue = serde_json::from_str(gcp_json)?;
+
+    let project_id = token_info["project_id"].as_str().unwrap_or("").to_string();
+    let client_email = token_info["client_email"].as_str().unwrap_or("").to_string();
+    let mut key_id = token_info["private_key_id"].as_str().unwrap_or("").to_string();
+    if let Some(override_id) = key_id_override {
+        if !override_id.trim().is_empty() {
+            key_id = override_id.trim().to_string();
+        }
+    }
+
+    if project_id.is_empty() || client_email.is_empty() || key_id.is_empty() {
+        return Err(anyhow!(
+            "Missing required GCP fields: project_id/client_email/private_key_id"
+        ));
+    }
+
+    let ctx = validator.get_access_token_from_sa_json(gcp_json).await?;
+    let encode = |value: &str| utf8_percent_encode(value, NON_ALPHANUMERIC).to_string();
+    let url = format!(
+        "https://iam.googleapis.com/v1/projects/{}/serviceAccounts/{}/keys/{}",
+        encode(&project_id),
+        encode(&client_email),
+        encode(&key_id),
+    );
+
+    let response = validator
+        .client()
+        .delete(url)
+        .bearer_auth(&ctx.access_token)
+        .send()
+        .await?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .unwrap_or_else(|e| format!("Failed to read response body: {}", e));
+    let message = if body.trim().is_empty() { status.to_string() } else { body };
+
+    Ok(GcpRevocationOutcome {
+        revoked: status.is_success(),
+        status_code: Some(status.as_u16()),
+        message,
+    })
 }
 
 /// Generate a standardized cache key for GCP validation attempts.
