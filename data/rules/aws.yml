@@ -2,7 +2,7 @@ rules:
   - name: AWS Access Key ID
     id: kingfisher.aws.1
     pattern: |
-      (?xi)             
+      (?x)             
       \b
       (
         (?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)
