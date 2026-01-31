@@ -2,7 +2,7 @@ rules:
   - name: DeepSeek API Key
     id:   kingfisher.deepseek.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         sk-[a-f0-9]{32}
