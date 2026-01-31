@@ -121,6 +121,13 @@ rules:
           method: GET
           response_matcher:
             - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - 'data:'
+                - email
+                - name
+          url: https://app.asana.com/api/1.0/users/me
 
   - name: Asana OAuth / Personal Access Token (V2)
     id: kingfisher.asana.5
@@ -160,13 +167,6 @@ rules:
           method: GET
           response_matcher:
             - report_response: true
-            - match_all_words: true
-              type: WordMatch
-              words:
-                - 'data:'
-                - email
-                - name
-          url: https://app.asana.com/api/1.0/users/me
             - match_all_words: true
               type: WordMatch
               words:
