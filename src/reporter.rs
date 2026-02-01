@@ -627,45 +627,53 @@ impl DetailsReporter {
             .or_else(|| self.git_object_fallback_path(rm))
             .unwrap_or_else(|| format!("blob:{}", rm.blob_metadata.id.hex()));
 
-        // Try to find AKID from captures (for AWS)
-        let akid_from_captures: Option<String> =
-            rm.m.groups
+        // Generate validate/revoke commands only if not redacting (they contain the secret)
+        let (validate_command, revoke_command) = if args.redact {
+            (None, None)
+        } else {
+            // Try to find AKID from captures (for AWS)
+            let akid_from_captures: Option<String> = rm
+                .m
+                .groups
                 .captures
                 .iter()
                 .find(|c| c.name == Some("AKID") || c.name == Some("akid"))
                 .map(|c| c.raw_value().to_string());
 
-        // Try to extract AKID from validation response body (fallback for AWS)
-        let akid_from_body = extract_akid_from_validation_body(&rm.validation_response_body);
+            // Try to extract AKID from validation response body (fallback for AWS)
+            let akid_from_body = extract_akid_from_validation_body(&rm.validation_response_body);
 
-        // Generate validate command for findings with validation support
-        let validate_command = if let Some(validation) = &rm.m.rule.syntax().validation {
-            build_validate_command(
-                rm.m.rule.id(),
-                validation,
-                &raw_snippet,
-                akid_from_captures.as_deref(),
-                akid_from_body.as_deref(),
-            )
-        } else {
-            None
-        };
-
-        // Generate revoke command for active credentials with revocation support
-        let revoke_command = if rm.validation_success {
-            if let Some(revocation) = &rm.m.rule.syntax().revocation {
-                build_revoke_command(
+            // Generate validate command for findings with validation support
+            let validate_cmd = if let Some(validation) = &rm.m.rule.syntax().validation {
+                build_validate_command(
                     rm.m.rule.id(),
-                    revocation,
+                    validation,
                     &raw_snippet,
                     akid_from_captures.as_deref(),
                     akid_from_body.as_deref(),
                 )
             } else {
                 None
-            }
-        } else {
-            None
+            };
+
+            // Generate revoke command for active credentials with revocation support
+            let revoke_cmd = if rm.validation_success {
+                if let Some(revocation) = &rm.m.rule.syntax().revocation {
+                    build_revoke_command(
+                        rm.m.rule.id(),
+                        revocation,
+                        &raw_snippet,
+                        akid_from_captures.as_deref(),
+                        akid_from_body.as_deref(),
+                    )
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            (validate_cmd, revoke_cmd)
         };
 
         FindingReporterRecord {
