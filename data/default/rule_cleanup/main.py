@@ -21,7 +21,7 @@ except ModuleNotFoundError as exc:
         ) from exc
 
 
-RULES_DIR     = Path(os.path.expanduser("../../data/rules"))
+RULES_DIR     = Path(os.path.expanduser("../../crates/kingfisher-rules/data/rules"))
 URL_KEY_RE    = re.compile(r"url$", re.IGNORECASE)          # keys literally named “url”
 TEMPLATE_RE   = re.compile(r"\{\{.*?\}\}")                  # strip Liquid placeholders
 DOMAIN_RE     = re.compile(r"^(?:[a-z][a-z0-9+\-.]*://)?([^/]+)", re.I)
