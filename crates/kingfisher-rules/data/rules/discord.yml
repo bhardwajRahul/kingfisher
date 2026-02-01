@@ -4,11 +4,11 @@ rules:
     pattern: |
       (?xi)
       (
-        https://discord\.com/api/webhooks/
-        \d{18}
+        https://discord(app)?\.com/api/webhooks/
+        [0-9]{17,20}
       )/
       (
-        [0-9a-z_\-]{68}
+        [0-9a-z_\-]{60,68}
       )
       \b
     pattern_requirements:

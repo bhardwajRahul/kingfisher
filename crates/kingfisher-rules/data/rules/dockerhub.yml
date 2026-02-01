@@ -63,3 +63,35 @@ rules:
       - docker login --username=myuser
       - DOCKER_USERNAME=myuser
       - 'docker_user: "myuser"'
+
+  - name: Docker Hub Organization Access Token
+    id: kingfisher.dockerhub.3
+    pattern: |
+      (?xi)
+      \b
+      (
+        dckr_oat_[A-Z0-9_-]{32}
+      )
+      (?: $ | [^A-Z0-9_-] )
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.3
+    confidence: medium
+    examples:
+      - docker login -u docker-test -p dckr_oat_7bA9zRt5-JqX3vP0l_MnY8sK2wE-dF6h
+    references:
+      - https://docs.docker.com/enterprise/security/access-tokens/
+    validation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+            Accept: application/json
+          method: GET
+          response_matcher:
+            - report_response: true
+            - status:
+                - 200
+              type: StatusMatch
+          url: https://hub.docker.com/v2/access-tokens?page_size=1

@@ -5,7 +5,7 @@ rules:
       (?xi)
       \b
       (
-        pscale_tkn_[a-z0-9-_]{43}
+        pscale_tkn_[a-z0-9-_]{32,64}
       )
       \b
     pattern_requirements:

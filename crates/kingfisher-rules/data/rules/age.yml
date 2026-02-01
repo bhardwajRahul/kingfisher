@@ -2,14 +2,13 @@ rules:
   - name: Age Recipient (X25519 public key)
     id: kingfisher.age.1
     pattern: |
-      (?xi)
+      (?x)
       (
-        age1[0-9a-z]{58}
+        age1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}
       )
       \b
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
       min_lowercase: 1
     min_entropy: 3.3
     confidence: medium
@@ -23,9 +22,9 @@ rules:
   - name: Age Identity (X22519 secret key)
     id: kingfisher.age.2
     pattern: |
-      (?xi)
+      (?x)
       (
-        AGE-SECRET-KEY-1[0-9A-Z]{58}
+        AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}
       )
     min_entropy: 3.3
     confidence: medium
