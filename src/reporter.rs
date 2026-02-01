@@ -39,6 +39,11 @@ use crate::{
     origin::{get_repo_url, GitRepoOrigin},
 };
 
+/// Shell-escape a string for safe command-line usage using single quotes.
+fn escape_for_shell(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
 /// Generate a kingfisher revoke command for an active credential if the rule supports revocation.
 ///
 /// Returns `None` if:
@@ -52,12 +57,6 @@ fn build_revoke_command(
     akid_from_captures: Option<&str>,
     akid_from_validation_body: Option<&str>,
 ) -> Option<String> {
-    // Shell-escape the snippet/token for safe command-line usage
-    let escape_for_shell = |s: &str| -> String {
-        // Use single quotes and escape any single quotes within
-        format!("'{}'", s.replace('\'', "'\\''"))
-    };
-
     match revocation {
         Revocation::AWS => {
             // AWS needs the access key ID (AKID) in addition to the secret
@@ -80,6 +79,54 @@ fn build_revoke_command(
         Revocation::Http(_) => {
             // HTTP-based revocation just needs the token
             Some(format!("kingfisher revoke --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+    }
+}
+
+/// Generate a kingfisher validate command for a finding.
+///
+/// Returns `None` if the rule doesn't have validation configured or required data is missing.
+fn build_validate_command(
+    rule_id: &str,
+    validation: &crate::rules::Validation,
+    snippet: &str,
+    akid_from_captures: Option<&str>,
+    akid_from_validation_body: Option<&str>,
+) -> Option<String> {
+    use crate::rules::Validation;
+
+    match validation {
+        Validation::AWS => {
+            // AWS needs the access key ID (AKID) in addition to the secret
+            let akid = akid_from_captures.or(akid_from_validation_body)?;
+            if akid.is_empty() {
+                return None;
+            }
+            Some(format!(
+                "kingfisher validate --rule {} --var AKID={} {}",
+                rule_id,
+                akid,
+                escape_for_shell(snippet)
+            ))
+        }
+        Validation::GCP => {
+            // GCP validation uses the service account JSON key
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+        Validation::Http(_) => {
+            // HTTP-based validation just needs the token
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+        Validation::MongoDB
+        | Validation::MySQL
+        | Validation::Postgres
+        | Validation::Jdbc
+        | Validation::JWT
+        | Validation::AzureStorage
+        | Validation::Coinbase
+        | Validation::Raw(_) => {
+            // These validators just need the token/connection string
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
         }
     }
 }
@@ -580,21 +627,34 @@ impl DetailsReporter {
             .or_else(|| self.git_object_fallback_path(rm))
             .unwrap_or_else(|| format!("blob:{}", rm.blob_metadata.id.hex()));
 
+        // Try to find AKID from captures (for AWS)
+        let akid_from_captures: Option<String> = rm
+            .m
+            .groups
+            .captures
+            .iter()
+            .find(|c| c.name == Some("AKID") || c.name == Some("akid"))
+            .map(|c| c.raw_value().to_string());
+
+        // Try to extract AKID from validation response body (fallback for AWS)
+        let akid_from_body = extract_akid_from_validation_body(&rm.validation_response_body);
+
+        // Generate validate command for findings with validation support
+        let validate_command = if let Some(validation) = &rm.m.rule.syntax().validation {
+            build_validate_command(
+                rm.m.rule.id(),
+                validation,
+                &raw_snippet,
+                akid_from_captures.as_deref(),
+                akid_from_body.as_deref(),
+            )
+        } else {
+            None
+        };
+
         // Generate revoke command for active credentials with revocation support
         let revoke_command = if rm.validation_success {
             if let Some(revocation) = &rm.m.rule.syntax().revocation {
-                // Try to find AKID from captures (for AWS)
-                let akid_from_captures: Option<String> =
-                    rm.m.groups
-                        .captures
-                        .iter()
-                        .find(|c| c.name == Some("AKID") || c.name == Some("akid"))
-                        .map(|c| c.raw_value().to_string());
-
-                // Try to extract AKID from validation response body (fallback for AWS)
-                let akid_from_body =
-                    extract_akid_from_validation_body(&rm.validation_response_body);
-
                 build_revoke_command(
                     rm.m.rule.id(),
                     revocation,
@@ -631,6 +691,7 @@ impl DetailsReporter {
                 path: file_path,
                 encoding: if rm.m.is_base64 { Some("base64".to_string()) } else { None },
                 git_metadata: git_metadata_val,
+                validate_command,
                 revoke_command,
             },
         }
@@ -960,6 +1021,8 @@ pub struct FindingRecordData {
     pub encoding: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub git_metadata: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validate_command: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub revoke_command: Option<String>,
 }

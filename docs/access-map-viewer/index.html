@@ -621,6 +621,47 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
+    /* Validate command box - blue theme */
+    #fd-validate-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+    }
+
+    #fd-validate-box label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e40af;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    #fd-validate-cmd {
+      flex: 1;
+      font-size: 12px;
+      color: #1e3a8a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(255, 255, 255, 0.5);
+      padding: 8px 12px;
+      border-radius: 4px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn-validate {
+      color: #1e40af;
+      background: #dbeafe;
+      border: 1px solid #3b82f6;
+    }
+
+    .copy-btn-validate:hover {
+      background: #bfdbfe;
+      border-color: #2563eb;
+    }
+
+    /* Revoke command box - amber/warning theme */
     #fd-revoke-box {
       margin-top: 16px;
       padding: 14px 16px;
@@ -637,12 +678,6 @@
       margin-bottom: 8px;
     }
 
-    .revoke-cmd-container {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
     #fd-revoke-cmd {
       flex: 1;
       font-size: 12px;
@@ -653,6 +688,13 @@
       border-radius: 4px;
       word-break: break-all;
       white-space: pre-wrap;
+    }
+
+    /* Shared command container styles */
+    .cmd-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
     }
 
     .copy-btn {
@@ -1204,9 +1246,23 @@
                   <pre id="fd-validation-res"></pre>
                 </div>
 
+                <div id="fd-validate-box" class="hidden">
+                  <label>Validate Command</label>
+                  <div class="cmd-container">
+                    <code id="fd-validate-cmd"></code>
+                    <button class="copy-btn copy-btn-validate" id="fd-validate-copy" title="Copy to clipboard">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div id="fd-revoke-box" class="hidden">
                   <label>Revoke Command</label>
-                  <div class="revoke-cmd-container">
+                  <div class="cmd-container">
                     <code id="fd-revoke-cmd"></code>
                     <button class="copy-btn" id="fd-revoke-copy" title="Copy to clipboard">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2462,6 +2518,33 @@
       } else {
         valBox.classList.add("hidden");
         document.getElementById("fd-validation-res").textContent = "";
+      }
+
+      // Validate command section
+      const validateBox = document.getElementById("fd-validate-box");
+      const validateCmd = document.getElementById("fd-validate-cmd");
+      const validateCopyBtn = document.getElementById("fd-validate-copy");
+      if (finding.validate_command) {
+        validateBox.classList.remove("hidden");
+        validateCmd.textContent = finding.validate_command;
+        
+        // Set up copy button
+        validateCopyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(finding.validate_command);
+            validateCopyBtn.classList.add("copied");
+            validateCopyBtn.querySelector("span").textContent = "Copied!";
+            setTimeout(() => {
+              validateCopyBtn.classList.remove("copied");
+              validateCopyBtn.querySelector("span").textContent = "Copy";
+            }, 2000);
+          } catch (err) {
+            console.error("Failed to copy:", err);
+          }
+        };
+      } else {
+        validateBox.classList.add("hidden");
+        validateCmd.textContent = "";
       }
 
       // Revoke command section

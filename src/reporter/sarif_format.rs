@@ -37,6 +37,9 @@ impl DetailsReporter {
         if let Some(git) = &finding.git_metadata {
             props.insert("git_metadata".to_string(), git.clone());
         }
+        if let Some(validate_cmd) = &finding.validate_command {
+            props.insert("validate_command".to_string(), serde_json::json!(validate_cmd));
+        }
         if let Some(revoke_cmd) = &finding.revoke_command {
             props.insert("revoke_command".to_string(), serde_json::json!(revoke_cmd));
         }
@@ -182,6 +185,7 @@ mod tests {
                 path: "src/lib.rs".to_string(),
                 encoding: None,
                 git_metadata: None,
+                validate_command: None,
                 revoke_command: None,
             },
         }
