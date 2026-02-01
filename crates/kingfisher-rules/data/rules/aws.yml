@@ -2,7 +2,7 @@ rules:
   - name: AWS Access Key ID
     id: kingfisher.aws.1
     pattern: |
-      (?xi)             
+      (?x)             
       \b
       (
         (?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)
@@ -63,8 +63,6 @@ rules:
           },
     validation:
       type: AWS
-    revocation:
-      type: AWS
     depends_on_rule:
       - rule_id: kingfisher.aws.1
         variable: AKID
@@ -86,7 +84,7 @@ rules:
     pattern: |
       (?x)
       (
-        ABSKQmVkcm9ja0FQSUtleS[A-Za-z0-9+/=]{110}
+        ABSKQmVkcm9ja0FQSUtleS[A-Za-z0-9+/]{91,121}={0,2}
       )
     min_entropy: 3.0
     confidence: medium
@@ -109,7 +107,7 @@ rules:
 
   - name: AWS Bedrock API Key (Short-lived)
     id: kingfisher.aws.6
-    pattern:  |
+    pattern: |
       (?x)
       (
         bedrock-api-key-YmVkcm9jay5hbWF6b25hd3MuY29t[A-Za-z0-9+/]+={0,2}
