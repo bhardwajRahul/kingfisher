@@ -216,7 +216,6 @@ mod test_vectorscan {
     }
 }
 #[cfg(test)]
-#[cfg(test)]
 mod test_regex_cleaning {
     use super::*;
     #[test]

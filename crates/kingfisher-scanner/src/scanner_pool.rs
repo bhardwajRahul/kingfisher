@@ -9,9 +9,16 @@ use vectorscan_rs::{BlockDatabase, BlockScanner};
 /// A pool of Vectorscan block scanners for efficient multi-threaded scanning.
 ///
 /// Each thread gets its own scanner instance to avoid contention.
+///
+/// # Field Order
+///
+/// The field order is significant: `scanners` must be declared before `db`
+/// because Rust drops fields in declaration order. The scanners hold references
+/// to the database (via lifetime transmute), so they must be dropped first.
 pub struct ScannerPool {
-    db: Arc<BlockDatabase>,
+    // IMPORTANT: scanners must be dropped before db - do not reorder these fields
     scanners: ThreadLocal<UnsafeCell<Option<BlockScanner<'static>>>>,
+    db: Arc<BlockDatabase>,
 }
 
 // Safety: Each thread only accesses its own scanner instance
@@ -37,8 +44,11 @@ impl ScannerPool {
         // Safety: ThreadLocal guarantees only the current thread accesses this cell
         let scanner_opt = unsafe { &mut *cell.get() };
 
-        // Create scanner if it doesn't exist
-        // We extend the lifetime - this is safe because the database outlives the scanner pool
+        // Create scanner if it doesn't exist.
+        // Safety: We extend the lifetime to 'static via transmute. This is sound because:
+        // 1. The database is held in an Arc, so it won't be freed while we hold a reference
+        // 2. The struct field order ensures scanners are dropped before db (Rust drops in order)
+        // 3. Therefore the database outlives all scanners that reference it
         if scanner_opt.is_none() {
             let db_ref: &'static BlockDatabase =
                 unsafe { std::mem::transmute::<&BlockDatabase, &'static BlockDatabase>(&self.db) };
