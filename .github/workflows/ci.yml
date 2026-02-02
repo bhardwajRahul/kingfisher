@@ -18,11 +18,25 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
+      
+      # Free up disk space on Ubuntu runners
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+      
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           profile: minimal
           override: true
+      
+      - uses: swatinem/rust-cache@v2
+      
       - name: Build (Makefile linux-arm64)
         run: make ubuntu-arm64
       - name: Run tests

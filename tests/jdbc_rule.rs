@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use kingfisher::{rules::rule::RuleSyntax, safe_list};
 
 fn load_jdbc_rule() -> Result<RuleSyntax> {
-    let rules = RuleSyntax::from_yaml_file("data/rules/jdbc.yml")?;
+    let rules = RuleSyntax::from_yaml_file("crates/kingfisher-rules/data/rules/jdbc.yml")?;
     rules
         .into_iter()
         .find(|rule| rule.id == "kingfisher.jdbc.1")
