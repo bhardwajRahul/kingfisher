@@ -590,6 +590,7 @@ fn warn_deprecated_provider(provider: &str, guidance: &str) {
 pub struct ContentFilteringArgs {
     /// Ignore files larger than the given size in MB
     #[arg(
+        global = true,
         long = "max-file-size",
         visible_alias = "max-filesize",      // also show in --help
         default_value_t = 256.0,
@@ -599,19 +600,19 @@ pub struct ContentFilteringArgs {
 
     /// Skip any file or directory whose path matches this glob pattern. Multiple
     /// patterns may be provided by repeating the flag.
-    #[arg(long, value_name = "PATTERN")]
+    #[arg(global = true, long, value_name = "PATTERN")]
     pub exclude: Vec<String>,
 
     /// If true, do NOT extract archive files
-    #[arg(long = "no-extract-archives", default_value_t = false)]
+    #[arg(global = true, long = "no-extract-archives", default_value_t = false)]
     pub no_extract_archives: bool,
 
     /// Maximum allowed depth for extracting nested archives
-    #[arg(long = "extraction-depth", default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=25))]
+    #[arg(global = true, long = "extraction-depth", default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=25))]
     pub extraction_depth: u8,
 
     /// If true, do NOT scan binary files
-    #[arg(long = "no-binary", default_value_t = false)]
+    #[arg(global = true, long = "no-binary", default_value_t = false)]
     pub no_binary: bool,
 }
 

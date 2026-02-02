@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.77.0]
+- Added `kingfisher revoke` subcommand for revoking leaked credentials directly with the provider.
+- Added optional `revocation` section to rules to support credential revocation (currently supporting AWS, GCP, GitHub, GitLab, Slack, and Buildkite).
+- Added `kingfisher validate` subcommand to validate credentials without running a full scan.
+- Added `validate_command` and `revoke_command` fields to scan output (pretty, JSON, JSONL, BSON, SARIF formats) showing the exact `kingfisher validate` or `kingfisher revoke` command to run for each finding. The `validate_command` is included for all findings with validation support; `revoke_command` is included only for active credentials with revocation support. These fields are omitted when `--redact` is used since they contain the secret value.
+- Updated the HTML report viewer to display validate and revoke commands in the Finding Details panel with copy-to-clipboard functionality.
+- Refactored project into multiple crates for better modularity and maintainability.
+- Ensured more CLI arguments are global and available across all subcommands.
+- Added `kingfisher-auto` pre-commit hook that automatically downloads and caches the appropriate binary for your platform (no Docker or manual installation required).
+- Added Husky integration support with `install-husky.sh` helper script and documentation for Node.js projects.
+- Added `kingfisher-pre-commit-auto.sh` and `kingfisher-pre-commit-auto.ps1` scripts for automatic binary download in Git hooks (Linux, macOS, Windows support).
+
 ## [v1.76.0]
 - Fixed validation deduplication for rules with nested unnamed captures (e.g. `(?<REGEX>...(ABC|DEF)...)`) to use the primary capture for grouping, ensuring each unique match triggers a separate validation request.
 - Added trace-level (`-vv`) logging for internal validation dedup keys and grouping to aid debugging.

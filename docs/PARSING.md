@@ -1,4 +1,6 @@
 # Kingfisher Source Code Parsing
+
+[← Back to README](../README.md)
 Kingfisher leverages tree‐sitter as an extra layer of analysis when scanning source files written in supported programming languages. In practice, after its initial regex‐based scan (powered by Vectorscan), Kingfisher checks if the file’s language is known.
 
 If so, it creates a Checker (see below) that uses tree‐sitter to parse the file and run language‐specific queries. This additional pass refines the detection by capturing more structured patterns—such as secret-like tokens—that might be obscured or spread over code constructs.

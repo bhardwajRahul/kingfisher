@@ -162,7 +162,7 @@ pub fn enumerate_filesystem_inputs(
     let t1 = Instant::now();
     let num_blob_processors = Mutex::new(0u64);
     let seen_blobs = BlobIdMap::new();
-    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
 
     let matcher = Matcher::new(
         &rules_db,

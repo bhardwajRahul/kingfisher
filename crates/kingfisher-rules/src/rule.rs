@@ -54,6 +54,15 @@ pub enum Validation {
     Http(HttpValidation),
 }
 
+/// Represents revocation actions that a rule can perform.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[serde(tag = "type", content = "content")]
+pub enum Revocation {
+    AWS,
+    GCP,
+    Http(HttpValidation),
+}
+
 /// Specifies that a rule depends on a variable from another rule.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct DependsOnRule {
@@ -516,6 +525,9 @@ pub struct RuleSyntax {
     /// Optional validation configuration.
     #[serde(default)]
     pub validation: Option<Validation>,
+    /// Optional revocation configuration.
+    #[serde(default)]
+    pub revocation: Option<Revocation>,
     /// Optional dependencies on other rules.
     #[serde(default)]
     pub depends_on_rule: Vec<Option<DependsOnRule>>,
@@ -575,6 +587,7 @@ impl RuleSyntax {
     ///     confidence: Default::default(),
     ///     visible: true,
     ///     validation: None,
+    ///     revocation: None,
     ///     depends_on_rule: vec![],
     ///     pattern_requirements: None,
     /// };

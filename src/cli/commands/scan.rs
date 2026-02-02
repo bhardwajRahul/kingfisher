@@ -112,15 +112,15 @@ pub struct ScanArgs {
     // #[arg(long, value_name = "PATH")]
     // pub access_map_html: Option<PathBuf>,
     /// Display only validated findings
-    #[arg(long, default_value_t = false)]
+    #[arg(global = true, long, default_value_t = false)]
     pub only_valid: bool,
 
     /// Override the default minimum entropy threshold
-    #[arg(long, short = 'e')]
+    #[arg(global = true, long, short = 'e')]
     pub min_entropy: Option<f32>,
 
     /// Show performance statistics for each rule
-    #[arg(long, default_value_t = false)]
+    #[arg(global = true, long, default_value_t = false)]
     pub rule_stats: bool,
 
     /// Display every occurrence of a finding

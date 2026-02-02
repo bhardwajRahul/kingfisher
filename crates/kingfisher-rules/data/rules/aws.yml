@@ -63,6 +63,8 @@ rules:
           },
     validation:
       type: AWS
+    revocation:
+      type: AWS
     depends_on_rule:
       - rule_id: kingfisher.aws.1
         variable: AKID
@@ -107,7 +109,7 @@ rules:
 
   - name: AWS Bedrock API Key (Short-lived)
     id: kingfisher.aws.6
-    pattern:  |
+    pattern: |
       (?x)
       (
         bedrock-api-key-YmVkcm9jay5hbWF6b25hd3MuY29t[A-Za-z0-9+/]+={0,2}

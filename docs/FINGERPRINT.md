@@ -1,4 +1,6 @@
-## Finding Fingerprints
+# Finding Fingerprints
+
+[← Back to README](../README.md)
 
 Every reported finding carries a **64-bit fingerprint** that acts as a stable, privacy-safe ID.
 It lets the scanner **deduplicate** repeated hits of the *same logical issue* while still treating different locations as distinct.

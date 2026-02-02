@@ -7,7 +7,8 @@ use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 use tracing::Level;
 
 use crate::cli::commands::{
-    access_map::AccessMapArgs, rules::RulesArgs, scan::ScanCommandArgs, view::ViewArgs,
+    access_map::AccessMapArgs, revoke::RevokeArgs, rules::RulesArgs, scan::ScanCommandArgs,
+    validate::ValidateArgs, view::ViewArgs,
 };
 
 #[deny(missing_docs)]
@@ -63,6 +64,12 @@ pub enum Command {
     /// Manage rules
     #[command(alias = "rule")]
     Rules(RulesArgs),
+
+    /// Directly validate a known secret against a rule's validator (bypasses pattern matching)
+    Validate(ValidateArgs),
+
+    /// Directly revoke a known secret against a rule's revocation config
+    Revoke(RevokeArgs),
 
     /// Map a cloud credential to its identity, permissions, and blast radius
     #[command(name = "access-map", alias = "access_map")]

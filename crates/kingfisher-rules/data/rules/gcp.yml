@@ -36,6 +36,8 @@ rules:
         }
     validation:
       type: GCP
+    revocation:
+      type: GCP
   - name: GCP Private Key ID
     id: kingfisher.gcp.3
     pattern: |

@@ -26,7 +26,9 @@ where
             loader = loader.profile_name(p);
         }
         if let (Ok(k), Ok(s)) = (std::env::var("KF_AWS_KEY"), std::env::var("KF_AWS_SECRET")) {
-            loader = loader.credentials_provider(Credentials::new(k, s, None, None, "kf_env"));
+            let session_token = std::env::var("KF_AWS_SESSION_TOKEN").ok();
+            loader =
+                loader.credentials_provider(Credentials::new(k, s, session_token, None, "kf_env"));
         }
         if profile.is_none() && std::env::var("KF_AWS_KEY").is_err() && role_arn.is_none() {
             loader = loader.no_credentials();

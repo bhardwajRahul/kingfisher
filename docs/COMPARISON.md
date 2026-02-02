@@ -1,4 +1,8 @@
-### Runtime Comparison (seconds)
+# Benchmark Comparison
+
+[← Back to README](../README.md)
+
+## Runtime Comparison (seconds)
 *Lower runtimes are better.*
 | Repository | Kingfisher Runtime | TruffleHog Runtime | GitLeaks Runtime | detect-secrets Runtime |
 |------------|--------------------|--------------------|------------------|------------------------|

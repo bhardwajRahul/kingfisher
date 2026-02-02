@@ -34,6 +34,23 @@ rules:
               words:
                 - '"ok":true'
           url: https://slack.com/api/auth.test
+    revocation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+            Content-Type: application/x-www-form-urlencoded
+          method: POST
+          body: "token={{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"ok":true'
+                - '"revoked":true'
+          url: https://slack.com/api/auth.revoke
 
   - name: Slack Token
     id: kingfisher.slack.2
@@ -82,6 +99,23 @@ rules:
               words:
                 - '"ok":true'
           url: https://slack.com/api/auth.test
+    revocation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+            Content-Type: application/x-www-form-urlencoded
+          method: POST
+          body: "token={{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"ok":true'
+                - '"revoked":true'
+          url: https://slack.com/api/auth.revoke
 
   - name: Slack Webhook
     id: kingfisher.slack.4

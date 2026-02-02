@@ -21,6 +21,7 @@ use crate::{
     matcher::{compute_finding_fingerprint, Match},
     origin::{Origin, OriginSet},
     rules::rule::Confidence,
+    rules::Revocation,
     validation_body::{self, ValidationResponseBody},
 };
 mod bson_format;
@@ -37,6 +38,111 @@ use crate::{
     location::SourceSpan,
     origin::{get_repo_url, GitRepoOrigin},
 };
+
+/// Shell-escape a string for safe command-line usage using single quotes.
+fn escape_for_shell(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+/// Generate a kingfisher revoke command for an active credential if the rule supports revocation.
+///
+/// Returns `None` if:
+/// - The credential is not active
+/// - The rule doesn't have revocation configured
+/// - Required data (like AWS AKID) cannot be determined
+fn build_revoke_command(
+    rule_id: &str,
+    revocation: &Revocation,
+    snippet: &str,
+    akid_from_captures: Option<&str>,
+    akid_from_validation_body: Option<&str>,
+) -> Option<String> {
+    match revocation {
+        Revocation::AWS => {
+            // AWS needs the access key ID (AKID) in addition to the secret
+            // Try to get it from captures first, then from validation response body
+            let akid = akid_from_captures.or(akid_from_validation_body)?;
+            if akid.is_empty() {
+                return None;
+            }
+            Some(format!(
+                "kingfisher revoke --rule {} --var AKID={} {}",
+                rule_id,
+                akid,
+                escape_for_shell(snippet)
+            ))
+        }
+        Revocation::GCP => {
+            // GCP revocation uses the service account JSON key (which is the snippet)
+            Some(format!("kingfisher revoke --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+        Revocation::Http(_) => {
+            // HTTP-based revocation just needs the token
+            Some(format!("kingfisher revoke --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+    }
+}
+
+/// Generate a kingfisher validate command for a finding.
+///
+/// Returns `None` if the rule doesn't have validation configured or required data is missing.
+fn build_validate_command(
+    rule_id: &str,
+    validation: &crate::rules::Validation,
+    snippet: &str,
+    akid_from_captures: Option<&str>,
+    akid_from_validation_body: Option<&str>,
+) -> Option<String> {
+    use crate::rules::Validation;
+
+    match validation {
+        Validation::AWS => {
+            // AWS needs the access key ID (AKID) in addition to the secret
+            let akid = akid_from_captures.or(akid_from_validation_body)?;
+            if akid.is_empty() {
+                return None;
+            }
+            Some(format!(
+                "kingfisher validate --rule {} --var AKID={} {}",
+                rule_id,
+                akid,
+                escape_for_shell(snippet)
+            ))
+        }
+        Validation::GCP => {
+            // GCP validation uses the service account JSON key
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+        Validation::Http(_) => {
+            // HTTP-based validation just needs the token
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+        Validation::MongoDB
+        | Validation::MySQL
+        | Validation::Postgres
+        | Validation::Jdbc
+        | Validation::JWT
+        | Validation::AzureStorage
+        | Validation::Coinbase
+        | Validation::Raw(_) => {
+            // These validators just need the token/connection string
+            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+        }
+    }
+}
+
+/// Extract AWS Access Key ID from validation response body if present.
+fn extract_akid_from_validation_body(body: &ValidationResponseBody) -> Option<String> {
+    static AKID_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(
+            r"(?xi)\b(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[0-9A-Z]{16}\b",
+        )
+        .expect("AKID regex should compile")
+    });
+
+    let text = validation_body::clone_as_string(body);
+    AKID_RE.find(&text).map(|m| m.as_str().to_string())
+}
 
 const BITBUCKET_FRAGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -470,17 +576,14 @@ impl DetailsReporter {
         let source_span = rm.m.location.resolved_source_span();
         let line_num = source_span.start.line;
 
-        // --- FIX IS HERE ---
-        // We now correctly serialize *only* the explicit capture groups (or group 0
-        // as a fallback). The primary "secret" is therefore always at index 0
-        // of the captures SmallVec.
-        let snippet = if let Some(capture) = rm.m.groups.captures.get(0) {
+        // Get raw snippet value (for revoke command) and display snippet (for output)
+        let (raw_snippet, snippet) = if let Some(capture) = rm.m.groups.captures.get(0) {
+            let raw = capture.raw_value().to_string();
             let displayed = capture.display_value();
-            Escaped(displayed.as_ref().as_bytes()).to_string()
+            (raw, Escaped(displayed.as_ref().as_bytes()).to_string())
         } else {
-            String::new()
+            (String::new(), String::new())
         };
-        // --- END FIX ---
 
         let validation_status = if rm.validation_success {
             "Active Credential".to_string()
@@ -491,9 +594,10 @@ impl DetailsReporter {
         };
 
         const MAX_RESPONSE_LENGTH: usize = 512;
-        let validation_body = validation_body::as_str(&rm.validation_response_body);
-        let truncated_body: String = validation_body.chars().take(MAX_RESPONSE_LENGTH).collect();
-        let ellipsis = if validation_body.len() > MAX_RESPONSE_LENGTH { "..." } else { "" };
+        let validation_body_str = validation_body::as_str(&rm.validation_response_body);
+        let truncated_body: String =
+            validation_body_str.chars().take(MAX_RESPONSE_LENGTH).collect();
+        let ellipsis = if validation_body_str.len() > MAX_RESPONSE_LENGTH { "..." } else { "" };
         let response_body = format!("{}{}", truncated_body, ellipsis);
 
         let git_metadata_val = rm
@@ -523,6 +627,54 @@ impl DetailsReporter {
             .or_else(|| self.git_object_fallback_path(rm))
             .unwrap_or_else(|| format!("blob:{}", rm.blob_metadata.id.hex()));
 
+        // Generate validate/revoke commands only if not redacting (they contain the secret)
+        let (validate_command, revoke_command) = if args.redact {
+            (None, None)
+        } else {
+            // Try to find AKID from captures (for AWS)
+            let akid_from_captures: Option<String> =
+                rm.m.groups
+                    .captures
+                    .iter()
+                    .find(|c| c.name == Some("AKID") || c.name == Some("akid"))
+                    .map(|c| c.raw_value().to_string());
+
+            // Try to extract AKID from validation response body (fallback for AWS)
+            let akid_from_body = extract_akid_from_validation_body(&rm.validation_response_body);
+
+            // Generate validate command for findings with validation support
+            let validate_cmd = if let Some(validation) = &rm.m.rule.syntax().validation {
+                build_validate_command(
+                    rm.m.rule.id(),
+                    validation,
+                    &raw_snippet,
+                    akid_from_captures.as_deref(),
+                    akid_from_body.as_deref(),
+                )
+            } else {
+                None
+            };
+
+            // Generate revoke command for active credentials with revocation support
+            let revoke_cmd = if rm.validation_success {
+                if let Some(revocation) = &rm.m.rule.syntax().revocation {
+                    build_revoke_command(
+                        rm.m.rule.id(),
+                        revocation,
+                        &raw_snippet,
+                        akid_from_captures.as_deref(),
+                        akid_from_body.as_deref(),
+                    )
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            (validate_cmd, revoke_cmd)
+        };
+
         FindingReporterRecord {
             rule: RuleMetadata {
                 name: rm.m.rule.name().to_string(),
@@ -545,6 +697,8 @@ impl DetailsReporter {
                 path: file_path,
                 encoding: if rm.m.is_base64 { Some("base64".to_string()) } else { None },
                 git_metadata: git_metadata_val,
+                validate_command,
+                revoke_command,
             },
         }
     }
@@ -873,6 +1027,10 @@ pub struct FindingRecordData {
     pub encoding: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub git_metadata: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validate_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revoke_command: Option<String>,
 }
 
 #[cfg(test)]
@@ -1040,6 +1198,7 @@ mod tests {
             negative_examples: vec![],
             references: vec![],
             validation: None,
+            revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
         }));

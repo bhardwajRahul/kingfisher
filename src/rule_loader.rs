@@ -115,6 +115,12 @@ impl LoadedRules {
         self.id_to_rule.values()
     }
 
+    /// Get a reference to the underlying rule map (rule ID -> Rule).
+    #[inline]
+    pub fn id_to_rule(&self) -> &BTreeMap<String, Rule> {
+        &self.id_to_rule
+    }
+
     pub fn resolve_enabled_rules(&self) -> Result<Vec<&Rule>> {
         let resolved_rules = match &self.enabled_rule_ids {
             // No selectors ⇒ every rule is enabled
@@ -133,7 +139,7 @@ impl LoadedRules {
                     let mut matched_any = false;
 
                     for (id, rule) in &self.id_to_rule {
-                        // Exact match OR “selector.” is a prefix of id
+                        // Exact match OR "selector." is a prefix of id
                         if id == selector
                             || (id.starts_with(selector)
                                 && id.as_bytes().get(selector.len()) == Some(&b'.'))

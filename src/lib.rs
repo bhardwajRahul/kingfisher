@@ -1,3 +1,8 @@
+// Re-export library crates for easier access
+pub use kingfisher_core;
+pub use kingfisher_rules;
+pub use kingfisher_scanner;
+
 pub mod access_map;
 pub mod azure;
 pub mod baseline;
@@ -11,6 +16,8 @@ pub mod confluence;
 pub mod content_type;
 pub mod decompress;
 pub mod defaults;
+pub mod direct_revoke;
+pub mod direct_validate;
 pub mod entropy;
 pub mod finding_data;
 pub mod findings_store;

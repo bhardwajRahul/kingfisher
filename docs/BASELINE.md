@@ -1,5 +1,6 @@
-
 # Build a Baseline / Detect Only New Secrets
+
+[← Back to README](../README.md)
 
 There are situations where a repository already contains checked‑in secrets, but you want to ensure no **new** secrets are introduced. A baseline file lets you document the known findings so future scans only report anything that is not already in that list.
 

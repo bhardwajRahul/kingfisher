@@ -30,4 +30,16 @@ rules:
               status: [200]
             - type: WordMatch
               words: ['"uuid"', '"user"']
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: https://api.buildkite.com/v2/access-token
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
   

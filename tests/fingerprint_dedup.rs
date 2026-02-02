@@ -32,6 +32,7 @@ fn make_match(fp: u64, rule_id: &str) -> Match {
         negative_examples: vec![],
         references: vec![],
         validation: None,
+        revocation: None,
         depends_on_rule: vec![],
         pattern_requirements: None,
     };

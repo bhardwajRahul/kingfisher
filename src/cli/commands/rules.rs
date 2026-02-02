@@ -14,17 +14,17 @@ pub struct RuleSpecifierArgs {
     ///
     /// Directories are walked recursively for YAML files. This option
     /// can be repeated.
-    #[arg(long, alias="rules", value_hint=ValueHint::AnyPath)]
+    #[arg(global = true, long, alias="rules", value_hint=ValueHint::AnyPath)]
     pub rules_path: Vec<PathBuf>,
 
     /// Enable the ruleset with the given ID (e.g. `all`, `default`, or custom)
     ///
     /// Repeating this disables the default set unless `default` is explicitly included.
-    #[arg(long, default_values_t=["all".to_string()])]
+    #[arg(global = true, long, default_values_t=["all".to_string()])]
     pub rule: Vec<String>,
 
     /// Load built-in rules
-    #[arg(long, default_value_t=true, action=ArgAction::Set)]
+    #[arg(global = true, long, default_value_t=true, action=ArgAction::Set)]
     pub load_builtins: bool,
 }
 
