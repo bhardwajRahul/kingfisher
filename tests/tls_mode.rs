@@ -12,7 +12,7 @@ use predicates::prelude::*;
 /// Test that `--tls-mode` is recognized as a valid global option.
 #[test]
 fn tls_mode_flag_is_recognized() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=strict").arg("--help");
     cmd.assert().success();
 }
@@ -21,7 +21,7 @@ fn tls_mode_flag_is_recognized() {
 #[test]
 fn tls_mode_accepts_all_values() {
     for mode in ["strict", "lax", "off"] {
-        let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+        let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
         cmd.arg(format!("--tls-mode={}", mode)).arg("--help");
         cmd.assert().success();
     }
@@ -30,7 +30,7 @@ fn tls_mode_accepts_all_values() {
 /// Test that invalid TLS mode values are rejected.
 #[test]
 fn tls_mode_rejects_invalid_values() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=invalid").arg("--help");
     cmd.assert().failure().stderr(predicate::str::contains("invalid"));
 }
@@ -38,7 +38,7 @@ fn tls_mode_rejects_invalid_values() {
 /// Test that `--ignore-certs` is still accepted (deprecated but supported).
 #[test]
 fn ignore_certs_flag_still_works() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--ignore-certs").arg("--help");
     cmd.assert().success();
 }
@@ -46,7 +46,7 @@ fn ignore_certs_flag_still_works() {
 /// Test that --tls-mode appears in the help output.
 #[test]
 fn tls_mode_appears_in_help() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--help");
     cmd.assert().success().stdout(predicate::str::contains("--tls-mode"));
 }
@@ -54,7 +54,7 @@ fn tls_mode_appears_in_help() {
 /// Test that rules list subcommand runs with tls-mode flag.
 #[test]
 fn rules_list_works_with_tls_mode() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=lax").arg("rules").arg("list");
     cmd.assert()
         .success()
@@ -64,7 +64,7 @@ fn rules_list_works_with_tls_mode() {
 /// Test that a scan with `--tls-mode=strict` runs successfully.
 #[test]
 fn scan_with_strict_mode_runs() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=strict").arg("scan").arg("--no-validate").arg("-");
     cmd.write_stdin("test input with no secrets");
     cmd.assert().success();
@@ -73,7 +73,7 @@ fn scan_with_strict_mode_runs() {
 /// Test that a scan with `--tls-mode=lax` runs successfully.
 #[test]
 fn scan_with_lax_mode_runs() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=lax").arg("scan").arg("--no-validate").arg("-");
     cmd.write_stdin("test input with no secrets");
     cmd.assert().success();
@@ -82,7 +82,7 @@ fn scan_with_lax_mode_runs() {
 /// Test that a scan with `--tls-mode=off` runs successfully.
 #[test]
 fn scan_with_off_mode_runs() {
-    let mut cmd = Command::cargo_bin("kingfisher").unwrap();
+    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"));
     cmd.arg("--tls-mode=off").arg("scan").arg("--no-validate").arg("-");
     cmd.write_stdin("test input with no secrets");
     cmd.assert().success();
