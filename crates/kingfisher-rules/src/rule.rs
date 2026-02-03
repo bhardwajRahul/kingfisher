@@ -37,6 +37,33 @@ fn default_true() -> bool {
     true
 }
 
+/// TLS certificate validation mode for secret validation requests.
+///
+/// Controls how TLS certificates are validated when connecting to endpoints
+/// during credential validation (e.g., database connections, API calls).
+#[derive(
+    Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Default,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum TlsMode {
+    /// Full WebPKI certificate validation: trusted CA chain, hostname match, not expired.
+    /// This is the default and most secure mode.
+    #[default]
+    Strict,
+
+    /// Accept self-signed or unknown CA certificates, but still enforce:
+    /// - Hostname must match certificate's CN/SAN
+    /// - Certificate must not be expired
+    /// - TLS 1.2 or higher required
+    ///
+    /// Useful for database connections (PostgreSQL, MySQL, MongoDB) that often use
+    /// self-signed certificates or private CAs (e.g., Amazon RDS).
+    Lax,
+
+    /// Disable all TLS certificate validation. Use with extreme caution.
+    Off,
+}
+
 /// Represents various types of validation that a rule can perform.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 #[serde(tag = "type", content = "content")]
@@ -534,6 +561,16 @@ pub struct RuleSyntax {
     /// Optional character type requirements for matched secrets.
     #[serde(default)]
     pub pattern_requirements: Option<PatternRequirements>,
+    /// TLS validation mode for this rule's validation requests.
+    ///
+    /// When set to `Lax`, the rule opts into relaxed TLS validation
+    /// (accepting self-signed/unknown CA certs) when the user enables
+    /// `--tls-mode=lax` on the command line.
+    ///
+    /// This is useful for rules that validate against endpoints commonly
+    /// using self-signed certificates, such as database connections.
+    #[serde(default)]
+    pub tls_mode: Option<TlsMode>,
 }
 
 lazy_static! {
@@ -590,6 +627,7 @@ impl RuleSyntax {
     ///     revocation: None,
     ///     depends_on_rule: vec![],
     ///     pattern_requirements: None,
+    ///     tls_mode: None,
     /// };
     /// assert_eq!(r.as_anchored_regex().unwrap().as_str(), r"hello\s*world$");
     /// ```
@@ -709,6 +747,15 @@ impl Rule {
     /// Returns the character requirements for this rule, if any.
     pub fn pattern_requirements(&self) -> Option<&PatternRequirements> {
         self.syntax.pattern_requirements.as_ref()
+    }
+
+    /// Returns the TLS validation mode for this rule, if specified.
+    ///
+    /// When a rule returns `Some(TlsMode::Lax)`, it indicates the rule
+    /// is eligible for relaxed TLS validation when the user enables
+    /// `--tls-mode=lax` on the command line.
+    pub fn tls_mode(&self) -> Option<TlsMode> {
+        self.syntax.tls_mode
     }
 }
 
@@ -1005,5 +1052,105 @@ mod tests {
         assert!(matches!(reqs.validate(b"anything", None, true), PatternValidationResult::Passed));
         assert!(matches!(reqs.validate(b"123", None, true), PatternValidationResult::Passed));
         assert!(matches!(reqs.validate(b"!@#", None, true), PatternValidationResult::Passed));
+    }
+
+    #[test]
+    fn tls_mode_default_is_strict() {
+        assert_eq!(TlsMode::default(), TlsMode::Strict);
+    }
+
+    #[test]
+    fn tls_mode_serializes_to_lowercase() {
+        assert_eq!(serde_yaml::to_string(&TlsMode::Strict).unwrap().trim(), "strict");
+        assert_eq!(serde_yaml::to_string(&TlsMode::Lax).unwrap().trim(), "lax");
+        assert_eq!(serde_yaml::to_string(&TlsMode::Off).unwrap().trim(), "off");
+    }
+
+    #[test]
+    fn tls_mode_deserializes_from_lowercase() {
+        let strict: TlsMode = serde_yaml::from_str("strict").unwrap();
+        assert_eq!(strict, TlsMode::Strict);
+
+        let lax: TlsMode = serde_yaml::from_str("lax").unwrap();
+        assert_eq!(lax, TlsMode::Lax);
+
+        let off: TlsMode = serde_yaml::from_str("off").unwrap();
+        assert_eq!(off, TlsMode::Off);
+    }
+
+    #[derive(serde::Deserialize)]
+    struct TestRules {
+        rules: Vec<RuleSyntax>,
+    }
+
+    #[test]
+    fn rule_syntax_parses_tls_mode_from_yaml() {
+        let yaml = r#"
+rules:
+  - name: Test Rule
+    id: test.rule.1
+    pattern: "test"
+    tls_mode: lax
+"#;
+        let parsed: TestRules = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(parsed.rules.len(), 1);
+        assert_eq!(parsed.rules[0].tls_mode, Some(TlsMode::Lax));
+    }
+
+    #[test]
+    fn rule_syntax_tls_mode_defaults_to_none_when_missing() {
+        let yaml = r#"
+rules:
+  - name: Test Rule
+    id: test.rule.1
+    pattern: "test"
+"#;
+        let parsed: TestRules = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(parsed.rules.len(), 1);
+        assert_eq!(parsed.rules[0].tls_mode, None);
+    }
+
+    #[test]
+    fn rule_tls_mode_method_returns_syntax_value() {
+        let rule = Rule::new(RuleSyntax {
+            name: "Test".to_string(),
+            id: "test.1".to_string(),
+            pattern: "test".to_string(),
+            min_entropy: 0.0,
+            confidence: Confidence::Low,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: Some(TlsMode::Lax),
+        });
+
+        assert_eq!(rule.tls_mode(), Some(TlsMode::Lax));
+    }
+
+    #[test]
+    fn rule_tls_mode_method_returns_none_when_not_set() {
+        let rule = Rule::new(RuleSyntax {
+            name: "Test".to_string(),
+            id: "test.1".to_string(),
+            pattern: "test".to_string(),
+            min_entropy: 0.0,
+            confidence: Confidence::Low,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        assert_eq!(rule.tls_mode(), None);
     }
 }

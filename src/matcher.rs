@@ -1229,6 +1229,7 @@ mod test {
                 revocation: None,
                 depends_on_rule: vec![],
                 pattern_requirements: None,
+                tls_mode: None,
             });
 
             let rules_db  = RulesDatabase::from_rules(vec![rule]).unwrap();
@@ -1303,6 +1304,7 @@ mod test {
                 }),
             ],
             pattern_requirements: None,
+            tls_mode: None,
         })];
         let rules_db = RulesDatabase::from_rules(rules)?;
         let input = "some test data for vectorscan";
@@ -1354,6 +1356,7 @@ mod test {
                 ignore_if_contains: Some(vec!["TEST".to_string()]),
                 checksum: None,
             }),
+            tls_mode: None,
         })];
 
         let rules_db = RulesDatabase::from_rules(rules)?;
@@ -1418,6 +1421,7 @@ mod test {
                 ignore_if_contains: Some(vec!["TEST".to_string()]),
                 checksum: None,
             }),
+            tls_mode: None,
         })];
 
         let rules_db = RulesDatabase::from_rules(rules)?;
@@ -1534,6 +1538,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
 
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
@@ -1574,6 +1579,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
@@ -1608,6 +1614,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
@@ -1650,6 +1657,7 @@ line2
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
 

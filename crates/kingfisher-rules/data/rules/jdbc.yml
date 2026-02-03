@@ -21,6 +21,7 @@ rules:
     confidence: medium
     validation:
       type: Jdbc
+    tls_mode: lax
     examples:
       - jdbc:postgresql://db.example.com:5432/app?user=admin&password=s3cr3t
       - jdbc:mysql://admin:s3cr3t@prod.internal:3306/inventory

@@ -21,7 +21,7 @@ use kingfisher::{
             rules::RuleSpecifierArgs,
             scan::{ConfidenceLevel, ScanArgs},
         },
-        global::Mode,
+        global::{Mode, TlsMode},
         GlobalArgs,
     },
     findings_store::FindingsStore,
@@ -190,6 +190,7 @@ rules:
         self_update: false,
         ignore_certs: false,
         user_agent_suffix: None,
+        tls_mode: TlsMode::Strict,
     };
 
     // ── load rules once ─────────────────────────────────────────────

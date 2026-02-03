@@ -18,6 +18,7 @@ This guide covers all scan targets and usage patterns for Kingfisher.
   - [Jira](#jira)
   - [Confluence](#confluence)
   - [Slack](#slack)
+- [TLS Certificate Validation](#tls-certificate-validation)
 - [Environment Variables](#environment-variables)
 - [Exit Codes](#exit-codes)
 
@@ -764,7 +765,7 @@ Bitbucket no longer supports App Tokens as of September 9, 2025: https://support
 
 ### Self-hosted Bitbucket Server
 
-Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, for example `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with `KF_BITBUCKET_USERNAME` plus either `KF_BITBUCKET_TOKEN` or `KF_BITBUCKET_PASSWORD`, and pass `--ignore-certs` when connecting to HTTP or otherwise insecure instances.
+Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, for example `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with `KF_BITBUCKET_USERNAME` plus either `KF_BITBUCKET_TOKEN` or `KF_BITBUCKET_PASSWORD`, and pass `--tls-mode=off` (or the legacy `--ignore-certs`) when connecting to HTTP or otherwise insecure instances.
 
 ---
 
@@ -866,6 +867,43 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan slack "akia" \
 ```
 
 *The Slack token must be a user token with the `search:read` scope. Bot tokens (those beginning with `xoxb-`) cannot call the Slack search API.*
+
+---
+
+## TLS Certificate Validation
+
+Kingfisher validates TLS certificates when connecting to endpoints during secret validation (database connections, API calls, JWKS fetching, etc.). The `--tls-mode` flag controls this behavior:
+
+| Mode | Description |
+| ---- | ----------- |
+| `strict` | **Default.** Full WebPKI certificate validation: trusted CA chain, hostname match, certificate not expired. |
+| `lax` | Accept self-signed or unknown CA certificates for rules that opt into it. Still enforces TLS 1.2+. Useful for database connections using self-signed certs or private CAs (e.g., Amazon RDS). |
+| `off` | Disable all certificate validation. Use with extreme caution. |
+
+### When to use `--tls-mode=lax`
+
+The `lax` mode is designed for environments where:
+
+- **Database connections** use self-signed certificates (common for PostgreSQL, MySQL, MongoDB)
+- **Private CAs** are used (e.g., Amazon RDS uses an Amazon-issued CA that may not be in your system trust store)
+- **Internal services** have certificates not signed by public CAs
+
+Rules must opt into lax TLS by declaring `tls_mode: lax` in their definition. When you pass `--tls-mode=lax`, only rules with this declaration will use relaxed certificate validation. SaaS API validators (GitHub, Slack, AWS, etc.) always use strict validation regardless of this flag.
+
+### Examples
+
+```bash
+# Default: strict TLS everywhere
+kingfisher scan ./repo
+
+# Lax TLS for database connection rules (Postgres, MySQL, MongoDB, JDBC, JWT)
+kingfisher scan --tls-mode=lax ./repo
+
+# Disable all TLS validation (not recommended)
+kingfisher scan --tls-mode=off ./repo
+```
+
+The legacy `--ignore-certs` flag is still supported as an alias for `--tls-mode=off`.
 
 ---
 

@@ -277,10 +277,7 @@ pub async fn run_async_scan(
         info!("Starting secret validation phase...");
         Some(Arc::new((
             register_all(liquid::ParserBuilder::with_stdlib()).build()?,
-            reqwest::Client::builder()
-                .danger_accept_invalid_certs(global_args.ignore_certs)
-                .timeout(Duration::from_secs(30))
-                .build()?,
+            crate::validation::ValidationClients::new(global_args.tls_mode)?,
             Arc::new(SkipMap::new()),
         )))
     } else {
@@ -350,11 +347,11 @@ pub async fn run_async_scan(
         }
 
         if let Some(validation) = &validation_deps {
-            let (parser, client, cache) = (&validation.0, &validation.1, &validation.2);
+            let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
             run_secret_validation(
                 Arc::clone(&datastore),
                 parser,
-                client,
+                clients,
                 cache,
                 args.num_jobs,
                 None,
@@ -433,13 +430,13 @@ pub async fn run_async_scan(
     }
 
     if let Some(validation) = &validation_deps {
-        let (parser, client, cache) = (&validation.0, &validation.1, &validation.2);
+        let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
         let initial_match_count = { datastore.lock().unwrap().get_matches().len() };
         if initial_match_count > 0 {
             run_secret_validation(
                 Arc::clone(&datastore),
                 parser,
-                client,
+                clients,
                 cache,
                 args.num_jobs,
                 Some(0..initial_match_count),
@@ -515,7 +512,7 @@ pub async fn run_async_scan(
                         }
 
                         if let Some(validation) = validation_deps.clone() {
-                            let (parser, client, cache) =
+                            let (parser, clients, cache) =
                                 (&validation.0, &validation.1, &validation.2);
                             let match_count =
                                 { repo_datastore.lock().unwrap().get_matches().len() };
@@ -523,7 +520,7 @@ pub async fn run_async_scan(
                                 rt_handle.block_on(run_secret_validation(
                                     Arc::clone(&repo_datastore),
                                     parser,
-                                    client,
+                                    clients,
                                     cache,
                                     args.num_jobs,
                                     Some(0..match_count),
@@ -596,11 +593,11 @@ pub async fn run_async_scan(
         }
 
         if let Some(validation) = &validation_deps {
-            let (parser, client, cache) = (&validation.0, &validation.1, &validation.2);
+            let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
             run_secret_validation(
                 Arc::clone(&datastore),
                 parser,
-                client,
+                clients,
                 cache,
                 args.num_jobs,
                 None,

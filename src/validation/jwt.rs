@@ -12,16 +12,34 @@ use tokio::net::lookup_host;
 
 use super::utils::check_url_resolvable;
 
-/// One global, redirect-free client.  Building a `Client` is comparatively
-/// expensive; re-using it lets reqwest share its internal connection pool
-/// and TLS sessions across JWT validations.  `Lazy` ensures thread-safe,
-/// one-time initialisation.
-static NO_REDIRECT_CLIENT: Lazy<Client> = Lazy::new(|| {
+/// Global redirect-free client with strict TLS validation.
+/// Building a `Client` is comparatively expensive; re-using it lets reqwest
+/// share its internal connection pool and TLS sessions across JWT validations.
+static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
     Client::builder()
-        .redirect(Policy::none()) // disable all redirects
+        .redirect(Policy::none())
+        .danger_accept_invalid_certs(false)
         .build()
-        .expect("failed to build no-redirect Client")
+        .expect("failed to build strict Client")
 });
+
+/// Global redirect-free client with lax TLS validation (accepts any cert).
+static LAX_CLIENT: Lazy<Client> = Lazy::new(|| {
+    Client::builder()
+        .redirect(Policy::none())
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("failed to build lax Client")
+});
+
+/// Get the appropriate client based on TLS mode.
+fn get_client(lax_tls: bool) -> &'static Client {
+    if lax_tls {
+        &LAX_CLIENT
+    } else {
+        &STRICT_CLIENT
+    }
+}
 
 /// RFC 1918 + loopback + link-local nets we refuse to contact
 const BLOCKED_NETS: &[&str] = &[
@@ -63,17 +81,32 @@ pub struct ValidateOptions {
 /// Backwards-compatible entry point with secure defaults:
 /// - `alg: none` is **rejected**
 /// - `iss` is **required** unless `fallback_decoding_key` is supplied (not supplied here)
-pub async fn validate_jwt(token: &str) -> Result<(bool, String)> {
+///
+/// # Arguments
+/// * `token` - The JWT token to validate
+/// * `lax_tls` - If true, accept self-signed or invalid certificates for JWKS fetching
+pub async fn validate_jwt(token: &str, lax_tls: bool) -> Result<(bool, String)> {
     validate_jwt_with(
         token,
         &ValidateOptions { allow_alg_none: false, fallback_decoding_key: None },
+        lax_tls,
     )
     .await
 }
 
 /// Strict validator with policy control.
 /// Returns (is_active_credential, explanation).
-pub async fn validate_jwt_with(token: &str, opts: &ValidateOptions) -> Result<(bool, String)> {
+///
+/// # Arguments
+/// * `token` - The JWT token to validate
+/// * `opts` - Validation options
+/// * `lax_tls` - If true, accept self-signed or invalid certificates for JWKS fetching
+pub async fn validate_jwt_with(
+    token: &str,
+    opts: &ValidateOptions,
+    lax_tls: bool,
+) -> Result<(bool, String)> {
+    let client = get_client(lax_tls);
     // --- insecure payload decode to read claims --------------------------------
     let claims: Claims = {
         let payload_b64 = token.split('.').nth(1).ok_or_else(|| anyhow!("invalid JWT format"))?;
@@ -169,7 +202,7 @@ pub async fn validate_jwt_with(token: &str, opts: &ValidateOptions) -> Result<(b
 
     // build discovery URL and fetch it (redirects disabled)
     let config_url = format!("{}/.well-known/openid-configuration", issuer.trim_end_matches('/'));
-    let cfg_resp = NO_REDIRECT_CLIENT
+    let cfg_resp = client
         .get(&config_url)
         .send()
         .await
@@ -219,8 +252,7 @@ pub async fn validate_jwt_with(token: &str, opts: &ValidateOptions) -> Result<(b
     check_url_resolvable(&url).await.map_err(|e| anyhow!("jwks uri unresolvable: {e}"))?;
 
     // fetch JWKS with redirect-free client
-    let jwks_resp =
-        NO_REDIRECT_CLIENT.get(url).send().await.map_err(|e| anyhow!("jwks fetch failed: {e}"))?;
+    let jwks_resp = client.get(url).send().await.map_err(|e| anyhow!("jwks fetch failed: {e}"))?;
     if !jwks_resp.status().is_success() {
         return Ok((false, format!("jwks fetch failed: {}", jwks_resp.status())));
     }
@@ -293,7 +325,7 @@ mod tests {
         });
 
         let token = encode(&header, &payload, &EncodingKey::from_secret(b"secret")).unwrap();
-        let res = validate_jwt(&token).await.unwrap();
+        let res = validate_jwt(&token, false).await.unwrap();
         assert!(!res.0);
         assert!(res.1.contains("HMAC-signed JWTs are not validated"));
     }
@@ -311,7 +343,7 @@ mod tests {
         let signature = URL_SAFE_NO_PAD.encode("sig");
         let token = format!("{header}.{payload}.{signature}");
 
-        let res = validate_jwt(&token).await.unwrap();
+        let res = validate_jwt(&token, false).await.unwrap();
         assert!(!res.0);
         assert!(res.1.contains("no kid in header"));
     }
@@ -319,7 +351,7 @@ mod tests {
     #[tokio::test]
     async fn unsigned_token_rejected_by_default() {
         let token = build_unsigned_token(60);
-        let res = validate_jwt(&token).await.unwrap();
+        let res = validate_jwt(&token, false).await.unwrap();
         assert!(!res.0);
         assert!(res.1.contains("unsigned JWT (alg: none) not allowed"));
     }
@@ -330,6 +362,7 @@ mod tests {
         let res = validate_jwt_with(
             &token,
             &ValidateOptions { allow_alg_none: true, fallback_decoding_key: None },
+            false,
         )
         .await
         .unwrap();
@@ -342,6 +375,7 @@ mod tests {
         let res = validate_jwt_with(
             &token,
             &ValidateOptions { allow_alg_none: true, fallback_decoding_key: None },
+            false,
         )
         .await
         .unwrap();

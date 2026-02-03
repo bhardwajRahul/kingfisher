@@ -21,7 +21,7 @@ use kingfisher::{
             rules::RuleSpecifierArgs,
             scan::{ConfidenceLevel, ScanArgs},
         },
-        global::Mode,
+        global::{Mode, TlsMode},
         GlobalArgs,
     },
     findings_store::FindingsStore,
@@ -251,6 +251,7 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         self_update: false,
         ignore_certs: false,
         user_agent_suffix: None,
+        tls_mode: TlsMode::Strict,
     };
     let update_status = UpdateStatus::default();
 

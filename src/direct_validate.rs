@@ -344,9 +344,16 @@ pub async fn run_direct_validation(
         debug!("Rule selector '{}' matches {} rules, trying all", args.rule, num_matching_rules);
     }
 
+    // Determine if we should use lax TLS for non-HTTP validators
+    // For direct validation (explicit user command), lax mode applies globally
+    let use_lax_tls = matches!(
+        global_args.tls_mode,
+        crate::cli::global::TlsMode::Off | crate::cli::global::TlsMode::Lax
+    );
+
     // Build HTTP client
     let client = Client::builder()
-        .danger_accept_invalid_certs(global_args.ignore_certs)
+        .danger_accept_invalid_certs(use_lax_tls)
         .timeout(Duration::from_secs(args.timeout))
         .user_agent(GLOBAL_USER_AGENT.as_str())
         .gzip(true)
@@ -533,7 +540,7 @@ pub async fn run_direct_validation(
 
             Validation::MongoDB => {
                 // MongoDB expects a connection URI as the secret
-                match validate_mongodb(&secret).await {
+                match validate_mongodb(&secret, use_lax_tls).await {
                     Ok((is_valid, message)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -553,7 +560,7 @@ pub async fn run_direct_validation(
 
             Validation::MySQL => {
                 // MySQL expects a connection URL as the secret
-                match validate_mysql(&secret).await {
+                match validate_mysql(&secret, use_lax_tls).await {
                     Ok((is_valid, metadata)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -577,7 +584,7 @@ pub async fn run_direct_validation(
 
             Validation::Postgres => {
                 // Postgres expects a connection URL as the secret
-                match validate_postgres(&secret).await {
+                match validate_postgres(&secret, use_lax_tls).await {
                     Ok((is_valid, metadata)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -601,7 +608,7 @@ pub async fn run_direct_validation(
 
             Validation::Jdbc => {
                 // JDBC expects a JDBC connection string as the secret
-                match validate_jdbc(&secret).await {
+                match validate_jdbc(&secret, use_lax_tls).await {
                     Ok(outcome) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -621,7 +628,7 @@ pub async fn run_direct_validation(
 
             Validation::JWT => {
                 // JWT expects a JWT token as the secret
-                match validate_jwt(&secret).await {
+                match validate_jwt(&secret, use_lax_tls).await {
                     Ok((is_valid, message)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),

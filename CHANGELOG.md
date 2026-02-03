@@ -7,6 +7,14 @@ All notable changes to this project will be documented in this file.
 - Fixed `validate_command` and `revoke_command` generation in scan output to include all required `--var` arguments for rules with `depends_on` sections (e.g., PubNub, Azure Storage). Commands now include dependent variables like `--var SUBSCRIPTIONTOKEN=<value>` or `--var AZURENAME=<value>`.
 - Updated Azure Storage validation to use `AZURENAME` variable (matching the `depends_on_rule` configuration) with `STORAGE_ACCOUNT` maintained as a backward-compatible alias.
 - Added internal `dependent_captures` field to match records to preserve variables from dependent rules through the validation pipeline for accurate command generation.
+- Added `--tls-mode <strict|lax|off>` global flag to control TLS certificate validation behavior during credential validation:
+  - `strict` (default): Full WebPKI certificate validation with trusted CA chains, hostname verification, and expiration checks
+  - `lax`: Accept self-signed or unknown CA certificates, useful for database connections (PostgreSQL, MySQL, MongoDB) and services using private CAs (e.g., Amazon RDS)
+  - `off`: Disable all TLS validation (equivalent to legacy `--ignore-certs`)
+- Added rule-level `tls_mode` field allowing individual rules to opt into relaxed TLS validation when appropriate. Rules for PostgreSQL, MySQL, MongoDB, JDBC, and JWT now include `tls_mode: lax` by default.
+- The `--ignore-certs` flag remains supported as a deprecated alias for `--tls-mode=off` for backward compatibility.
+- Updated documentation to explain TLS validation modes and their security implications.
+- Added comprehensive test coverage for TLS mode functionality including unit tests, integration tests, and rule configuration verification.
 
 ## [v1.77.0]
 - Added `kingfisher revoke` subcommand for revoking leaked credentials directly with the provider.

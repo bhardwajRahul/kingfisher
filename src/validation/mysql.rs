@@ -1,7 +1,7 @@
 use std::{net::IpAddr, time::Duration};
 
 use anyhow::{anyhow, Result};
-use mysql_async::{prelude::Queryable, Conn, Opts, OptsBuilder};
+use mysql_async::{prelude::Queryable, Conn, Opts, OptsBuilder, SslOpts};
 use tokio::time::{error::Elapsed, timeout};
 use tracing::debug;
 use url::Url;
@@ -94,7 +94,12 @@ fn targets_localhost(opts: &Opts) -> bool {
     is_local_host(opts.ip_or_hostname())
 }
 
-pub async fn validate_mysql(mysql_url: &str) -> Result<(bool, Vec<String>)> {
+/// Validate a MySQL connection URL.
+///
+/// # Arguments
+/// * `mysql_url` - The MySQL connection URL to validate
+/// * `lax_tls` - If true, accept self-signed or invalid certificates
+pub async fn validate_mysql(mysql_url: &str, lax_tls: bool) -> Result<(bool, Vec<String>)> {
     let opts = parse_mysql_url(mysql_url)?;
 
     if targets_localhost(&opts) {
@@ -102,7 +107,15 @@ pub async fn validate_mysql(mysql_url: &str) -> Result<(bool, Vec<String>)> {
         return Ok((false, vec!["skipped localhost/loopback host".into()]));
     }
 
-    let builder = OptsBuilder::from_opts(opts).stmt_cache_size(Some(0));
+    let mut builder = OptsBuilder::from_opts(opts).stmt_cache_size(Some(0));
+
+    // Configure TLS options based on lax_tls setting
+    if lax_tls {
+        debug!("Using lax TLS mode for MySQL connection");
+        let ssl_opts = SslOpts::default().with_danger_accept_invalid_certs(true);
+        builder = builder.ssl_opts(Some(ssl_opts));
+    }
+
     let opts: Opts = builder.into();
 
     let host = opts.ip_or_hostname().to_string();

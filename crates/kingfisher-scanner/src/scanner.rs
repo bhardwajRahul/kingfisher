@@ -566,6 +566,7 @@ mod tests {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         })];
 
         let rules_db = Arc::new(RulesDatabase::from_rules(rules).unwrap());

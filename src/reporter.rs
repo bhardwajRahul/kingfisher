@@ -1263,6 +1263,7 @@ mod tests {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         }));
 
         let blob_id = BlobId::new(b"blob-data");
