@@ -19,6 +19,7 @@ This guide covers all scan targets and usage patterns for Kingfisher.
   - [Confluence](#confluence)
   - [Slack](#slack)
 - [TLS Certificate Validation](#tls-certificate-validation)
+- [Understanding the Scan Summary](#understanding-the-scan-summary)
 - [Environment Variables](#environment-variables)
 - [Exit Codes](#exit-codes)
 
@@ -904,6 +905,51 @@ kingfisher scan --tls-mode=off ./repo
 ```
 
 The legacy `--ignore-certs` flag is still supported as an alias for `--tls-mode=off`.
+
+---
+
+## Understanding the Scan Summary
+
+After each scan, Kingfisher displays a summary with validation statistics:
+
+```
+==========================================
+Scan Summary:
+==========================================
+ |Findings....................: 15
+ |__Successful Validations....: 3
+ |__Failed Validations........: 5
+ |__Skipped Validations.......: 2
+ |Rules Applied...............: 120
+ |__Blobs Scanned.............: 1,234
+ |Bytes Scanned...............: 45.2 MB
+ |Scan Duration...............: 12s 345ms
+ ...
+```
+
+### Validation Counters
+
+| Counter | Description |
+| ------- | ----------- |
+| **Successful Validations** | Credentials confirmed as active by the provider (e.g., API returned valid response) |
+| **Failed Validations** | Validations that were attempted but failed (HTTP errors, connection timeouts, invalid credentials) |
+| **Skipped Validations** | Validations that could not be attempted due to missing preconditions (e.g., missing dependent rules) |
+
+### Why Validations Are Skipped
+
+Validations are marked as "skipped" when:
+
+- **Missing dependent rules**: Some rules require values from other rules to validate. For example, an AWS Secret Key rule needs the Access Key ID from the AWS Access Key rule. If the dependent rule wasn't matched, validation cannot proceed.
+- **Preconditions not met**: The validation endpoint requires additional context that wasn't available in the scan.
+
+When a validation is skipped, the finding will show:
+
+```
+ |Validation....: Inactive Credential
+ |__Response....: Validation skipped - missing dependent rules: helper-rule-id
+```
+
+This distinction helps you understand validation coverage: **Failed Validations** represent actual validation attempts, while **Skipped Validations** indicate opportunities to improve rule coverage or provide additional context.
 
 ---
 

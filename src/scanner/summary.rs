@@ -28,6 +28,7 @@ pub struct ScanSummaryTotals {
     pub findings: usize,
     pub successful_validations: usize,
     pub failed_validations: usize,
+    pub skipped_validations: usize,
     pub blobs_scanned: u64,
     pub bytes_scanned: u64,
 }
@@ -40,6 +41,9 @@ impl ScanSummaryTotals {
                 .successful_validations
                 .saturating_sub(baseline.successful_validations),
             failed_validations: self.failed_validations.saturating_sub(baseline.failed_validations),
+            skipped_validations: self
+                .skipped_validations
+                .saturating_sub(baseline.skipped_validations),
             blobs_scanned: self.blobs_scanned.saturating_sub(baseline.blobs_scanned),
             bytes_scanned: self.bytes_scanned.saturating_sub(baseline.bytes_scanned),
         }
@@ -82,23 +86,28 @@ pub fn compute_scan_totals(
         ds.get_num_matches()
     };
 
-    let (successful_validations, failed_validations) =
-        all_matches.iter().fold((0, 0), |(success, fail), msg| {
+    let (successful_validations, failed_validations, skipped_validations) =
+        all_matches.iter().fold((0, 0, 0), |(success, fail, skipped), msg| {
             let (origin_set, _, match_item) = &**msg;
             if match_item.validation_success {
                 if match_item.validation_response_status != StatusCode::CONTINUE.as_u16() {
                     if args.no_dedup {
-                        (success + origin_set.len(), fail)
+                        (success + origin_set.len(), fail, skipped)
                     } else {
-                        (success + 1, fail)
+                        (success + 1, fail, skipped)
                     }
                 } else {
-                    (success, fail)
+                    (success, fail, skipped)
                 }
+            } else if match_item.validation_response_status
+                == StatusCode::PRECONDITION_REQUIRED.as_u16()
+            {
+                // Skipped validations (e.g., missing dependent rules)
+                (success, fail, skipped + 1)
             } else if match_item.validation_response_status != StatusCode::CONTINUE.as_u16() {
-                (success, fail + 1)
+                (success, fail + 1, skipped)
             } else {
-                (success, fail)
+                (success, fail, skipped)
             }
         });
 
@@ -108,6 +117,7 @@ pub fn compute_scan_totals(
         findings: total_findings,
         successful_validations,
         failed_validations,
+        skipped_validations,
         blobs_scanned: matcher_stats.blobs_scanned,
         bytes_scanned: matcher_stats.bytes_scanned,
     }
@@ -193,6 +203,7 @@ pub fn print_scan_summary(
                 "findings": totals.findings,
                 "successful_validations": totals.successful_validations,
                 "failed_validations": totals.failed_validations,
+                "skipped_validations": totals.skipped_validations,
                 "rules_applied": num_rules,
                 "blobs_scanned": totals.blobs_scanned,
                 "bytes_scanned": totals.bytes_scanned,
@@ -238,6 +249,10 @@ pub fn print_scan_summary(
                 delta.failed_validations.separate_with_commas()
             );
             safe_println!(
+                " |__Skipped Validations.......: {}",
+                delta.skipped_validations.separate_with_commas()
+            );
+            safe_println!(
                 " |Blobs Scanned (delta)......: {}",
                 delta.blobs_scanned.separate_with_commas()
             );
@@ -263,6 +278,10 @@ pub fn print_scan_summary(
             safe_println!(
                 " |__Failed Validations........: {}",
                 totals.failed_validations.separate_with_commas()
+            );
+            safe_println!(
+                " |__Skipped Validations.......: {}",
+                totals.skipped_validations.separate_with_commas()
             );
             safe_println!(" |Rules Applied...............: {}", num_rules.separate_with_commas());
             safe_println!(
