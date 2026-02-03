@@ -12,7 +12,7 @@ use dashmap::DashMap;
 use futures::{stream, StreamExt};
 use indicatif::{ProgressBar, ProgressStyle};
 use liquid::Parser;
-use reqwest::{Client, StatusCode};
+use reqwest::StatusCode;
 use rustc_hash::FxHashMap;
 use tokio::{sync::Notify, time::timeout};
 use tracing::trace;
@@ -108,7 +108,7 @@ impl AccessMapCollector {
 pub async fn run_secret_validation(
     datastore: Arc<Mutex<FindingsStore>>,
     parser: &Parser,
-    client: &Client,
+    clients: &crate::validation::ValidationClients,
     cache: &Arc<SkipMap<String, CachedResponse>>,
     num_jobs: usize,
     range: Option<std::ops::Range<usize>>,
@@ -205,7 +205,7 @@ pub async fn run_secret_validation(
         .for_each_concurrent(concurrency, |rep_arc| {
             // clones into task
             let parser = parser.clone();
-            let client = client.clone();
+            let clients = clients.clone();
             let cache_glob = cache.clone();
             let val_res = &validation_results;
             let success = success_count.clone();
@@ -241,7 +241,7 @@ pub async fn run_secret_validation(
                 validate_single(
                     &mut om,
                     &parser,
-                    &client,
+                    &clients,
                     &FxHashMap::default(),
                     &FxHashMap::default(),
                     &Arc::new(DashMap::new()),
@@ -318,7 +318,7 @@ pub async fn run_secret_validation(
                 .map(|blob_id| {
                     let matches_for_blob = dependent_blobs.get(blob_id).unwrap().clone();
                     let parser = parser.clone();
-                    let client = client.clone();
+                    let clients = clients.clone();
                     let val_cache = val_cache.clone();
                     let in_flight = in_flight.clone();
                     let success = success_count.clone();
@@ -352,7 +352,7 @@ pub async fn run_secret_validation(
                         let validated: Vec<_> =
                             stream::iter(reps.into_iter().map(|(mut rep, mut dups)| {
                                 let parser = parser.clone();
-                                let client = client.clone();
+                                let clients = clients.clone();
                                 let dep_vars = dep_vars.clone();
                                 let miss_deps = missing_deps.clone();
                                 let val_cache = val_cache.clone();
@@ -365,7 +365,7 @@ pub async fn run_secret_validation(
                                     validate_single(
                                         &mut rep,
                                         &parser,
-                                        &client,
+                                        &clients,
                                         &dep_vars,
                                         &miss_deps,
                                         &val_cache,
@@ -424,6 +424,9 @@ pub async fn run_secret_validation(
                             validation_success: om.validation_success,
                             validation_response_body: om.validation_response_body.clone(),
                             validation_response_status: om.validation_response_status.as_u16(),
+                            // Copy dependent_captures from validated OwnedBlobMatch
+                            // so they're available for building validate/revoke commands
+                            dependent_captures: om.dependent_captures.clone(),
                             ..orig.2.clone()
                         },
                     )));
@@ -449,7 +452,7 @@ pub async fn run_secret_validation(
 async fn validate_single(
     om: &mut OwnedBlobMatch,
     parser: &Parser,
-    client: &Client,
+    clients: &crate::validation::ValidationClients,
     dep_vars: &FxHashMap<String, Vec<(String, OffsetSpan)>>,
     missing_deps: &FxHashMap<String, Vec<String>>,
     cache: &DashMap<String, CachedResponse>,
@@ -514,7 +517,7 @@ async fn validate_single(
         validate_single_match(
             om,
             parser,
-            client,
+            clients,
             dep_vars,
             missing_deps,
             cache2,

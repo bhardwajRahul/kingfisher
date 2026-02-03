@@ -19,7 +19,11 @@ pub fn generate_jdbc_cache_key(raw: &str) -> String {
 }
 
 /// Validate a JDBC connection string by dispatching to the supported backend validators.
-pub async fn validate_jdbc(jdbc_conn: &str) -> Result<JdbcValidationOutcome> {
+///
+/// # Arguments
+/// * `jdbc_conn` - The JDBC connection string to validate
+/// * `lax_tls` - If true, accept self-signed or invalid certificates
+pub async fn validate_jdbc(jdbc_conn: &str, lax_tls: bool) -> Result<JdbcValidationOutcome> {
     let trimmed = jdbc_conn.trim();
     if !trimmed.to_ascii_lowercase().starts_with("jdbc:") {
         return Err(anyhow!("JDBC connection string must start with `jdbc:`"));
@@ -33,9 +37,9 @@ pub async fn validate_jdbc(jdbc_conn: &str) -> Result<JdbcValidationOutcome> {
     let subprotocol_lower = subprotocol.to_ascii_lowercase();
 
     match subprotocol_lower.as_str() {
-        "postgres" | "postgresql" | "postgis" => {
-            validate_postgres_jdbc(subname).await.context("Postgres JDBC validation failed")
-        }
+        "postgres" | "postgresql" | "postgis" => validate_postgres_jdbc(subname, lax_tls)
+            .await
+            .context("Postgres JDBC validation failed"),
         other => {
             debug!("Unsupported JDBC subprotocol encountered: {}", other);
             Ok(JdbcValidationOutcome {
@@ -50,9 +54,9 @@ pub async fn validate_jdbc(jdbc_conn: &str) -> Result<JdbcValidationOutcome> {
     }
 }
 
-async fn validate_postgres_jdbc(subname: &str) -> Result<JdbcValidationOutcome> {
+async fn validate_postgres_jdbc(subname: &str, lax_tls: bool) -> Result<JdbcValidationOutcome> {
     let normalized = normalize_postgres_url(subname)?;
-    let (ok, meta) = postgres::validate_postgres(&normalized).await?;
+    let (ok, meta) = postgres::validate_postgres(&normalized, lax_tls).await?;
 
     let mut message = if ok {
         "JDBC Postgres connection is valid.".to_string()

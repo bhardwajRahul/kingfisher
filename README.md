@@ -122,7 +122,7 @@ kingfisher scan /path/to/code
 kingfisher scan /path/to/code --view-report
 ```
 
-### 4: Show only verified (live) secrets
+### 4: Show only validated (live) secrets
 
 ```bash
 kingfisher scan /path/to/code --only-valid

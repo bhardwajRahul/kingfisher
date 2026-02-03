@@ -39,3 +39,4 @@ rules:
       - CONNECTION_URI="postgis://postgres:s2Tf2k@rLMy@google.com:5434/elephant"
     validation:
       type: Postgres
+    tls_mode: lax

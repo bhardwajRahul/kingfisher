@@ -1,8 +1,11 @@
-use std::{str::FromStr, sync::Once, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
-use rustls::crypto::{ring, CryptoProvider};
-use rustls::{client::ClientConfig, RootCertStore};
+use once_cell::sync::OnceCell;
+use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
+use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
+use rustls::{client::ClientConfig, DigitallySignedStruct, RootCertStore, SignatureScheme};
 use rustls_native_certs::{load_native_certs, CertificateResult};
 use sha1::{Digest, Sha1};
 use tokio::time::{error::Elapsed, timeout};
@@ -16,13 +19,56 @@ use tracing::debug;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
-static INIT_PROVIDER: Once = Once::new();
+static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
 fn ensure_crypto_provider() {
-    INIT_PROVIDER.call_once(|| {
+    INIT_PROVIDER.get_or_init(|| {
         // If another part of the program already installed a provider,
         // ignore the error — we just need one global provider.
         let _ = CryptoProvider::install_default(ring::default_provider());
     });
+}
+
+/// A certificate verifier that accepts any certificate (for lax TLS mode).
+///
+/// This verifier still validates signatures to ensure the connection is encrypted,
+/// but does not verify the certificate chain against trusted CAs.
+#[derive(Debug)]
+struct LaxCertVerifier(Arc<CryptoProvider>);
+
+impl ServerCertVerifier for LaxCertVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: UnixTime,
+    ) -> std::result::Result<ServerCertVerified, rustls::Error> {
+        // Accept any certificate - this is the "lax" behavior
+        Ok(ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> std::result::Result<HandshakeSignatureValid, rustls::Error> {
+        verify_tls12_signature(message, cert, dss, &self.0.signature_verification_algorithms)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> std::result::Result<HandshakeSignatureValid, rustls::Error> {
+        verify_tls13_signature(message, cert, dss, &self.0.signature_verification_algorithms)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        self.0.signature_verification_algorithms.supported_schemes()
+    }
 }
 
 pub fn generate_postgres_cache_key(postgres_url: &str) -> String {
@@ -46,7 +92,12 @@ pub fn parse_postgres_url(postgres_url: &str) -> Result<Config> {
     }
 }
 
-pub async fn validate_postgres(postgres_url: &str) -> Result<(bool, Vec<String>)> {
+/// Validate a Postgres connection URL.
+///
+/// # Arguments
+/// * `postgres_url` - The Postgres connection URL to validate
+/// * `lax_tls` - If true, accept self-signed or invalid certificates
+pub async fn validate_postgres(postgres_url: &str, lax_tls: bool) -> Result<(bool, Vec<String>)> {
     let mut cfg = parse_postgres_url(postgres_url)?;
 
     // --- skip localhost/loopback/unix-socket targets entirely -------------
@@ -60,7 +111,7 @@ pub async fn validate_postgres(postgres_url: &str) -> Result<(bool, Vec<String>)
         cfg.ssl_mode(SslMode::Disable);
     }
 
-    check_postgres_db_connection(cfg, original_mode).await
+    check_postgres_db_connection(cfg, original_mode, lax_tls).await
 }
 
 fn has_any_local_host(cfg: &Config) -> bool {
@@ -98,6 +149,7 @@ fn is_local_tcp_host(s: &str) -> bool {
 async fn check_postgres_db_connection(
     mut cfg: Config,
     original_mode: SslMode,
+    lax_tls: bool,
 ) -> Result<(bool, Vec<String>)> {
     // First attempt with caller-supplied sslmode, optional retry without TLS.
     for attempt in 0..=1 {
@@ -121,16 +173,26 @@ async fn check_postgres_db_connection(
                 // Ensure Rustls crypto provider is installed *before* using the builder
                 ensure_crypto_provider();
 
-                let CertificateResult { certs, errors, .. } = load_native_certs();
-                for err in errors {
-                    debug!("native-cert error: {err}");
-                }
+                let tls_cfg = if lax_tls {
+                    // Lax mode: accept any certificate (self-signed, expired, wrong hostname)
+                    debug!("Using lax TLS mode for Postgres connection");
+                    let provider = Arc::new(ring::default_provider());
+                    ClientConfig::builder()
+                        .dangerous()
+                        .with_custom_certificate_verifier(Arc::new(LaxCertVerifier(provider)))
+                        .with_no_client_auth()
+                } else {
+                    // Strict mode: full certificate validation
+                    let CertificateResult { certs, errors, .. } = load_native_certs();
+                    for err in errors {
+                        debug!("native-cert error: {err}");
+                    }
 
-                let mut roots = RootCertStore::empty();
-                let _ = roots.add_parsable_certificates(certs);
+                    let mut roots = RootCertStore::empty();
+                    let _ = roots.add_parsable_certificates(certs);
 
-                let tls_cfg =
-                    ClientConfig::builder().with_root_certificates(roots).with_no_client_auth();
+                    ClientConfig::builder().with_root_certificates(roots).with_no_client_auth()
+                };
                 let tls = MakeRustlsConnect::new(tls_cfg);
 
                 let (client, connection) = cfg_try.connect(tls).await?;

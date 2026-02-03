@@ -26,3 +26,4 @@ rules:
       - https://developer.okta.com/blog/2018/06/20/what-happens-if-your-jwt-is-stolen
     validation:
       type: JWT
+    tls_mode: lax

@@ -42,6 +42,11 @@ impl CommandLineArgs {
             args.global_args.progress = Mode::Never;
         }
 
+        // Handle deprecated --ignore-certs flag as alias for --tls-mode=off
+        if args.global_args.ignore_certs {
+            args.global_args.tls_mode = TlsMode::Off;
+        }
+
         if let Some(suffix) = args.global_args.user_agent_suffix.as_mut() {
             let trimmed = suffix.trim();
             if trimmed.is_empty() {
@@ -106,8 +111,16 @@ pub struct GlobalArgs {
     #[arg(global = true, long, short)]
     pub quiet: bool,
 
-    /// Ignore TLS certificate validation
-    #[arg(global = true, long)]
+    /// TLS certificate validation mode for secret validation requests.
+    ///
+    /// - strict: Full WebPKI validation (default)
+    /// - lax: Accept self-signed/unknown CA, but enforce hostname + expiry
+    /// - off: Disable all certificate validation
+    #[arg(global = true, long, value_enum, default_value = "strict")]
+    pub tls_mode: TlsMode,
+
+    /// Disable TLS certificate validation (deprecated: use --tls-mode=off)
+    #[arg(global = true, long, hide = true)]
     pub ignore_certs: bool,
 
     /// Update the Kingfisher binary to the latest release
@@ -135,6 +148,7 @@ impl Default for GlobalArgs {
         Self {
             verbose: 0,
             quiet: false,
+            tls_mode: TlsMode::Strict,
             ignore_certs: false,
             self_update: false,
             no_update_check: false,
@@ -185,4 +199,66 @@ pub enum Mode {
     Auto,
     Never,
     Always,
+}
+
+/// TLS certificate validation mode for secret validation requests.
+///
+/// Controls how TLS certificates are validated when connecting to endpoints
+/// during credential validation (e.g., database connections, API calls).
+#[derive(Copy, Clone, Debug, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default)]
+#[strum(serialize_all = "kebab-case")]
+pub enum TlsMode {
+    /// Full WebPKI certificate validation: trusted CA chain, hostname match, not expired.
+    /// This is the default and most secure mode.
+    #[default]
+    Strict,
+
+    /// Accept self-signed or unknown CA certificates, but still enforce:
+    /// - Hostname must match certificate's CN/SAN
+    /// - Certificate must not be expired
+    /// - TLS 1.2 or higher required
+    ///
+    /// Useful for database connections (PostgreSQL, MySQL, MongoDB) that often use
+    /// self-signed certificates or private CAs (e.g., Amazon RDS).
+    Lax,
+
+    /// Disable all TLS certificate validation. Use with extreme caution.
+    /// Equivalent to the legacy `--ignore-certs` flag.
+    Off,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tls_mode_default_is_strict() {
+        assert_eq!(TlsMode::default(), TlsMode::Strict);
+    }
+
+    #[test]
+    fn tls_mode_display_formats_correctly() {
+        assert_eq!(TlsMode::Strict.to_string(), "strict");
+        assert_eq!(TlsMode::Lax.to_string(), "lax");
+        assert_eq!(TlsMode::Off.to_string(), "off");
+    }
+
+    #[test]
+    fn global_args_default_has_strict_tls() {
+        let args = GlobalArgs::default();
+        assert_eq!(args.tls_mode, TlsMode::Strict);
+        assert!(!args.ignore_certs);
+    }
+
+    #[test]
+    fn tls_mode_ordering_is_correct() {
+        // Strict < Lax < Off (more secure modes sort before less secure)
+        assert!(TlsMode::Strict < TlsMode::Lax);
+        assert!(TlsMode::Lax < TlsMode::Off);
+    }
+
+    #[test]
+    fn mode_default_is_auto() {
+        assert_eq!(Mode::default(), Mode::Auto);
+    }
 }

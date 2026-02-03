@@ -215,6 +215,7 @@ mod tests {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         };
         let rule = Arc::new(Rule::new(syntax));
         Match {
@@ -243,6 +244,7 @@ mod tests {
             calculated_entropy: 4.5,
             visible: true,
             is_base64: false,
+            dependent_captures: std::collections::BTreeMap::new(),
         }
     }
 

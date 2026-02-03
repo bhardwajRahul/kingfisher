@@ -71,6 +71,9 @@ pub struct OwnedBlobMatch {
     pub validation_success: bool,
     pub calculated_entropy: f32,
     pub is_base64: bool,
+    /// Variables captured from dependent rules (from depends_on_rule).
+    /// Maps variable name (uppercase) to captured value.
+    pub dependent_captures: std::collections::BTreeMap<String, String>,
 }
 impl<'a> Matcher<'a> {
     pub fn get_profiling_report(&self) -> Option<Vec<RuleStats>> {
@@ -92,6 +95,7 @@ impl OwnedBlobMatch {
             validation_success: m.validation_success,
             calculated_entropy: m.calculated_entropy,
             is_base64: m.is_base64,
+            dependent_captures: m.dependent_captures.clone(),
         }
     }
 
@@ -124,6 +128,7 @@ impl OwnedBlobMatch {
             calculated_entropy: blob_match.calculated_entropy,
             finding_fingerprint: 0, //default
             is_base64: blob_match.is_base64,
+            dependent_captures: std::collections::BTreeMap::new(),
         };
 
         // Convert matching_finding to a &str (using lossy conversion if needed)
@@ -1020,6 +1025,11 @@ pub struct Match {
     pub visible: bool,
     #[serde(default)]
     pub is_base64: bool,
+
+    /// Variables captured from dependent rules (from depends_on_rule).
+    /// Maps variable name (uppercase) to captured value.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub dependent_captures: std::collections::BTreeMap<String, String>,
 }
 impl Match {
     #[inline]
@@ -1071,6 +1081,7 @@ impl Match {
             validation_success: owned_blob_match.validation_success,
             calculated_entropy: owned_blob_match.calculated_entropy,
             is_base64: owned_blob_match.is_base64,
+            dependent_captures: owned_blob_match.dependent_captures.clone(),
         }
     }
 
@@ -1218,6 +1229,7 @@ mod test {
                 revocation: None,
                 depends_on_rule: vec![],
                 pattern_requirements: None,
+                tls_mode: None,
             });
 
             let rules_db  = RulesDatabase::from_rules(vec![rule]).unwrap();
@@ -1292,6 +1304,7 @@ mod test {
                 }),
             ],
             pattern_requirements: None,
+            tls_mode: None,
         })];
         let rules_db = RulesDatabase::from_rules(rules)?;
         let input = "some test data for vectorscan";
@@ -1343,6 +1356,7 @@ mod test {
                 ignore_if_contains: Some(vec!["TEST".to_string()]),
                 checksum: None,
             }),
+            tls_mode: None,
         })];
 
         let rules_db = RulesDatabase::from_rules(rules)?;
@@ -1407,6 +1421,7 @@ mod test {
                 ignore_if_contains: Some(vec!["TEST".to_string()]),
                 checksum: None,
             }),
+            tls_mode: None,
         })];
 
         let rules_db = RulesDatabase::from_rules(rules)?;
@@ -1523,6 +1538,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
 
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
@@ -1563,6 +1579,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
@@ -1597,6 +1614,7 @@ mod test {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
@@ -1639,6 +1657,7 @@ line2
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         });
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
 

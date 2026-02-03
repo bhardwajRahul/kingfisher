@@ -3,8 +3,13 @@ use std::{net::IpAddr, time::Duration};
 
 use anyhow::Result;
 use bson::doc;
-use mongodb::{error::ErrorKind, options::ClientOptions, Client};
+use mongodb::{
+    error::ErrorKind,
+    options::{ClientOptions, Tls, TlsOptions},
+    Client,
+};
 use tokio::time::timeout;
+use tracing::debug;
 
 pub fn looks_like_mongodb_uri(uri: &str) -> bool {
     // quick scheme check first
@@ -99,7 +104,11 @@ const SRV_SELECT_MS: u64 = 2500;
 
 /// Validates a MongoDB URI in ≤ 2 s. Returns `(bool, String)` where the
 /// boolean indicates success and the string provides a status message.
-pub async fn validate_mongodb(uri: &str) -> Result<(bool, String)> {
+///
+/// # Arguments
+/// * `uri` - The MongoDB connection URI to validate
+/// * `lax_tls` - If true, accept self-signed or invalid certificates
+pub async fn validate_mongodb(uri: &str, lax_tls: bool) -> Result<(bool, String)> {
     // ---- quick reject without touching the network
     if !looks_like_mongodb_uri(uri) {
         return Ok((false, "Invalid MongoDB URI".to_string()));
@@ -137,6 +146,13 @@ pub async fn validate_mongodb(uri: &str) -> Result<(bool, String)> {
     }
     opts.max_pool_size = Some(1);
     opts.min_pool_size = Some(0);
+
+    // Configure TLS options based on lax_tls setting
+    if lax_tls {
+        debug!("Using lax TLS mode for MongoDB connection");
+        let tls_options = TlsOptions::builder().allow_invalid_certificates(true).build();
+        opts.tls = Some(Tls::Enabled(tls_options));
+    }
 
     // ---- dial and ping
     let client = Client::with_options(opts)?;

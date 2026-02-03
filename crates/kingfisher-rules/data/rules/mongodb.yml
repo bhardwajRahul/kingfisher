@@ -93,6 +93,7 @@ rules:
       - "mongodb://mongoadmin:contoso@something.foo.mongodb.net/myFirstDatabase"
     validation:
       type: MongoDB
+    tls_mode: lax
   - name: MongoDB Atlas Service Account Token
     id: kingfisher.mongodb.4
     pattern: |
@@ -106,3 +107,4 @@ rules:
       - mdb_sa_sk_BdIX_jLzut2WTgglKzKvSgWMDDj5hEoTqdwOyLOL
     validation:
       type: MongoDB
+    tls_mode: lax

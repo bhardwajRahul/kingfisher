@@ -19,11 +19,15 @@ use tokio::{sync::Notify, time};
 use tracing::{debug, trace};
 
 use crate::{
+    cli::global::TlsMode,
     location::OffsetSpan,
     matcher::{OwnedBlobMatch, SerializableCaptures},
     rules::rule::Validation,
     validation_body::{self, ValidationResponseBody},
 };
+
+// Re-export TlsMode from kingfisher_rules for use in client_for_rule
+pub use kingfisher_rules::TlsMode as RuleTlsMode;
 
 pub mod aws;
 pub mod azure;
@@ -85,6 +89,71 @@ pub fn set_user_agent_suffix<S: Into<String>>(suffix: Option<S>) {
         }
 
         let _ = USER_AGENT_SUFFIX.set(trimmed);
+    }
+}
+
+/// Holds HTTP clients for different TLS validation modes.
+///
+/// This struct is created once at scan startup and passed through the validation chain.
+/// The appropriate client is selected based on the global TLS mode and each rule's
+/// declared `tls_mode` setting.
+#[derive(Clone)]
+pub struct ValidationClients {
+    /// Client with full TLS certificate validation (WebPKI chain, hostname, expiry).
+    strict: Client,
+    /// Client that accepts self-signed or invalid certificates.
+    /// Used when `--tls-mode=lax` AND the rule opts into lax validation,
+    /// or when `--tls-mode=off`.
+    lax: Client,
+    /// The global TLS mode from CLI arguments.
+    pub global_mode: TlsMode,
+}
+
+impl ValidationClients {
+    /// Create validation clients based on the global TLS mode.
+    pub fn new(global_mode: TlsMode) -> anyhow::Result<Self> {
+        let timeout = std::time::Duration::from_secs(30);
+
+        let strict =
+            Client::builder().danger_accept_invalid_certs(false).timeout(timeout).build()?;
+
+        let lax = Client::builder().danger_accept_invalid_certs(true).timeout(timeout).build()?;
+
+        Ok(Self { strict, lax, global_mode })
+    }
+
+    /// Get the appropriate client for a given rule's TLS mode.
+    ///
+    /// The effective TLS mode depends on both the global setting and the rule's preference:
+    /// - If global mode is `Off`, always use the lax client (no validation).
+    /// - If global mode is `Lax` and the rule declares `tls_mode: lax`, use lax client.
+    /// - Otherwise, use the strict client.
+    pub fn client_for_rule(&self, rule_tls_mode: Option<kingfisher_rules::TlsMode>) -> &Client {
+        match self.global_mode {
+            TlsMode::Off => &self.lax,
+            TlsMode::Lax => {
+                // Convert rule's TlsMode to CLI TlsMode for comparison
+                let rule_wants_lax = matches!(rule_tls_mode, Some(kingfisher_rules::TlsMode::Lax));
+                if rule_wants_lax {
+                    &self.lax
+                } else {
+                    &self.strict
+                }
+            }
+            TlsMode::Strict => &self.strict,
+        }
+    }
+
+    /// Check if lax TLS should be used for a rule.
+    ///
+    /// This is useful for non-HTTP validators (Postgres, MySQL, etc.) that need to
+    /// configure their own TLS settings.
+    pub fn should_use_lax(&self, rule_tls_mode: Option<kingfisher_rules::TlsMode>) -> bool {
+        match self.global_mode {
+            TlsMode::Off => true,
+            TlsMode::Lax => matches!(rule_tls_mode, Some(kingfisher_rules::TlsMode::Lax)),
+            TlsMode::Strict => false,
+        }
     }
 }
 
@@ -276,7 +345,7 @@ async fn render_template(
 pub async fn validate_single_match(
     m: &mut OwnedBlobMatch,
     parser: &liquid::Parser,
-    client: &Client,
+    clients: &ValidationClients,
     dependent_variables: &FxHashMap<String, Vec<(String, OffsetSpan)>>,
     missing_dependencies: &FxHashMap<String, Vec<String>>,
     cache: &Cache,
@@ -287,7 +356,7 @@ pub async fn validate_single_match(
         timed_validate_single_match(
             m,
             parser,
-            client,
+            clients,
             dependent_variables,
             missing_dependencies,
             cache,
@@ -314,13 +383,17 @@ pub async fn validate_single_match(
 async fn timed_validate_single_match<'a>(
     m: &mut OwnedBlobMatch,
     parser: &liquid::Parser,
-    client: &Client,
+    clients: &ValidationClients,
     dependent_variables: &FxHashMap<String, Vec<(String, OffsetSpan)>>,
     missing_dependencies: &FxHashMap<String, Vec<String>>,
     cache: &Cache,
     validation_timeout: Duration,
     validation_retries: u32,
 ) {
+    // Select the appropriate HTTP client based on rule's TLS mode preference
+    let rule_tls_mode = m.rule.tls_mode();
+    let client = clients.client_for_rule(rule_tls_mode);
+    let use_lax_tls = clients.should_use_lax(rule_tls_mode);
     // ──────────────────────────────────────────────────────────
     // 1. process-wide fingerprint de-dup
     // ──────────────────────────────────────────────────────────
@@ -403,6 +476,9 @@ async fn timed_validate_single_match<'a>(
                     span.start,
                     span.end,
                 ));
+                // Store the dependent capture for later use in reporting
+                // (e.g., generating validate/revoke commands)
+                m.dependent_captures.insert(dep.variable.to_uppercase(), val.clone());
             }
         }
     }
@@ -692,7 +768,7 @@ async fn timed_validate_single_match<'a>(
                 }
             }
 
-            match mongodb::validate_mongodb(&uri).await {
+            match mongodb::validate_mongodb(&uri, use_lax_tls).await {
                 Ok((ok, msg)) => {
                     m.validation_success = ok;
                     m.validation_response_body = validation_body::from_string(msg);
@@ -737,7 +813,7 @@ async fn timed_validate_single_match<'a>(
                 }
             }
 
-            match mysql::validate_mysql(&mysql_url).await {
+            match mysql::validate_mysql(&mysql_url, use_lax_tls).await {
                 Ok((ok, meta)) => {
                     m.validation_success = ok;
                     m.validation_response_body = validation_body::from_string(if ok {
@@ -859,7 +935,7 @@ async fn timed_validate_single_match<'a>(
                 }
             }
 
-            match jdbc::validate_jdbc(&jdbc_conn).await {
+            match jdbc::validate_jdbc(&jdbc_conn, use_lax_tls).await {
                 Ok(outcome) => {
                     m.validation_success = outcome.valid;
                     m.validation_response_body = validation_body::from_string(outcome.message);
@@ -913,7 +989,7 @@ async fn timed_validate_single_match<'a>(
                 }
             }
 
-            match postgres::validate_postgres(&pg_url).await {
+            match postgres::validate_postgres(&pg_url, use_lax_tls).await {
                 Ok((ok, meta)) => {
                     m.validation_success = ok;
                     m.validation_response_body = validation_body::from_string(if ok {
@@ -958,7 +1034,7 @@ async fn timed_validate_single_match<'a>(
                 return;
             }
 
-            match jwt::validate_jwt(&token).await {
+            match jwt::validate_jwt(&token, use_lax_tls).await {
                 Ok((ok, msg)) => {
                     m.validation_success = ok;
                     m.validation_response_body = validation_body::from_string(msg);
@@ -1257,6 +1333,109 @@ mod tests {
         assert_eq!(body.len(), MAX_VALIDATION_BODY_LEN);
         assert!(body.is_char_boundary(body.len()));
         assert!(body.ends_with('a'));
+    }
+
+    mod tls_mode_tests {
+        use super::*;
+
+        #[test]
+        fn validation_clients_new_creates_both_clients() {
+            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+            assert_eq!(clients.global_mode, TlsMode::Strict);
+
+            let clients_lax = ValidationClients::new(TlsMode::Lax).unwrap();
+            assert_eq!(clients_lax.global_mode, TlsMode::Lax);
+
+            let clients_off = ValidationClients::new(TlsMode::Off).unwrap();
+            assert_eq!(clients_off.global_mode, TlsMode::Off);
+        }
+
+        #[test]
+        fn client_for_rule_strict_mode_always_returns_strict_client() {
+            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+
+            // With no rule TLS mode
+            let client1 = clients.client_for_rule(None);
+            // With rule wanting lax
+            let client2 = clients.client_for_rule(Some(kingfisher_rules::TlsMode::Lax));
+            // With rule wanting strict
+            let client3 = clients.client_for_rule(Some(kingfisher_rules::TlsMode::Strict));
+
+            // In strict mode, all should return the same strict client
+            assert!(std::ptr::eq(client1, client2));
+            assert!(std::ptr::eq(client2, client3));
+        }
+
+        #[test]
+        fn client_for_rule_off_mode_always_returns_lax_client() {
+            let clients = ValidationClients::new(TlsMode::Off).unwrap();
+
+            // With no rule TLS mode
+            let client1 = clients.client_for_rule(None);
+            // With rule wanting lax
+            let client2 = clients.client_for_rule(Some(kingfisher_rules::TlsMode::Lax));
+            // With rule wanting strict
+            let client3 = clients.client_for_rule(Some(kingfisher_rules::TlsMode::Strict));
+
+            // In off mode, all should return the same lax client
+            assert!(std::ptr::eq(client1, client2));
+            assert!(std::ptr::eq(client2, client3));
+        }
+
+        #[test]
+        fn client_for_rule_lax_mode_respects_rule_preference() {
+            let clients = ValidationClients::new(TlsMode::Lax).unwrap();
+
+            // Get references to understand which is which
+            let strict_client = clients.client_for_rule(None);
+            let lax_client = clients.client_for_rule(Some(kingfisher_rules::TlsMode::Lax));
+
+            // When rule doesn't specify, should get strict
+            assert!(std::ptr::eq(clients.client_for_rule(None), strict_client));
+
+            // When rule wants strict, should get strict
+            assert!(std::ptr::eq(
+                clients.client_for_rule(Some(kingfisher_rules::TlsMode::Strict)),
+                strict_client
+            ));
+
+            // When rule wants lax, should get lax
+            assert!(std::ptr::eq(
+                clients.client_for_rule(Some(kingfisher_rules::TlsMode::Lax)),
+                lax_client
+            ));
+
+            // Strict and lax clients should be different
+            assert!(!std::ptr::eq(strict_client, lax_client));
+        }
+
+        #[test]
+        fn should_use_lax_off_mode_always_returns_true() {
+            let clients = ValidationClients::new(TlsMode::Off).unwrap();
+
+            assert!(clients.should_use_lax(None));
+            assert!(clients.should_use_lax(Some(kingfisher_rules::TlsMode::Strict)));
+            assert!(clients.should_use_lax(Some(kingfisher_rules::TlsMode::Lax)));
+        }
+
+        #[test]
+        fn should_use_lax_strict_mode_always_returns_false() {
+            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+
+            assert!(!clients.should_use_lax(None));
+            assert!(!clients.should_use_lax(Some(kingfisher_rules::TlsMode::Strict)));
+            assert!(!clients.should_use_lax(Some(kingfisher_rules::TlsMode::Lax)));
+        }
+
+        #[test]
+        fn should_use_lax_lax_mode_respects_rule_preference() {
+            let clients = ValidationClients::new(TlsMode::Lax).unwrap();
+
+            // Only true when rule explicitly opts in
+            assert!(!clients.should_use_lax(None));
+            assert!(!clients.should_use_lax(Some(kingfisher_rules::TlsMode::Strict)));
+            assert!(clients.should_use_lax(Some(kingfisher_rules::TlsMode::Lax)));
+        }
     }
 }
 

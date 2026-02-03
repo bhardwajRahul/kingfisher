@@ -149,6 +149,7 @@ mod tests {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         }))
     }
 
@@ -177,6 +178,7 @@ mod tests {
             calculated_entropy: 0.0,
             visible: true,
             is_base64: false,
+            dependent_captures: std::collections::BTreeMap::new(),
         };
 
         let origin = OriginSet::from(Origin::from_file(file_path.to_path_buf()));

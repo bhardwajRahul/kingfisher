@@ -27,6 +27,7 @@ fn make_rule(rule_id: &str, depends_on_rule: Vec<Option<DependsOnRule>>) -> Arc<
         revocation: None,
         depends_on_rule,
         pattern_requirements: None,
+        tls_mode: None,
     }))
 }
 
@@ -57,6 +58,7 @@ fn make_match(rule: Arc<Rule>, blob_id: BlobId, value: &str) -> Match {
         calculated_entropy: 0.0,
         visible: true,
         is_base64: false,
+        dependent_captures: std::collections::BTreeMap::new(),
     }
 }
 

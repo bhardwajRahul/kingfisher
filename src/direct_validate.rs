@@ -160,7 +160,9 @@ fn extract_validation_vars(validation: &Validation) -> BTreeSet<String> {
         }
         Validation::AzureStorage => {
             vars.insert("TOKEN".to_string());
-            vars.insert("STORAGE_ACCOUNT".to_string());
+            // AZURENAME matches the depends_on_rule variable in azurestorage.yml
+            // STORAGE_ACCOUNT is kept for backward compatibility
+            vars.insert("AZURENAME".to_string());
         }
         Validation::Coinbase => {
             vars.insert("TOKEN".to_string());
@@ -342,9 +344,16 @@ pub async fn run_direct_validation(
         debug!("Rule selector '{}' matches {} rules, trying all", args.rule, num_matching_rules);
     }
 
+    // Determine if we should use lax TLS for non-HTTP validators
+    // For direct validation (explicit user command), lax mode applies globally
+    let use_lax_tls = matches!(
+        global_args.tls_mode,
+        crate::cli::global::TlsMode::Off | crate::cli::global::TlsMode::Lax
+    );
+
     // Build HTTP client
     let client = Client::builder()
-        .danger_accept_invalid_certs(global_args.ignore_certs)
+        .danger_accept_invalid_certs(use_lax_tls)
         .timeout(Duration::from_secs(args.timeout))
         .user_agent(GLOBAL_USER_AGENT.as_str())
         .gzip(true)
@@ -415,6 +424,42 @@ pub async fn run_direct_validation(
             debug!(
                 "Rule '{}' uses variables: {:?}, auto-assigned from --arg: {:?}",
                 rule_id, non_token_vars, args.args
+            );
+        }
+
+        // Check for missing variables and provide helpful error messages
+        let missing_vars: Vec<&String> =
+            template_vars.iter().filter(|var| globals.get(var.as_str()).is_none()).collect();
+
+        if !missing_vars.is_empty() {
+            // Build a map from variable name to the rule it depends on
+            let depends_on_map: BTreeMap<String, &str> = rule
+                .syntax()
+                .depends_on_rule
+                .iter()
+                .flatten()
+                .map(|dep| (dep.variable.to_uppercase(), dep.rule_id.as_str()))
+                .collect();
+
+            let mut error_parts = Vec::new();
+            let mut var_hints = Vec::new();
+
+            for var in &missing_vars {
+                if let Some(source_rule) = depends_on_map.get(*var) {
+                    error_parts
+                        .push(format!("  {} (normally captured from rule '{}')", var, source_rule));
+                } else {
+                    error_parts.push(format!("  {}", var));
+                }
+                var_hints.push(format!("--var {}=<value>", var));
+            }
+
+            bail!(
+                "Rule '{}' requires the following variable(s):\n{}\n\nProvide them using: kingfisher validate --rule {} {} <secret>",
+                rule_id,
+                error_parts.join("\n"),
+                rule_id,
+                var_hints.join(" ")
             );
         }
 
@@ -495,7 +540,7 @@ pub async fn run_direct_validation(
 
             Validation::MongoDB => {
                 // MongoDB expects a connection URI as the secret
-                match validate_mongodb(&secret).await {
+                match validate_mongodb(&secret, use_lax_tls).await {
                     Ok((is_valid, message)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -515,7 +560,7 @@ pub async fn run_direct_validation(
 
             Validation::MySQL => {
                 // MySQL expects a connection URL as the secret
-                match validate_mysql(&secret).await {
+                match validate_mysql(&secret, use_lax_tls).await {
                     Ok((is_valid, metadata)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -539,7 +584,7 @@ pub async fn run_direct_validation(
 
             Validation::Postgres => {
                 // Postgres expects a connection URL as the secret
-                match validate_postgres(&secret).await {
+                match validate_postgres(&secret, use_lax_tls).await {
                     Ok((is_valid, metadata)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -563,7 +608,7 @@ pub async fn run_direct_validation(
 
             Validation::Jdbc => {
                 // JDBC expects a JDBC connection string as the secret
-                match validate_jdbc(&secret).await {
+                match validate_jdbc(&secret, use_lax_tls).await {
                     Ok(outcome) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -583,7 +628,7 @@ pub async fn run_direct_validation(
 
             Validation::JWT => {
                 // JWT expects a JWT token as the secret
-                match validate_jwt(&secret).await {
+                match validate_jwt(&secret, use_lax_tls).await {
                     Ok((is_valid, message)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),
@@ -603,15 +648,18 @@ pub async fn run_direct_validation(
 
             Validation::AzureStorage => {
                 // Azure Storage expects JSON with storage_account and storage_key
-                // Or use --var STORAGE_ACCOUNT=xxx and pass the storage key as the secret
+                // Or use --var AZURENAME=xxx (or STORAGE_ACCOUNT for backward compat) and pass the storage key as the secret
                 let azure_json = if secret.starts_with('{') {
                     // Secret is already JSON
                     secret.clone()
                 } else {
                     // Build JSON from variables
-                    let storage_account = get_global_var(&globals, "STORAGE_ACCOUNT")
+                    // AZURENAME matches the depends_on_rule variable in azurestorage.yml
+                    // STORAGE_ACCOUNT is kept for backward compatibility
+                    let storage_account = get_global_var(&globals, "AZURENAME")
+                    .or_else(|| get_global_var(&globals, "STORAGE_ACCOUNT"))
                     .ok_or_else(|| anyhow!(
-                        "Azure Storage validation requires either JSON input or --var STORAGE_ACCOUNT=<account_name> <storage_key>"
+                        "Azure Storage validation requires either JSON input or --var AZURENAME=<account_name> <storage_key>"
                     ))?;
                     serde_json::json!({
                         "storage_account": storage_account,

@@ -19,7 +19,7 @@ use kingfisher::{
             rules::RuleSpecifierArgs,
             scan::{ConfidenceLevel, ScanArgs},
         },
-        global::Mode,
+        global::{Mode, TlsMode},
         GlobalArgs,
     },
     findings_store::FindingsStore,
@@ -313,6 +313,7 @@ impl TestContext {
             progress: Mode::Never,
             ignore_certs: false,
             user_agent_suffix: None,
+            tls_mode: TlsMode::Strict,
         };
 
         let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));

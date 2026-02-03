@@ -415,66 +415,194 @@ let all_findings: Vec<_> = files.par_iter()
 
 ## Complete Example
 
-Here's a complete example that scans a directory for secrets:
+Here's a complete CLI tool that scans files and directories for secrets with configurable options:
 
 ```rust
 use std::sync::Arc;
 use std::path::Path;
 use walkdir::WalkDir;
-use kingfisher_core::Blob;
+use clap::Parser;
+
 use kingfisher_rules::{get_builtin_rules, RulesDatabase, Rule, Confidence};
 use kingfisher_scanner::{Scanner, ScannerConfig};
 
+#[derive(Parser)]
+#[command(name = "secret-scanner")]
+#[command(about = "Scan files and directories for secrets using Kingfisher", long_about = None)]
+struct Cli {
+    /// Path to scan (file or directory)
+    #[arg(value_name = "PATH")]
+    path: String,
+
+    /// Minimum confidence level (low, medium, high)
+    #[arg(short, long, default_value = "medium")]
+    confidence: String,
+
+    /// Enable base64 decoding
+    #[arg(short, long, default_value_t = true)]
+    base64: bool,
+
+    /// Redact secrets in output
+    #[arg(short, long, default_value_t = false)]
+    redact: bool,
+}
+
 fn main() -> anyhow::Result<()> {
-    // Load high-confidence rules only
-    let rules = get_builtin_rules(Some(Confidence::High))?;
-    println!("Loaded {} high-confidence rules", rules.num_rules());
-    
-    // Compile rules
-    let rule_vec: Vec<Rule> = rules.iter_rules()
+    let cli = Cli::parse();
+
+    // Parse confidence level
+    let confidence = match cli.confidence.to_lowercase().as_str() {
+        "low" => Confidence::Low,
+        "medium" => Confidence::Medium,
+        "high" => Confidence::High,
+        _ => {
+            eprintln!("Invalid confidence level. Use: low, medium, or high");
+            std::process::exit(1);
+        }
+    };
+
+    // Load builtin rules
+    println!("Loading {} confidence rules...", cli.confidence);
+    let rules = get_builtin_rules(Some(confidence))?;
+    println!("Loaded {} rules", rules.num_rules());
+
+    // Convert to Rule objects and compile into a database
+    let rule_vec: Vec<Rule> = rules
+        .iter_rules()
         .map(|syntax| Rule::new(syntax.clone()))
         .collect();
     let rules_db = Arc::new(RulesDatabase::from_rules(rule_vec)?);
-    
+
     // Configure scanner
     let config = ScannerConfig {
-        enable_base64_decoding: true,
+        enable_base64_decoding: cli.base64,
         enable_dedup: true,
-        redact_secrets: true,  // Redact secrets in output
+        redact_secrets: cli.redact,
         ..Default::default()
     };
     let scanner = Scanner::with_config(rules_db, config);
+
+    // Scan the path
+    let path = Path::new(&cli.path);
     
-    // Scan directory
-    let dir = Path::new("./src");
+    if !path.exists() {
+        eprintln!("Error: Path '{}' does not exist", cli.path);
+        std::process::exit(1);
+    }
+
     let mut total_findings = 0;
-    
-    for entry in WalkDir::new(dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-    {
-        let path = entry.path();
-        
+    let mut files_scanned = 0;
+
+    if path.is_file() {
+        // Scan single file
+        files_scanned = 1;
+        println!("\nScanning file: {}", path.display());
         match scanner.scan_file(path) {
-            Ok(findings) if !findings.is_empty() => {
-                println!("\n{}", path.display());
-                for finding in &findings {
-                    println!("  [{}] {} at line {}",
-                        finding.rule_id,
-                        finding.rule_name,
-                        finding.location.start_line);
-                }
+            Ok(findings) => {
+                print_findings(path, &findings);
                 total_findings += findings.len();
             }
-            Err(e) => eprintln!("Error scanning {}: {}", path.display(), e),
-            _ => {}
+            Err(e) => eprintln!("Error scanning file: {}", e),
+        }
+    } else if path.is_dir() {
+        // Scan directory recursively
+        println!("\nScanning directory: {}\n", path.display());
+        
+        for entry in WalkDir::new(path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            let file_path = entry.path();
+            files_scanned += 1;
+
+            match scanner.scan_file(file_path) {
+                Ok(findings) if !findings.is_empty() => {
+                    print_findings(file_path, &findings);
+                    total_findings += findings.len();
+                }
+                Err(e) => {
+                    // Silently skip files that can't be scanned (binary, etc.)
+                    if std::env::var("DEBUG").is_ok() {
+                        eprintln!("Error scanning {}: {}", file_path.display(), e);
+                    }
+                }
+                _ => {}
+            }
         }
     }
+
+    // Print summary
+    println!("\n{}", "=".repeat(60));
+    println!("Scan complete!");
+    println!("Files scanned: {}", files_scanned);
+    println!("Total findings: {}", total_findings);
     
-    println!("\nTotal findings: {}", total_findings);
+    if total_findings > 0 {
+        println!("\n⚠️  WARNING: Secrets detected! Please review the findings above.");
+        std::process::exit(1);
+    } else {
+        println!("✓ No secrets found.");
+    }
+
     Ok(())
 }
+
+fn print_findings(path: &Path, findings: &[kingfisher_scanner::Finding]) {
+    println!("\n📁 {}", path.display());
+    println!("{}", "-".repeat(60));
+    
+    for finding in findings {
+        println!("  🔍 {} ({})", finding.rule_name, finding.rule_id);
+        println!("     Location: line {}:{} - {}:{}",
+            finding.location.line,
+            finding.location.column,
+            finding.location.end_line,
+            finding.location.end_column);
+        println!("     Secret: {}", finding.secret);
+        println!("     Entropy: {:.2}", finding.entropy);
+        println!("     Confidence: {:?}", finding.confidence);
+        println!("     Fingerprint: {}", finding.fingerprint);
+        
+        if !finding.captures.is_empty() {
+            println!("     Captures:");
+            for (name, value) in &finding.captures {
+                println!("       {}: {}", name, value);
+            }
+        }
+        println!();
+    }
+}
+```
+
+Add these dependencies to your `Cargo.toml`:
+
+```toml
+[package]
+name = "secret-scanner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kingfisher-core = { git = "https://github.com/mongodb/kingfisher" }
+kingfisher-rules = { git = "https://github.com/mongodb/kingfisher" }
+kingfisher-scanner = { git = "https://github.com/mongodb/kingfisher" }
+anyhow = "1.0"
+walkdir = "2.5"
+clap = { version = "4.5", features = ["derive"] }
+```
+
+Try it out:
+
+```bash
+# Scan a directory with medium confidence rules
+cargo run -- -c medium ~/tmp
+
+# Scan with high confidence only and redact secrets
+cargo run -- -c high --redact ~/projects
+
+# Scan a single file
+cargo run -- config.yml
 ```
 
 ---

@@ -44,6 +44,33 @@ fn escape_for_shell(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
+/// Build the --var arguments string from dependent captures.
+fn build_var_args(
+    dependent_captures: &std::collections::BTreeMap<String, String>,
+    akid_from_captures: Option<&str>,
+    akid_from_validation_body: Option<&str>,
+) -> String {
+    let mut var_args = Vec::new();
+
+    // Add AKID if available (for AWS)
+    if let Some(akid) = akid_from_captures.or(akid_from_validation_body) {
+        if !akid.is_empty() && !dependent_captures.contains_key("AKID") {
+            var_args.push(format!("--var AKID={}", escape_for_shell(akid)));
+        }
+    }
+
+    // Add all dependent captures as --var arguments
+    for (name, value) in dependent_captures {
+        var_args.push(format!("--var {}={}", name, escape_for_shell(value)));
+    }
+
+    if var_args.is_empty() {
+        String::new()
+    } else {
+        format!("{} ", var_args.join(" "))
+    }
+}
+
 /// Generate a kingfisher revoke command for an active credential if the rule supports revocation.
 ///
 /// Returns `None` if:
@@ -54,9 +81,13 @@ fn build_revoke_command(
     rule_id: &str,
     revocation: &Revocation,
     snippet: &str,
+    dependent_captures: &std::collections::BTreeMap<String, String>,
     akid_from_captures: Option<&str>,
     akid_from_validation_body: Option<&str>,
 ) -> Option<String> {
+    let var_args =
+        build_var_args(dependent_captures, akid_from_captures, akid_from_validation_body);
+
     match revocation {
         Revocation::AWS => {
             // AWS needs the access key ID (AKID) in addition to the secret
@@ -66,19 +97,29 @@ fn build_revoke_command(
                 return None;
             }
             Some(format!(
-                "kingfisher revoke --rule {} --var AKID={} {}",
+                "kingfisher revoke --rule {} {}{}",
                 rule_id,
-                akid,
+                var_args,
                 escape_for_shell(snippet)
             ))
         }
         Revocation::GCP => {
             // GCP revocation uses the service account JSON key (which is the snippet)
-            Some(format!("kingfisher revoke --rule {} {}", rule_id, escape_for_shell(snippet)))
+            Some(format!(
+                "kingfisher revoke --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
         }
         Revocation::Http(_) => {
-            // HTTP-based revocation just needs the token
-            Some(format!("kingfisher revoke --rule {} {}", rule_id, escape_for_shell(snippet)))
+            // HTTP-based revocation with dependent variables
+            Some(format!(
+                "kingfisher revoke --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
         }
     }
 }
@@ -90,10 +131,14 @@ fn build_validate_command(
     rule_id: &str,
     validation: &crate::rules::Validation,
     snippet: &str,
+    dependent_captures: &std::collections::BTreeMap<String, String>,
     akid_from_captures: Option<&str>,
     akid_from_validation_body: Option<&str>,
 ) -> Option<String> {
     use crate::rules::Validation;
+
+    let var_args =
+        build_var_args(dependent_captures, akid_from_captures, akid_from_validation_body);
 
     match validation {
         Validation::AWS => {
@@ -103,19 +148,29 @@ fn build_validate_command(
                 return None;
             }
             Some(format!(
-                "kingfisher validate --rule {} --var AKID={} {}",
+                "kingfisher validate --rule {} {}{}",
                 rule_id,
-                akid,
+                var_args,
                 escape_for_shell(snippet)
             ))
         }
         Validation::GCP => {
             // GCP validation uses the service account JSON key
-            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+            Some(format!(
+                "kingfisher validate --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
         }
         Validation::Http(_) => {
-            // HTTP-based validation just needs the token
-            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+            // HTTP-based validation with dependent variables
+            Some(format!(
+                "kingfisher validate --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
         }
         Validation::MongoDB
         | Validation::MySQL
@@ -125,8 +180,13 @@ fn build_validate_command(
         | Validation::AzureStorage
         | Validation::Coinbase
         | Validation::Raw(_) => {
-            // These validators just need the token/connection string
-            Some(format!("kingfisher validate --rule {} {}", rule_id, escape_for_shell(snippet)))
+            // These validators with dependent variables
+            Some(format!(
+                "kingfisher validate --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
         }
     }
 }
@@ -648,6 +708,7 @@ impl DetailsReporter {
                     rm.m.rule.id(),
                     validation,
                     &raw_snippet,
+                    &rm.m.dependent_captures,
                     akid_from_captures.as_deref(),
                     akid_from_body.as_deref(),
                 )
@@ -662,6 +723,7 @@ impl DetailsReporter {
                         rm.m.rule.id(),
                         revocation,
                         &raw_snippet,
+                        &rm.m.dependent_captures,
                         akid_from_captures.as_deref(),
                         akid_from_body.as_deref(),
                     )
@@ -1201,6 +1263,7 @@ mod tests {
             revocation: None,
             depends_on_rule: vec![],
             pattern_requirements: None,
+            tls_mode: None,
         }));
 
         let blob_id = BlobId::new(b"blob-data");
@@ -1233,6 +1296,7 @@ mod tests {
                 calculated_entropy: 5.29,
                 visible: true,
                 is_base64: false,
+                dependent_captures: std::collections::BTreeMap::new(),
             },
             comment: None,
             match_confidence: Confidence::Medium,

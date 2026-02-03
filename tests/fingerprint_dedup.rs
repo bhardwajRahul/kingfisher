@@ -35,6 +35,7 @@ fn make_match(fp: u64, rule_id: &str) -> Match {
         revocation: None,
         depends_on_rule: vec![],
         pattern_requirements: None,
+        tls_mode: None,
     };
     let rule = Arc::new(Rule::new(syntax));
     Match {
@@ -63,6 +64,7 @@ fn make_match(fp: u64, rule_id: &str) -> Match {
         calculated_entropy: 0.0,
         visible: true,
         is_base64: false,
+        dependent_captures: std::collections::BTreeMap::new(),
     }
 }
 
