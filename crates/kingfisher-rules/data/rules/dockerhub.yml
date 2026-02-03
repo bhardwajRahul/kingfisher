@@ -81,17 +81,23 @@ rules:
       - docker login -u docker-test -p dckr_oat_7bA9zRt5-JqX3vP0l_MnY8sK2wE-dF6h
     references:
       - https://docs.docker.com/enterprise/security/access-tokens/
+    depends_on_rule:
+      - rule_id: kingfisher.dockerhub.2
+        variable: DOCKER_USERNAME
     validation:
       type: Http
       content:
         request:
+          method: POST
+          url: https://hub.docker.com/v2/auth/token
           headers:
-            Authorization: Bearer {{ TOKEN }}
+            Content-Type: application/json
             Accept: application/json
-          method: GET
+          body: '{"identifier":"{{ DOCKER_USERNAME | json_escape }}","secret":"{{ TOKEN | json_escape }}"}'
           response_matcher:
             - report_response: true
-            - status:
-                - 200
-              type: StatusMatch
-          url: https://hub.docker.com/v2/access-tokens?page_size=1
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"access_token"'
