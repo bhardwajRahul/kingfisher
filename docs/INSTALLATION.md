@@ -16,6 +16,7 @@ This guide covers all installation methods for Kingfisher, including pre-commit 
   - [Using the pre-commit Framework](#using-the-pre-commit-framework)
   - [Using Husky (Node.js projects)](#using-husky-nodejs-projects)
 - [Compile from Source](#compile-from-source)
+- [PyPI Wheels](#pypi-wheels)
 - [Run Kingfisher in Docker](#run-kingfisher-in-docker)
 
 ## Pre-built Releases
@@ -377,3 +378,22 @@ docker run --rm \
     --format json \
     --output /out/findings.json
 ```
+
+## PyPI Wheels
+
+If you want to run Kingfisher from PyPI, install the `kingfisher-bin` package
+and use the `kingfisher` command it exposes:
+
+```bash
+pip install kingfisher-bin
+kingfisher --help
+```
+
+Or run it without installation using `uvx`:
+
+```bash
+uvx kingfisher-bin --help
+```
+
+For maintainers who need to build and publish wheels, see
+[docs/PYPI.md](PYPI.md).
