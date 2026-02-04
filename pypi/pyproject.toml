@@ -29,6 +29,7 @@ kingfisher = "kingfisher:main"
 path = "kingfisher/_version.py"
 
 [tool.hatch.build]
+ignore-vcs = true
 include = [
   "kingfisher/**/*.py",
   "kingfisher/bin/*",
@@ -38,6 +39,5 @@ include = [
 [tool.hatch.build.targets.wheel]
 only-include = [
   "kingfisher",
-  "kingfisher/bin",
   "README.md",
 ]
