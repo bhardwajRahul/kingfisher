@@ -56,11 +56,11 @@ rules:
       type: HttpMultiStep
       content:
         steps:
-          # Step 1: Get the first GROUP_ID (Project ID)
-          - name: lookup_group_id
+          # Step 1: Get the organization ID
+          - name: lookup_org_id
             request:
               method: GET
-              url: https://cloud.mongodb.com/api/atlas/v2/groups
+              url: https://cloud.mongodb.com/api/atlas/v2/orgs
               headers:
                 Accept: application/vnd.atlas.2023-02-01+json
                 Content-Type: application/json
@@ -70,16 +70,16 @@ rules:
                   status: [200]
                 - type: JsonValid
             extract:
-              # Extract the first group/project ID
-              GROUP_ID:
+              # Extract the first organization ID
+              ORG_ID:
                 type: JsonPath
                 path: "$.results[0].id"
           
-          # Step 2: Delete the API key using the public key as ID
+          # Step 2: Delete the API key using the organization ID and public key
           - name: delete_api_key
             request:
               method: DELETE
-              url: https://cloud.mongodb.com/api/atlas/v2/groups/{{ GROUP_ID }}/apiKeys/{{ PUBKEY }}
+              url: https://cloud.mongodb.com/api/atlas/v2/orgs/{{ ORG_ID }}/apiKeys/{{ PUBKEY }}
               headers:
                 Accept: application/vnd.atlas.2023-02-01+json
               digest: "{{ PUBKEY | append: ':' | append: TOKEN }}"

@@ -57,10 +57,10 @@ rules:
           - name: delete_key
             request:
               method: DELETE
-              url: https://api.tailscale.com/api/v2/key/{{ KEY_ID }}
+              url: https://api.tailscale.com/api/v2/tailnet/-/keys/{{ KEY_ID }}
               headers:
                 Authorization: "Bearer {{ TOKEN }}"
               response_matcher:
                 - report_response: true
                 - type: StatusMatch
-                  status: [200, 204]
+                  status: [200]

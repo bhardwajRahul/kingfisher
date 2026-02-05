@@ -4,10 +4,12 @@ This document provides an overview of the revocation support added to Kingfisher
 
 ## Overview
 
-Revocation support has been added for services that provide programmatic API endpoints to delete or revoke access tokens/keys. Most implementations use the **HttpMultiStep** revocation type because they require a two-step process:
+Revocation support has been added for **6 services** that provide verified, documented programmatic API endpoints to delete or revoke access tokens/keys. Most implementations use the **HttpMultiStep** revocation type because they require a two-step process:
 
 1. **Step 1 (Lookup)**: Query the API to retrieve an internal ID or token identifier
 2. **Step 2 (Delete)**: Use the extracted ID to perform the actual revocation
+
+**Important**: All implementations have been verified against official API documentation to ensure correctness.
 
 ## Services with Revocation Support
 
@@ -20,50 +22,25 @@ Revocation support has been added for services that provide programmatic API end
   2. Delete the API key using its ID
 - **Note**: SendGrid only shows partial keys in the list, so the first key is extracted
 
-### 2. Netlify (`netlify.yml`)
-- **Rule IDs**: `kingfisher.netlify.1`, `kingfisher.netlify.2`
-- **Revocation Type**: HttpMultiStep (2-step)
-- **Endpoint**: `DELETE /api/v1/access_tokens/{token_id}`
-- **Process**:
-  1. List all access tokens to find the current token's ID
-  2. Delete the access token using its ID
-
-### 3. Tailscale (`tailscale.yml`)
+### 2. Tailscale (`tailscale.yml`)
 - **Rule ID**: `kingfisher.tailscale.1`
 - **Revocation Type**: HttpMultiStep (2-step)
-- **Endpoint**: `DELETE /api/v2/key/{keyId}`
+- **Endpoint**: `DELETE /api/v2/tailnet/{tailnet}/keys/{keyId}`
 - **Process**:
   1. List all keys to find the current key's ID
-  2. Delete the key using its ID
+  2. Delete the key using its ID (using `-` as tailnet for authenticated user's tailnet)
 
-### 4. ElevenLabs (`elevenlabs.yml`)
-- **Rule ID**: `kingfisher.elevenlabs.1`
-- **Revocation Type**: HttpMultiStep (2-step)
-- **Endpoint**: `DELETE /v1/user/api-keys/{api_key_id}`
-- **Process**:
-  1. List all API keys to find the current key's ID
-  2. Delete the API key using its ID
-
-### 5. Sourcegraph (`sourcegraph.yml`)
-- **Rule IDs**: `kingfisher.sourcegraph.1`, `kingfisher.sourcegraph.2`
-- **Revocation Type**: HttpMultiStep (2-step)
-- **Endpoint**: GraphQL mutation `deleteAccessToken`
-- **Process**:
-  1. Query GraphQL to get the current token's ID
-  2. Execute GraphQL mutation to delete the token
-- **Note**: Uses GraphQL API instead of REST
-
-### 6. MongoDB Atlas (`mongodb.yml`)
+### 3. MongoDB Atlas (`mongodb.yml`)
 - **Rule ID**: `kingfisher.mongodb.1`
 - **Revocation Type**: HttpMultiStep (2-step)
-- **Endpoint**: `DELETE /api/atlas/v2/groups/{GROUP_ID}/apiKeys/{PUBLIC_KEY}`
+- **Endpoint**: `DELETE /api/atlas/v2/orgs/{ORG_ID}/apiKeys/{API_KEY_ID}`
 - **Process**:
-  1. List all groups to get the first GROUP_ID (Project ID)
-  2. Delete the API key using the public key as ID
+  1. List all organizations to get the first ORG_ID
+  2. Delete the API key using the public key as the API_KEY_ID
 - **Authentication**: Uses HTTP Digest authentication
-- **Note**: The Public Key is the ID needed for deletion
+- **Note**: The Public Key serves as the API_KEY_ID needed for deletion
 
-### 7. Sumo Logic (`sumologic.yml`)
+### 4. Sumo Logic (`sumologic.yml`)
 - **Rule ID**: `kingfisher.sumologic.2`
 - **Revocation Type**: Http (single-step)
 - **Endpoint**: `DELETE /api/v1/accessKeys/{id}`
@@ -71,7 +48,7 @@ Revocation support has been added for services that provide programmatic API end
 - **Authentication**: Basic Auth (Access ID as username, Access Key as password)
 - **Note**: The Access ID is the ID needed for deletion (captured from `kingfisher.sumologic.1`)
 
-### 8. Twilio (`twilio.yml`)
+### 5. Twilio (`twilio.yml`)
 - **Rule ID**: `kingfisher.twilio.2`
 - **Revocation Type**: HttpMultiStep (2-step)
 - **Endpoint**: `DELETE /2010-04-01/Accounts/{Account_SID}/Keys/{Key_SID}.json`
@@ -80,7 +57,7 @@ Revocation support has been added for services that provide programmatic API end
   2. Delete the API key using both Account SID and Key SID
 - **Note**: Assumes TWILIOID is an API Key SID (starts with `SK`)
 
-### 9. NPM (`npm.yml`)
+### 6. NPM (`npm.yml`)
 - **Rule IDs**: `kingfisher.npm.1`, `kingfisher.npm.2`
 - **Revocation Type**: HttpMultiStep (2-step)
 - **Endpoint**: `DELETE /-/npm/v1/tokens/token/{token_key}`
@@ -175,11 +152,8 @@ The following extraction methods are used across different services:
 ### Common JSONPath Patterns
 
 - `$.result[0].api_key_id` - SendGrid: Extract first API key ID from result array
-- `$[0].id` - Netlify: Extract ID from root-level array
 - `$.keys[0].id` - Tailscale: Extract first key ID from keys object
-- `$.api_keys[0].api_key_id` - ElevenLabs: Extract first API key ID
-- `$.data.currentUser.accessTokens.nodes[0].id` - Sourcegraph: Extract token ID from nested GraphQL response
-- `$.results[0].id` - MongoDB: Extract first group ID from results
+- `$.results[0].id` - MongoDB: Extract first organization ID from results
 - `$.objects[0].token.key` - NPM: Extract token key from objects array
 - `$.accounts[0].sid` - Twilio: Extract account SID from accounts array
 
@@ -187,7 +161,7 @@ The following extraction methods are used across different services:
 
 ### Token Identification
 
-Some services (like SendGrid and Netlify) list all tokens but don't include the full token value in the response. The current implementations extract the **first** token from the list, which assumes:
+Some services (like SendGrid, NPM, and Tailscale) list all tokens but don't include the full token value in the response. The current implementations extract the **first** token from the list, which assumes:
 
 1. The user has only one active token, OR
 2. The token being revoked is the first one in the list
@@ -201,11 +175,6 @@ Some services (like SendGrid and Netlify) list all tokens but don't include the 
 
 MongoDB Atlas uses HTTP Digest authentication, which is properly handled by the Kingfisher HTTP client via the `digest` field in the request configuration.
 
-### GraphQL APIs
-
-Sourcegraph uses GraphQL mutations for revocation. The implementation:
-1. Uses a GraphQL query to get the token ID
-2. Uses a GraphQL mutation with variables to delete the token
 
 ## Limitations
 

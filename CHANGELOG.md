@@ -3,11 +3,11 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.79.0]
-- Added revocation support for SendGrid, Netlify, Tailscale, ElevenLabs, Sourcegraph, MongoDB Atlas, Twilio, and NPM using multi-step (lookup ID then delete) pattern.
+- Added revocation support for SendGrid, Tailscale, MongoDB Atlas, Twilio, and NPM using multi-step (lookup ID then delete) pattern.
 - Added new Sumo Logic rule with direct revocation support.
 - Added `docs/TOKEN_REVOCATION_SUPPORT.md` with detailed revocation implementation guide and testing examples.
 
-## [v1.78.0]
+## [v1.78.0]c
 - Added "Skipped Validations" counter to scan summary output to distinguish between validations that failed (HTTP errors, connection failures) and validations that were skipped due to missing preconditions (e.g., missing dependent rules). This provides better visibility into validation coverage for large scans.
 - Improved error messages for `kingfisher validate` command when rules require dependent variables from `depends_on` sections. Now clearly explains which variables are needed and from which dependent rules they are normally captured.
 - Fixed `validate_command` and `revoke_command` generation in scan output to include all required `--var` arguments for rules with `depends_on` sections (e.g., PubNub, Azure Storage). Commands now include dependent variables like `--var SUBSCRIPTIONTOKEN=<value>` or `--var AZURENAME=<value>`.
