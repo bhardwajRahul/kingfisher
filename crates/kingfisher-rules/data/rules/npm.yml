@@ -37,7 +37,41 @@ rules:
               status: [200]
             - type: WordMatch                               
               words: ['"name":']
-          url: https://registry.npmjs.org/-/npm/v1/user 
+          url: https://registry.npmjs.org/-/npm/v1/user
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all tokens to find the current token's key ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://registry.npmjs.org/-/npm/v1/tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first token's key
+              TOKEN_KEY:
+                type: JsonPath
+                path: "$.objects[0].token.key"
+          
+          # Step 2: Revoke the token using its key
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://registry.npmjs.org/-/npm/v1/tokens/token/{{ TOKEN_KEY }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200, 204] 
 
   - name: NPM Access Token (old format)
     id: kingfisher.npm.2
@@ -69,4 +103,38 @@ rules:
               status: [200]
             - type: WordMatch                               
               words: ['"name":']
-          url: https://registry.npmjs.org/-/npm/v1/user 
+          url: https://registry.npmjs.org/-/npm/v1/user
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all tokens to find the current token's key ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://registry.npmjs.org/-/npm/v1/tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first token's key
+              TOKEN_KEY:
+                type: JsonPath
+                path: "$.objects[0].token.key"
+          
+          # Step 2: Revoke the token using its key
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://registry.npmjs.org/-/npm/v1/tokens/token/{{ TOKEN_KEY }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200, 204] 

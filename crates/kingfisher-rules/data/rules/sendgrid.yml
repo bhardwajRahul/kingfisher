@@ -38,3 +38,39 @@ rules:
             - type: WordMatch      
               match_all_words: true
               words: ['"reputation"', '"type"']
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all API keys to find the current key's ID
+          - name: lookup_api_key_id
+            request:
+              method: GET
+              url: https://api.sendgrid.com/v3/api_keys
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first API key ID from the list
+              # Note: SendGrid only shows partial keys, so we extract the first one
+              # which should be the current token if there's only one active key
+              API_KEY_ID:
+                type: JsonPath
+                path: "$.result[0].api_key_id"
+          
+          # Step 2: Delete the API key using its ID
+          - name: delete_api_key
+            request:
+              method: DELETE
+              url: https://api.sendgrid.com/v3/api_keys/{{ API_KEY_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]

@@ -100,6 +100,45 @@ revocation:
   type: GCP
 ```
 
+### Multi-Step Revocation
+
+Some services require a 2-step revocation process:
+1. **Lookup Step**: Make a request to retrieve an ID or token
+2. **Delete Step**: Use that ID to perform the actual revocation
+
+For these cases, use `HttpMultiStep`:
+
+```yaml
+revocation:
+  type: HttpMultiStep
+  content:
+    steps:
+      - name: lookup_token_id                    # Step 1: Get the token ID
+        request:
+          method: GET
+          url: https://api.example.com/v1/tokens/current
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+        extract:                                  # Extract values from response
+          TOKEN_ID:                               # Variable name (uppercase)
+            type: JsonPath                        # Extraction method
+            path: "$.data.id"                     # JSONPath to the value
+      
+      - name: revoke_token                        # Step 2: Delete using the ID
+        request:
+          method: DELETE
+          url: https://api.example.com/v1/tokens/{{ TOKEN_ID }}
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
+```
+
 | Field                   | What it does                                                         |
 | ----------------------- | -------------------------------------------------------------------- |
 | name                    | Friendly name shown in reports                                       |
@@ -112,7 +151,7 @@ revocation:
 | depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
 | pattern_requirements  | Require character types and/or exclude placeholder words from matches |
 | validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
-| revocation              | Configure HTTP or AWS revocation actions for a detected secret       |
+| revocation              | Configure HTTP, AWS, or multi-step revocation for a detected secret  |
 
 
 *responser_matcher* variants. Multiple can be used
@@ -125,10 +164,234 @@ revocation:
 | **XmlValid**    | –                                                                                                           | Pass only if body parses as well-formed XML. Use when response is expected as XML data                             |
 | **ReportResponse** | `report_response` (bool)                                                                                | Include raw payload in finding for debugging.                             |
 
-## 2. Templating with Liquid
+## 2. Multi-Step Revocation
+
+Some APIs require a two-step revocation process:
+
+1. **Step 1 (Lookup)**: Query the API to retrieve an internal ID, token identifier, or other metadata
+2. **Step 2 (Delete)**: Use the extracted value(s) to perform the actual revocation/deletion
+
+Kingfisher supports up to 2 sequential steps in a revocation workflow. Each step can extract values from its response, making them available as variables in subsequent steps.
+
+### Response Extractors
+
+Values can be extracted from HTTP responses using the following methods:
+
+| Extractor Type | Description | Example |
+|----------------|-------------|---------|
+| **JsonPath** | Extract from JSON response using JSONPath syntax | `$.data.id`, `$.items[0].token_id` |
+| **Regex** | Extract using regex with a capture group | `"token_id":\s*"([^"]+)"` |
+| **Header** | Extract an HTTP response header value | `X-Token-ID` |
+| **Body** | Use the entire response body as-is | - |
+| **StatusCode** | Extract the HTTP status code as a string | - |
+
+### Multi-Step Revocation Schema
+
+```yaml
+revocation:
+  type: HttpMultiStep
+  content:
+    steps:
+      - name: <step_name>              # Optional: human-readable step name
+        request:                       # Standard HTTP request configuration
+          method: GET|POST|DELETE|...
+          url: https://api.example.com/...
+          headers:
+            Header-Name: "value"
+          body: "optional request body"
+          response_matcher:            # Required for final step only
+            - type: StatusMatch
+              status: [200]
+        extract:                       # Optional: extract variables from response
+          VARIABLE_NAME:               # Variable name (uppercase recommended)
+            type: JsonPath|Regex|Header|Body|StatusCode
+            path: "$.path.to.value"    # For JsonPath
+            pattern: "regex pattern"   # For Regex (use first capture group)
+            name: "header-name"        # For Header
+      
+      - name: <next_step>              # Subsequent steps can use extracted variables
+        request:
+          method: DELETE
+          url: https://api.example.com/tokens/{{ VARIABLE_NAME }}
+          response_matcher:
+            - type: StatusMatch
+              status: [204]
+```
+
+### Multi-Step Revocation Requirements
+
+- **Minimum 1, Maximum 2 steps**: You must define at least 1 step and no more than 2 steps
+- **Final step requires response_matcher**: The last step must include a `response_matcher` to determine success/failure
+- **Intermediate steps are optional**: Earlier steps don't require response matchers but can have them for validation
+- **Variables flow forward**: Variables extracted in step 1 are available in step 2 via Liquid templates (e.g., `{{ TOKEN_ID }}`)
+- **All standard Liquid filters apply**: You can use filters on extracted variables just like with `{{ TOKEN }}`
+
+### Example 1: Basic Two-Step Revocation
+
+This example shows a service that requires looking up a token's ID before deletion:
+
+```yaml
+rules:
+  - name: Example Service Token
+    id: kingfisher.example.1
+    pattern: |
+      (?xi)
+      example_token_
+      [A-Za-z0-9]{32}
+    min_entropy: 3.5
+    examples:
+      - example_token_abc123def456ghi789jkl012mno345
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.example.com/v1/auth/verify
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Look up the token ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.example.com/v1/tokens/current
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.data.token_id"
+          
+          # Step 2: Delete the token using the ID
+          - name: delete_token
+            request:
+              method: DELETE
+              url: https://api.example.com/v1/tokens/{{ TOKEN_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]
+```
+
+### Example 2: Using Multiple Extraction Methods
+
+This example demonstrates extracting values using different methods:
+
+```yaml
+revocation:
+  type: HttpMultiStep
+  content:
+    steps:
+      # Step 1: Get metadata from multiple sources
+      - name: get_token_metadata
+        request:
+          method: GET
+          url: https://api.service.com/tokens/info
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+        extract:
+          # Extract from JSON body
+          TOKEN_ID:
+            type: JsonPath
+            path: "$.id"
+          
+          # Extract from response header
+          ACCOUNT_ID:
+            type: Header
+            name: X-Account-ID
+          
+          # Extract using regex
+          TOKEN_TYPE:
+            type: Regex
+            pattern: '"type":\s*"([^"]+)"'
+      
+      # Step 2: Use all extracted values
+      - name: revoke_token
+        request:
+          method: POST
+          url: https://api.service.com/accounts/{{ ACCOUNT_ID }}/tokens/{{ TOKEN_ID }}/revoke
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Content-Type: application/json
+          body: '{"token_type":"{{ TOKEN_TYPE }}"}'
+          response_matcher:
+            - type: StatusMatch
+              status: [200, 204]
+```
+
+### Example 3: Complex JSONPath Extraction
+
+JSONPath supports nested objects and array indexing:
+
+```yaml
+extract:
+  # Extract from nested object
+  USER_ID:
+    type: JsonPath
+    path: "$.data.user.id"
+  
+  # Extract from array (first element)
+  FIRST_TOKEN_ID:
+    type: JsonPath
+    path: "$.tokens[0].id"
+  
+  # Extract from nested array
+  SESSION_ID:
+    type: JsonPath
+    path: "$.data.sessions[0].session_id"
+```
+
+### Example 4: Single-Step Migration Path
+
+Existing single-step revocations remain unchanged and continue to work:
+
+```yaml
+# This continues to work as before
+revocation:
+  type: Http
+  content:
+    request:
+      method: DELETE
+      url: https://api.service.com/tokens/revoke
+      headers:
+        Authorization: "Bearer {{ TOKEN }}"
+      response_matcher:
+        - type: StatusMatch
+          status: [204]
+```
+
+### When to Use Multi-Step Revocation
+
+Use multi-step revocation when:
+
+- **The API requires looking up an ID first**: Some services don't accept the token directly for revocation
+- **You need metadata from the token**: The revocation endpoint requires additional information only available via a separate API call
+- **The service uses indirect revocation**: The token must be associated with another resource (session, key, credential) that needs to be identified first
+
+Do NOT use multi-step revocation when:
+
+- **The API accepts the token directly**: Use the simpler single-step `Http` revocation
+- **You need more than 2 steps**: Kingfisher supports a maximum of 2 steps
+- **The service provides a native revocation method**: Use `AWS` or `GCP` types when applicable
+
+## 3. Templating with Liquid
 Kingfisher leverages the Liquid template engine for dynamic parts of HTTP request bodies, headers, query parameters, and multipart payloads. The engine supports both built-in and custom filters to manipulate the captured secret (TOKEN) or other named captures ({{ NAME }}).
 
-### Using Liquid Filters in Validation
+### Using Liquid Filters in Validation and Revocation
 - **Capture Injection**: The unnamed capture from your regex becomes {{ TOKEN }}. Named captures are made available as uppercase variables (e.g. {{ RDMVAL }}).
 - **Filter Pipeline**: You can chain filters using the pipe (|) syntax:
 
@@ -141,7 +404,7 @@ Arguments: Some filters accept parameters, provided after a colon:
 {{ TOKEN | hmac_sha256: "my-secret-key" }}
 ```
 
-### 3. Built-in & Custom Liquid Filters
+### Built-in & Custom Liquid Filters
 
 Below is the complete list of Liquid filters available in Kingfisher, along with their usage patterns and examples.
 | Filter                | Parameters                                   | Description                                                                                                    | Example                                                             |

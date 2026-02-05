@@ -51,6 +51,42 @@ rules:
     depends_on_rule:
       - rule_id: "kingfisher.mongodb.2"
         variable: PUBKEY
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Get the first GROUP_ID (Project ID)
+          - name: lookup_group_id
+            request:
+              method: GET
+              url: https://cloud.mongodb.com/api/atlas/v2/groups
+              headers:
+                Accept: application/vnd.atlas.2023-02-01+json
+                Content-Type: application/json
+              digest: "{{ PUBKEY | append: ':' | append: TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first group/project ID
+              GROUP_ID:
+                type: JsonPath
+                path: "$.results[0].id"
+          
+          # Step 2: Delete the API key using the public key as ID
+          - name: delete_api_key
+            request:
+              method: DELETE
+              url: https://cloud.mongodb.com/api/atlas/v2/groups/{{ GROUP_ID }}/apiKeys/{{ PUBKEY }}
+              headers:
+                Accept: application/vnd.atlas.2023-02-01+json
+              digest: "{{ PUBKEY | append: ':' | append: TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]
 
   - name: MongoDB API PUBLIC Key
     id: kingfisher.mongodb.2

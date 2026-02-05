@@ -30,3 +30,37 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all keys to find the current key's ID
+          - name: lookup_key_id
+            request:
+              method: GET
+              url: https://api.tailscale.com/api/v2/tailnet/-/keys
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first key ID from the list
+              KEY_ID:
+                type: JsonPath
+                path: "$.keys[0].id"
+          
+          # Step 2: Delete the key using its ID
+          - name: delete_key
+            request:
+              method: DELETE
+              url: https://api.tailscale.com/api/v2/key/{{ KEY_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200, 204]

@@ -121,6 +121,15 @@ fn build_revoke_command(
                 escape_for_shell(snippet)
             ))
         }
+        Revocation::HttpMultiStep(_) => {
+            // Multi-step HTTP revocation with dependent variables
+            Some(format!(
+                "kingfisher revoke --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
+        }
     }
 }
 

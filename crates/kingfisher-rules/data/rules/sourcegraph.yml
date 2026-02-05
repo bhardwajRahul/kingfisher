@@ -2,10 +2,10 @@ rules:
   - name: Sourcegraph Access Token
     id: kingfisher.sourcegraph.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        sgp_(?:[A-F0-9]{16}|local)_[A-F0-9]{40}|sgp_[A-F0-9]{40}
+        sgp_(?:[a-fA-F0-9]{16}|local)_[a-fA-F0-9]{40}|sgp_[a-fA-F0-9]{40}
       )
       \b
     pattern_requirements:
@@ -31,6 +31,44 @@ rules:
             - type: WordMatch
               words: ['"site":{']
               match_all_words: true
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Query to get the current token's ID
+          - name: lookup_token_id
+            request:
+              method: POST
+              url: https://sourcegraph.com/.api/graphql
+              headers:
+                Authorization: "token {{ TOKEN }}"
+                Content-Type: application/json
+              body: |
+                { "query": "query GetCurrentToken { currentUser { accessTokens(first: 1) { nodes { id } } } }" }
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.data.currentUser.accessTokens.nodes[0].id"
+          
+          # Step 2: Delete the access token via GraphQL mutation
+          - name: delete_token
+            request:
+              method: POST
+              url: https://sourcegraph.com/.api/graphql
+              headers:
+                Authorization: "token {{ TOKEN }}"
+                Content-Type: application/json
+              body: |
+                { "query": "mutation DeleteToken($id: ID!) { deleteAccessToken(byID: $id) { alwaysNil } }", "variables": { "id": "{{ TOKEN_ID }}" } }
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200]
 
   - name: Sourcegraph _Legacy_ API Key
     id: kingfisher.sourcegraph.2
@@ -68,6 +106,44 @@ rules:
               status: [200]
             - type: WordMatch
               words: ['"site":{']
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Query to get the current token's ID
+          - name: lookup_token_id
+            request:
+              method: POST
+              url: https://sourcegraph.com/.api/graphql
+              headers:
+                Authorization: "token {{ TOKEN }}"
+                Content-Type: application/json
+              body: |
+                { "query": "query GetCurrentToken { currentUser { accessTokens(first: 1) { nodes { id } } } }" }
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.data.currentUser.accessTokens.nodes[0].id"
+          
+          # Step 2: Delete the access token via GraphQL mutation
+          - name: delete_token
+            request:
+              method: POST
+              url: https://sourcegraph.com/.api/graphql
+              headers:
+                Authorization: "token {{ TOKEN }}"
+                Content-Type: application/json
+              body: |
+                { "query": "mutation DeleteToken($id: ID!) { deleteAccessToken(byID: $id) { alwaysNil } }", "variables": { "id": "{{ TOKEN_ID }}" } }
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200]
 
   - name: Sourcegraph Cody Gateway Key
     id: kingfisher.sourcegraph.3

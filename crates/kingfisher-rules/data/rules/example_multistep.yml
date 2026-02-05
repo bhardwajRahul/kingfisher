@@ -1,0 +1,240 @@
+# Example rules demonstrating multi-step revocation
+# 
+# This file shows how to configure 2-step revocation processes for services
+# that require looking up an ID before performing the actual revocation.
+
+rules:
+  # Example 1: Basic 2-step revocation with JSON extraction
+  - name: Example API Token (2-step revocation)
+    id: kingfisher.example_multistep.1
+    pattern: |
+      (?xi)
+      example_api_token_
+      [A-Za-z0-9]{40}
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - "EXAMPLE_TOKEN=example_api_token_abc123def456ghi789jkl012mno345pqrs"
+    references:
+      - https://example.com/docs/api-tokens
+    
+    # Standard single-step validation
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.example.com/v1/auth/verify
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+    
+    # Multi-step revocation: lookup ID first, then delete
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Get the token's internal ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.example.com/v1/tokens/current
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the token ID from JSON response
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.data.token_id"
+          
+          # Step 2: Delete the token using its ID
+          - name: delete_token
+            request:
+              method: DELETE
+              url: https://api.example.com/v1/tokens/{{ TOKEN_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204, 200]
+
+  # Example 2: Multi-step with multiple extractions
+  - name: Complex Service Token (multi-extraction)
+    id: kingfisher.example_multistep.2
+    pattern: |
+      (?xi)
+      complex_token_
+      [A-Za-z0-9_-]{32,}
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - "TOKEN=complex_token_xyz789_abc123_def456_ghi789"
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Get multiple pieces of information
+          - name: get_token_metadata
+            request:
+              method: GET
+              url: https://api.complex.com/v2/tokens/info
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              # Extract from JSON body using JSONPath
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.id"
+              
+              # Extract from response header
+              ACCOUNT_ID:
+                type: Header
+                name: X-Account-ID
+              
+              # Extract nested JSON field
+              WORKSPACE_ID:
+                type: JsonPath
+                path: "$.workspace.id"
+          
+          # Step 2: Use all extracted values in revocation request
+          - name: revoke_token
+            request:
+              method: POST
+              url: https://api.complex.com/v2/accounts/{{ ACCOUNT_ID }}/workspaces/{{ WORKSPACE_ID }}/tokens/{{ TOKEN_ID }}/revoke
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Content-Type: application/json
+              body: '{"reason":"Token compromised","force":true}'
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200, 204]
+                - type: WordMatch
+                  words: ['"success":true']
+
+  # Example 3: Using regex extraction
+  - name: Service With XML Response
+    id: kingfisher.example_multistep.3
+    pattern: |
+      (?xi)
+      xml_service_key_
+      [A-Fa-f0-9]{32}
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - "KEY=xml_service_key_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Parse XML response with regex
+          - name: get_key_id_from_xml
+            request:
+              method: GET
+              url: https://api.xmlservice.com/keys/current
+              headers:
+                X-API-Key: "{{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: XmlValid
+            extract:
+              # Use regex to extract from XML
+              KEY_ID:
+                type: Regex
+                pattern: '<KeyId>([^<]+)</KeyId>'
+          
+          # Step 2: Delete using extracted ID
+          - name: delete_key
+            request:
+              method: DELETE
+              url: https://api.xmlservice.com/keys/{{ KEY_ID }}
+              headers:
+                X-API-Key: "{{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200, 204]
+
+  # Example 4: Single-step (for comparison)
+  # This shows that simple revocations don't need the multi-step approach
+  - name: Simple Service Token (single-step)
+    id: kingfisher.example_multistep.4
+    pattern: |
+      (?xi)
+      simple_token_
+      [A-Za-z0-9]{32}
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - "TOKEN=simple_token_abcdefghijklmnopqrstuvwxyz123456"
+    
+    # This service accepts the token directly for revocation
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: https://api.simple.com/v1/tokens/current
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
+
+  # Example 5: Array extraction from JSON
+  - name: Service With Array Response
+    id: kingfisher.example_multistep.5
+    pattern: |
+      (?xi)
+      array_service_
+      [A-Za-z0-9]{28}
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - "TOKEN=array_service_abcdefghijklmnopqrstuvwxyz12"
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: Get the first session ID from an array
+          - name: get_session_id
+            request:
+              method: GET
+              url: https://api.arrayservice.com/sessions
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract first element from array
+              SESSION_ID:
+                type: JsonPath
+                path: "$.sessions[0].id"
+          
+          # Step 2: Terminate the session
+          - name: terminate_session
+            request:
+              method: DELETE
+              url: https://api.arrayservice.com/sessions/{{ SESSION_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [204]

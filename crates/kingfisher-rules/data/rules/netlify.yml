@@ -30,6 +30,40 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all access tokens to find the current token's ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.netlify.com/api/v1/access_tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first token ID from the list
+              TOKEN_ID:
+                type: JsonPath
+                path: "$[0].id"
+          
+          # Step 2: Delete the access token using its ID
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://api.netlify.com/api/v1/access_tokens/{{ TOKEN_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]
 
   - name: Netlify API Key
     id: kingfisher.netlify.2
@@ -64,3 +98,37 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          # Step 1: List all access tokens to find the current token's ID
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.netlify.com/api/v1/access_tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              # Extract the first token ID from the list
+              TOKEN_ID:
+                type: JsonPath
+                path: "$[0].id"
+          
+          # Step 2: Delete the access token using its ID
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://api.netlify.com/api/v1/access_tokens/{{ TOKEN_ID }}
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]

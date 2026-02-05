@@ -21,11 +21,14 @@ use crate::{
     cli::{commands::revoke::RevokeArgs, global::GlobalArgs},
     liquid_filters::register_all,
     rule_loader::RuleLoader,
-    rules::{rule::Rule, HttpValidation, Revocation},
     validation::aws::{revoke_aws_access_key, validate_aws_credentials_input},
     validation::gcp::revoke_gcp_service_account_key,
     validation::httpvalidation::{build_request_builder, retry_request, validate_response},
     validation::GLOBAL_USER_AGENT,
+};
+
+use kingfisher_rules::{
+    HttpMultiStepRevocation, HttpValidation, ResponseExtractor, Revocation, RevocationStep, Rule,
 };
 
 /// Result of a direct revocation attempt.
@@ -113,6 +116,21 @@ fn extract_revocation_vars(revocation: &Revocation) -> BTreeSet<String> {
                 vars.extend(extract_template_vars(body));
             }
         }
+        Revocation::HttpMultiStep(multi_step) => {
+            // Extract variables from all steps
+            // Note: Variables extracted in step 1 are available in step 2,
+            // but we only track initial input variables here
+            for step in &multi_step.steps {
+                vars.extend(extract_template_vars(&step.request.url));
+                for (key, value) in &step.request.headers {
+                    vars.extend(extract_template_vars(key));
+                    vars.extend(extract_template_vars(value));
+                }
+                if let Some(body) = &step.request.body {
+                    vars.extend(extract_template_vars(body));
+                }
+            }
+        }
     }
 
     vars
@@ -191,6 +209,70 @@ async fn render_and_parse_url(
     reqwest::Url::parse(&rendered).map_err(|e| anyhow!("Invalid URL '{}': {}", rendered, e))
 }
 
+/// Extract a value from an HTTP response using the specified extractor.
+fn extract_value_from_response(
+    extractor: &ResponseExtractor,
+    body: &str,
+    headers: &reqwest::header::HeaderMap,
+    status: &reqwest::StatusCode,
+) -> Result<String> {
+    match extractor {
+        ResponseExtractor::JsonPath { path } => {
+            let json: serde_json::Value =
+                serde_json::from_str(body).context("Response body is not valid JSON")?;
+
+            // Simple JSONPath implementation supporting basic paths like:
+            // $.field, $.field.nested, $.array[0], $.array[0].field
+            let path_parts: Vec<&str> = path.trim_start_matches("$.").split('.').collect();
+
+            let mut current = &json;
+            for part in path_parts {
+                if let Some((array_name, index_str)) = part.split_once('[') {
+                    let index: usize =
+                        index_str.trim_end_matches(']').parse().context("Invalid array index")?;
+
+                    if !array_name.is_empty() {
+                        current = current
+                            .get(array_name)
+                            .ok_or_else(|| anyhow!("Field '{}' not found", array_name))?;
+                    }
+
+                    current = current
+                        .get(index)
+                        .ok_or_else(|| anyhow!("Array index {} not found", index))?;
+                } else {
+                    current =
+                        current.get(part).ok_or_else(|| anyhow!("Field '{}' not found", part))?;
+                }
+            }
+
+            match current {
+                serde_json::Value::String(s) => Ok(s.clone()),
+                serde_json::Value::Number(n) => Ok(n.to_string()),
+                serde_json::Value::Bool(b) => Ok(b.to_string()),
+                _ => Ok(current.to_string()),
+            }
+        }
+        ResponseExtractor::Regex { pattern } => {
+            let re = Regex::new(pattern).context(format!("Invalid regex pattern: {}", pattern))?;
+            let caps = re
+                .captures(body)
+                .ok_or_else(|| anyhow!("Regex pattern did not match response body"))?;
+
+            caps.get(1)
+                .map(|m| m.as_str().to_string())
+                .ok_or_else(|| anyhow!("No capture group found in regex pattern"))
+        }
+        ResponseExtractor::Header { name } => headers
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+            .ok_or_else(|| anyhow!("Header '{}' not found in response", name)),
+        ResponseExtractor::Body => Ok(body.to_string()),
+        ResponseExtractor::StatusCode => Ok(status.as_u16().to_string()),
+    }
+}
+
 /// Execute HTTP revocation against the provided rule.
 async fn execute_http_revocation(
     http_revocation: &HttpValidation,
@@ -245,6 +327,137 @@ async fn execute_http_revocation(
         status_code: Some(status.as_u16()),
         message: display_body,
     })
+}
+
+/// Execute a single revocation step and extract variables from the response.
+async fn execute_revocation_step(
+    step: &RevocationStep,
+    globals: &mut Object,
+    client: &Client,
+    parser: &liquid::Parser,
+    timeout: Duration,
+    retries: u32,
+    step_number: usize,
+) -> Result<(reqwest::StatusCode, String)> {
+    let default_step_name = format!("step_{}", step_number);
+    let step_name = step.name.as_ref().map(|s| s.as_str()).unwrap_or(&default_step_name);
+
+    debug!("Executing revocation step {}: {}", step_number, step_name);
+
+    let url = render_and_parse_url(parser, globals, &step.request.url).await?;
+    debug!("Step {} URL: {}", step_number, url);
+
+    let request_builder = build_request_builder(
+        client,
+        &step.request.method,
+        &url,
+        &step.request.headers,
+        &step.request.body,
+        timeout,
+        parser,
+        globals,
+    )
+    .map_err(|e| anyhow!("Failed to build request for {}: {}", step_name, e))?;
+
+    let backoff_min = Duration::from_millis(100);
+    let backoff_max = Duration::from_secs(2);
+
+    let response = retry_request(request_builder, retries, backoff_min, backoff_max)
+        .await
+        .map_err(|e| anyhow!("Request failed for {}: {}", step_name, e))?;
+
+    let status = response.status();
+    let headers = response.headers().clone();
+    let body =
+        response.text().await.unwrap_or_else(|e| format!("Failed to read response body: {}", e));
+
+    // Extract variables from the response if configured
+    if let Some(extractors) = &step.extract {
+        debug!("Extracting {} variable(s) from step {} response", extractors.len(), step_number);
+
+        for (var_name, extractor) in extractors {
+            match extract_value_from_response(extractor, &body, &headers, &status) {
+                Ok(value) => {
+                    debug!("Step {}: Extracted variable {} = '{}'", step_number, var_name, value);
+                    globals.insert(var_name.to_uppercase().into(), Value::scalar(value));
+                }
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Failed to extract variable '{}' in step {}: {}",
+                        var_name,
+                        step_number,
+                        e
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok((status, body))
+}
+
+/// Execute multi-step HTTP revocation.
+async fn execute_multi_step_revocation(
+    multi_step: &HttpMultiStepRevocation,
+    globals: &mut Object,
+    client: &Client,
+    parser: &liquid::Parser,
+    timeout: Duration,
+    retries: u32,
+) -> Result<DirectRevocationResult> {
+    if multi_step.steps.is_empty() {
+        bail!("Multi-step revocation must have at least one step");
+    }
+
+    if multi_step.steps.len() > 2 {
+        bail!(
+            "Multi-step revocation supports a maximum of 2 steps, got {}",
+            multi_step.steps.len()
+        );
+    }
+
+    let num_steps = multi_step.steps.len();
+    debug!("Executing {}-step revocation", num_steps);
+
+    // Execute each step sequentially
+    for (i, step) in multi_step.steps.iter().enumerate() {
+        let step_number = i + 1;
+        let is_final_step = step_number == num_steps;
+
+        let (status, body) =
+            execute_revocation_step(step, globals, client, parser, timeout, retries, step_number)
+                .await?;
+
+        if is_final_step {
+            // Final step: validate response to determine success
+            let display_body =
+                if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+
+            let matchers = step
+                .request
+                .response_matcher
+                .as_deref()
+                .ok_or_else(|| anyhow!("Final revocation step must have response_matcher"))?;
+
+            let headers = reqwest::header::HeaderMap::new();
+            let html_allowed = step.request.response_is_html;
+            let revoked = validate_response(matchers, &body, &status, &headers, html_allowed);
+
+            return Ok(DirectRevocationResult {
+                rule_id: String::new(),
+                rule_name: String::new(),
+                revoked,
+                status_code: Some(status.as_u16()),
+                message: display_body,
+            });
+        } else {
+            // Intermediate step: just log the response
+            debug!("Step {} completed with status {}", step_number, status);
+        }
+    }
+
+    // This should never happen due to the checks above, but keep for safety
+    Err(anyhow!("Multi-step revocation did not complete"))
 }
 
 /// Run direct revocation of a secret against one or more rules.
@@ -398,6 +611,18 @@ pub async fn run_direct_revocation(
                 execute_http_revocation(
                     http_revocation,
                     &globals,
+                    &client,
+                    &parser,
+                    timeout,
+                    args.retries,
+                )
+                .await?
+            }
+            Revocation::HttpMultiStep(multi_step) => {
+                let mut globals_mut = globals.clone();
+                execute_multi_step_revocation(
+                    multi_step,
+                    &mut globals_mut,
                     &client,
                     &parser,
                     timeout,

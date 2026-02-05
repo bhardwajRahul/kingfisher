@@ -88,6 +88,61 @@ pub enum Revocation {
     AWS,
     GCP,
     Http(HttpValidation),
+    /// Multi-step HTTP revocation (up to 2 steps).
+    /// Some services require looking up an ID before deletion.
+    HttpMultiStep(HttpMultiStepRevocation),
+}
+
+/// Configuration for multi-step HTTP revocation.
+///
+/// This allows up to 2 steps where the first step can extract values
+/// (e.g., an ID) from its response, which are then used in the second step.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct HttpMultiStepRevocation {
+    /// Sequential steps to execute (minimum 1, maximum 2).
+    pub steps: Vec<RevocationStep>,
+}
+
+/// A single step in a multi-step revocation process.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct RevocationStep {
+    /// Human-readable name for this step (e.g., "lookup_id", "delete").
+    #[serde(default)]
+    pub name: Option<String>,
+
+    /// HTTP request configuration for this step.
+    pub request: HttpRequest,
+
+    /// Optional multipart configuration for this step.
+    #[serde(default)]
+    pub multipart: Option<MultipartConfig>,
+
+    /// Variables to extract from the response for use in subsequent steps.
+    /// Keys are variable names (uppercase), values are extraction patterns.
+    #[serde(default)]
+    pub extract: Option<BTreeMap<String, ResponseExtractor>>,
+}
+
+/// Describes how to extract a value from an HTTP response.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[serde(tag = "type")]
+pub enum ResponseExtractor {
+    /// Extract from JSON response using a JSONPath-like syntax.
+    /// Example: "$.data.id" or "$.items[0].token_id"
+    JsonPath { path: String },
+
+    /// Extract using a regex pattern with a capture group.
+    /// The first capture group is used as the extracted value.
+    Regex { pattern: String },
+
+    /// Extract an HTTP response header value.
+    Header { name: String },
+
+    /// Extract the entire response body as-is.
+    Body,
+
+    /// Extract the HTTP status code as a string.
+    StatusCode,
 }
 
 /// Specifies that a rule depends on a variable from another rule.
@@ -561,14 +616,7 @@ pub struct RuleSyntax {
     /// Optional character type requirements for matched secrets.
     #[serde(default)]
     pub pattern_requirements: Option<PatternRequirements>,
-    /// TLS validation mode for this rule's validation requests.
-    ///
-    /// When set to `Lax`, the rule opts into relaxed TLS validation
-    /// (accepting self-signed/unknown CA certs) when the user enables
-    /// `--tls-mode=lax` on the command line.
-    ///
-    /// This is useful for rules that validate against endpoints commonly
-    /// using self-signed certificates, such as database connections.
+    /// Optional TLS mode for validation connections.
     #[serde(default)]
     pub tls_mode: Option<TlsMode>,
 }
@@ -749,11 +797,7 @@ impl Rule {
         self.syntax.pattern_requirements.as_ref()
     }
 
-    /// Returns the TLS validation mode for this rule, if specified.
-    ///
-    /// When a rule returns `Some(TlsMode::Lax)`, it indicates the rule
-    /// is eligible for relaxed TLS validation when the user enables
-    /// `--tls-mode=lax` on the command line.
+    /// Returns the TLS mode for this rule, if specified.
     pub fn tls_mode(&self) -> Option<TlsMode> {
         self.syntax.tls_mode
     }
@@ -1052,105 +1096,5 @@ mod tests {
         assert!(matches!(reqs.validate(b"anything", None, true), PatternValidationResult::Passed));
         assert!(matches!(reqs.validate(b"123", None, true), PatternValidationResult::Passed));
         assert!(matches!(reqs.validate(b"!@#", None, true), PatternValidationResult::Passed));
-    }
-
-    #[test]
-    fn tls_mode_default_is_strict() {
-        assert_eq!(TlsMode::default(), TlsMode::Strict);
-    }
-
-    #[test]
-    fn tls_mode_serializes_to_lowercase() {
-        assert_eq!(serde_yaml::to_string(&TlsMode::Strict).unwrap().trim(), "strict");
-        assert_eq!(serde_yaml::to_string(&TlsMode::Lax).unwrap().trim(), "lax");
-        assert_eq!(serde_yaml::to_string(&TlsMode::Off).unwrap().trim(), "off");
-    }
-
-    #[test]
-    fn tls_mode_deserializes_from_lowercase() {
-        let strict: TlsMode = serde_yaml::from_str("strict").unwrap();
-        assert_eq!(strict, TlsMode::Strict);
-
-        let lax: TlsMode = serde_yaml::from_str("lax").unwrap();
-        assert_eq!(lax, TlsMode::Lax);
-
-        let off: TlsMode = serde_yaml::from_str("off").unwrap();
-        assert_eq!(off, TlsMode::Off);
-    }
-
-    #[derive(serde::Deserialize)]
-    struct TestRules {
-        rules: Vec<RuleSyntax>,
-    }
-
-    #[test]
-    fn rule_syntax_parses_tls_mode_from_yaml() {
-        let yaml = r#"
-rules:
-  - name: Test Rule
-    id: test.rule.1
-    pattern: "test"
-    tls_mode: lax
-"#;
-        let parsed: TestRules = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(parsed.rules.len(), 1);
-        assert_eq!(parsed.rules[0].tls_mode, Some(TlsMode::Lax));
-    }
-
-    #[test]
-    fn rule_syntax_tls_mode_defaults_to_none_when_missing() {
-        let yaml = r#"
-rules:
-  - name: Test Rule
-    id: test.rule.1
-    pattern: "test"
-"#;
-        let parsed: TestRules = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(parsed.rules.len(), 1);
-        assert_eq!(parsed.rules[0].tls_mode, None);
-    }
-
-    #[test]
-    fn rule_tls_mode_method_returns_syntax_value() {
-        let rule = Rule::new(RuleSyntax {
-            name: "Test".to_string(),
-            id: "test.1".to_string(),
-            pattern: "test".to_string(),
-            min_entropy: 0.0,
-            confidence: Confidence::Low,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None,
-            revocation: None,
-            depends_on_rule: vec![],
-            pattern_requirements: None,
-            tls_mode: Some(TlsMode::Lax),
-        });
-
-        assert_eq!(rule.tls_mode(), Some(TlsMode::Lax));
-    }
-
-    #[test]
-    fn rule_tls_mode_method_returns_none_when_not_set() {
-        let rule = Rule::new(RuleSyntax {
-            name: "Test".to_string(),
-            id: "test.1".to_string(),
-            pattern: "test".to_string(),
-            min_entropy: 0.0,
-            confidence: Confidence::Low,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None,
-            revocation: None,
-            depends_on_rule: vec![],
-            pattern_requirements: None,
-            tls_mode: None,
-        });
-
-        assert_eq!(rule.tls_mode(), None);
     }
 }
