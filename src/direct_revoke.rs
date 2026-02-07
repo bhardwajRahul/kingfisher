@@ -693,3 +693,505 @@ pub fn print_results(results: &[DirectRevocationResult], format: &str, use_color
 pub fn any_revoked(results: &[DirectRevocationResult]) -> bool {
     results.iter().any(|r| r.revoked)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kingfisher_rules::{HttpValidation, ResponseExtractor, Revocation};
+    use reqwest::header::{HeaderMap, HeaderValue};
+    use reqwest::StatusCode;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    // ---- extract_value_from_response: JsonPath ----
+
+    #[test]
+    fn jsonpath_simple_field() {
+        let ext = ResponseExtractor::JsonPath { path: "$.name".into() };
+        let body = r#"{"name":"alice"}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "alice");
+    }
+
+    #[test]
+    fn jsonpath_nested_field() {
+        let ext = ResponseExtractor::JsonPath { path: "$.data.user.id".into() };
+        let body = r#"{"data":{"user":{"id":"u-123"}}}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "u-123");
+    }
+
+    #[test]
+    fn jsonpath_numeric_value() {
+        let ext = ResponseExtractor::JsonPath { path: "$.count".into() };
+        let body = r#"{"count":42}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "42");
+    }
+
+    #[test]
+    fn jsonpath_boolean_value() {
+        let ext = ResponseExtractor::JsonPath { path: "$.active".into() };
+        let body = r#"{"active":true}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn jsonpath_array_index_zero() {
+        let ext = ResponseExtractor::JsonPath { path: "$.items[0]".into() };
+        let body = r#"{"items":["first","second","third"]}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "first");
+    }
+
+    #[test]
+    fn jsonpath_array_index_nested_field() {
+        let ext = ResponseExtractor::JsonPath { path: "$.items[0].token_id".into() };
+        let body = r#"{"items":[{"token_id":"tok-abc"},{"token_id":"tok-def"}]}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "tok-abc");
+    }
+
+    #[test]
+    fn jsonpath_array_second_element() {
+        let ext = ResponseExtractor::JsonPath { path: "$.data[1].name".into() };
+        let body = r#"{"data":[{"name":"a"},{"name":"b"}]}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "b");
+    }
+
+    #[test]
+    fn jsonpath_missing_top_level_field() {
+        let ext = ResponseExtractor::JsonPath { path: "$.nonexistent".into() };
+        let body = r#"{"name":"alice"}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("not found"), "Expected 'not found', got: {}", err);
+    }
+
+    #[test]
+    fn jsonpath_missing_nested_field() {
+        let ext = ResponseExtractor::JsonPath { path: "$.data.missing.deep".into() };
+        let body = r#"{"data":{"other":"value"}}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn jsonpath_array_index_out_of_bounds() {
+        let ext = ResponseExtractor::JsonPath { path: "$.items[5]".into() };
+        let body = r#"{"items":["only","two"]}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("not found"),
+            "Expected 'not found', got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn jsonpath_invalid_json_body() {
+        let ext = ResponseExtractor::JsonPath { path: "$.field".into() };
+        let body = "not json at all";
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("not valid JSON"),
+            "Expected JSON parse error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn jsonpath_object_value_returns_json_string() {
+        let ext = ResponseExtractor::JsonPath { path: "$.nested".into() };
+        let body = r#"{"nested":{"a":1,"b":2}}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let val = result.unwrap();
+        // When the value is not a string/number/bool, it should be serialized as JSON
+        let parsed: serde_json::Value = serde_json::from_str(&val).unwrap();
+        assert_eq!(parsed["a"], 1);
+        assert_eq!(parsed["b"], 2);
+    }
+
+    // ---- extract_value_from_response: Regex ----
+
+    #[test]
+    fn regex_with_capture_group() {
+        let ext = ResponseExtractor::Regex { pattern: r#"token_id":\s*"([^"]+)"#.into() };
+        let body = r#"{"token_id": "abc-123-def"}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "abc-123-def");
+    }
+
+    #[test]
+    fn regex_no_capture_group() {
+        let ext = ResponseExtractor::Regex { pattern: r"token_id".into() };
+        let body = r#"{"token_id": "abc"}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("No capture group"),
+            "Expected 'No capture group', got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn regex_pattern_does_not_match() {
+        let ext = ResponseExtractor::Regex { pattern: r"xyz_(\d+)".into() };
+        let body = "no match here";
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("did not match"),
+            "Expected 'did not match', got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn regex_invalid_pattern() {
+        let ext = ResponseExtractor::Regex { pattern: r"[invalid".into() };
+        let body = "anything";
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn regex_multiple_capture_groups_uses_first() {
+        let ext = ResponseExtractor::Regex { pattern: r"(\w+):(\w+)".into() };
+        let body = "key:value";
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "key");
+    }
+
+    // ---- extract_value_from_response: Header ----
+
+    #[test]
+    fn header_extraction_found() {
+        let ext = ResponseExtractor::Header { name: "x-request-id".into() };
+        let mut headers = HeaderMap::new();
+        headers.insert("x-request-id", HeaderValue::from_static("req-456"));
+        let result = extract_value_from_response(&ext, "", &headers, &StatusCode::OK);
+        assert_eq!(result.unwrap(), "req-456");
+    }
+
+    #[test]
+    fn header_extraction_missing() {
+        let ext = ResponseExtractor::Header { name: "x-missing".into() };
+        let result =
+            extract_value_from_response(&ext, "", &HeaderMap::new(), &StatusCode::OK);
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("not found"),
+            "Expected 'not found', got: {}",
+            err
+        );
+    }
+
+    // ---- extract_value_from_response: Body ----
+
+    #[test]
+    fn body_extraction() {
+        let ext = ResponseExtractor::Body;
+        let body = "the full response body";
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "the full response body");
+    }
+
+    #[test]
+    fn body_extraction_empty() {
+        let ext = ResponseExtractor::Body;
+        let result = extract_value_from_response(&ext, "", &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "");
+    }
+
+    // ---- extract_value_from_response: StatusCode ----
+
+    #[test]
+    fn status_code_extraction_200() {
+        let ext = ResponseExtractor::StatusCode;
+        let result =
+            extract_value_from_response(&ext, "", &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "200");
+    }
+
+    #[test]
+    fn status_code_extraction_404() {
+        let ext = ResponseExtractor::StatusCode;
+        let result =
+            extract_value_from_response(&ext, "", &HeaderMap::new(), &StatusCode::NOT_FOUND);
+        assert_eq!(result.unwrap(), "404");
+    }
+
+    #[test]
+    fn status_code_extraction_201() {
+        let ext = ResponseExtractor::StatusCode;
+        let result =
+            extract_value_from_response(&ext, "", &HeaderMap::new(), &StatusCode::CREATED);
+        assert_eq!(result.unwrap(), "201");
+    }
+
+    // ---- extract_template_vars ----
+
+    #[test]
+    fn template_vars_basic() {
+        let vars = extract_template_vars("https://api.example.com/{{ TOKEN }}/revoke");
+        assert!(vars.contains("TOKEN"));
+        assert_eq!(vars.len(), 1);
+    }
+
+    #[test]
+    fn template_vars_multiple() {
+        let vars = extract_template_vars(
+            "https://api.example.com/{{ AKID }}/keys/{{ KEY_ID }}?token={{ TOKEN }}",
+        );
+        assert!(vars.contains("AKID"));
+        assert!(vars.contains("KEY_ID"));
+        assert!(vars.contains("TOKEN"));
+        assert_eq!(vars.len(), 3);
+    }
+
+    #[test]
+    fn template_vars_with_filters() {
+        let vars = extract_template_vars("{{ TOKEN | base64_encode }}");
+        assert!(vars.contains("TOKEN"));
+        assert_eq!(vars.len(), 1);
+    }
+
+    #[test]
+    fn template_vars_no_vars() {
+        let vars = extract_template_vars("https://api.example.com/revoke");
+        assert!(vars.is_empty());
+    }
+
+    #[test]
+    fn template_vars_case_normalization() {
+        // Variables are uppercased on extraction
+        let vars = extract_template_vars("{{ token }}");
+        assert!(vars.contains("TOKEN"));
+    }
+
+    // ---- build_globals ----
+
+    #[test]
+    fn build_globals_sets_token() {
+        let template_vars = BTreeSet::from(["TOKEN".to_string()]);
+        let globals = build_globals("my-secret", &[], &[], &template_vars).unwrap();
+        assert_eq!(
+            globals.get("TOKEN"),
+            Some(Value::scalar("my-secret".to_string())).as_ref()
+        );
+    }
+
+    #[test]
+    fn build_globals_auto_assigns_args() {
+        let template_vars =
+            BTreeSet::from(["TOKEN".to_string(), "AKID".to_string(), "REGION".to_string()]);
+        let args = vec!["my-akid".to_string(), "us-east-1".to_string()];
+        let globals = build_globals("secret", &args, &[], &template_vars).unwrap();
+
+        assert_eq!(
+            globals.get("TOKEN"),
+            Some(Value::scalar("secret".to_string())).as_ref()
+        );
+        assert_eq!(
+            globals.get("AKID"),
+            Some(Value::scalar("my-akid".to_string())).as_ref()
+        );
+        assert_eq!(
+            globals.get("REGION"),
+            Some(Value::scalar("us-east-1".to_string())).as_ref()
+        );
+    }
+
+    #[test]
+    fn build_globals_explicit_variables() {
+        let template_vars = BTreeSet::from(["TOKEN".to_string(), "AKID".to_string()]);
+        let vars = vec!["AKID=explicit-value".to_string()];
+        let globals = build_globals("secret", &[], &vars, &template_vars).unwrap();
+
+        assert_eq!(
+            globals.get("AKID"),
+            Some(Value::scalar("explicit-value".to_string())).as_ref()
+        );
+    }
+
+    #[test]
+    fn build_globals_invalid_var_format() {
+        let template_vars = BTreeSet::new();
+        let vars = vec!["NO_EQUALS_SIGN".to_string()];
+        let result = build_globals("secret", &[], &vars, &template_vars);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Expected NAME=VALUE"));
+    }
+
+    #[test]
+    fn build_globals_empty_var_name() {
+        let template_vars = BTreeSet::new();
+        let vars = vec!["=value".to_string()];
+        let result = build_globals("secret", &[], &vars, &template_vars);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot be empty"));
+    }
+
+    // ---- extract_revocation_vars ----
+
+    #[test]
+    fn extract_revocation_vars_aws() {
+        let vars = extract_revocation_vars(&Revocation::AWS);
+        assert!(vars.contains("AKID"));
+        assert!(vars.contains("TOKEN"));
+    }
+
+    #[test]
+    fn extract_revocation_vars_gcp() {
+        let vars = extract_revocation_vars(&Revocation::GCP);
+        assert!(vars.contains("TOKEN"));
+    }
+
+    #[test]
+    fn extract_revocation_vars_http() {
+        use kingfisher_rules::HttpRequest;
+
+        let http = HttpValidation {
+            request: HttpRequest {
+                method: "DELETE".into(),
+                url: "https://api.example.com/{{ AKID }}/{{ TOKEN }}".into(),
+                headers: BTreeMap::from([
+                    ("Authorization".into(), "Bearer {{ TOKEN }}".into()),
+                ]),
+                body: Some(r#"{"key":"{{ KEY_ID }}"}"#.into()),
+                response_matcher: None,
+                multipart: None,
+                response_is_html: false,
+            },
+            multipart: None,
+        };
+        let vars = extract_revocation_vars(&Revocation::Http(http));
+        assert!(vars.contains("AKID"));
+        assert!(vars.contains("TOKEN"));
+        assert!(vars.contains("KEY_ID"));
+    }
+
+    #[test]
+    fn extract_revocation_vars_multi_step() {
+        use kingfisher_rules::{HttpMultiStepRevocation, HttpRequest, RevocationStep};
+
+        let multi = HttpMultiStepRevocation {
+            steps: vec![
+                RevocationStep {
+                    name: Some("lookup".into()),
+                    request: HttpRequest {
+                        method: "GET".into(),
+                        url: "https://api.example.com/{{ TOKEN }}/info".into(),
+                        headers: BTreeMap::new(),
+                        body: None,
+                        response_matcher: None,
+                        multipart: None,
+                        response_is_html: false,
+                    },
+                    multipart: None,
+                    extract: None,
+                },
+                RevocationStep {
+                    name: Some("delete".into()),
+                    request: HttpRequest {
+                        method: "DELETE".into(),
+                        url: "https://api.example.com/{{ KEY_ID }}".into(),
+                        headers: BTreeMap::from([
+                            ("X-Api-Key".into(), "{{ API_KEY }}".into()),
+                        ]),
+                        body: None,
+                        response_matcher: None,
+                        multipart: None,
+                        response_is_html: false,
+                    },
+                    multipart: None,
+                    extract: None,
+                },
+            ],
+        };
+        let vars = extract_revocation_vars(&Revocation::HttpMultiStep(multi));
+        assert!(vars.contains("TOKEN"));
+        assert!(vars.contains("KEY_ID"));
+        assert!(vars.contains("API_KEY"));
+    }
+
+    // ---- find_rules_by_selector ----
+
+    fn make_test_rule(id: &str, name: &str) -> Rule {
+        Rule::new(kingfisher_rules::RuleSyntax {
+            name: name.to_string(),
+            id: id.to_string(),
+            pattern: r"\btest\b".to_string(),
+            min_entropy: 0.0,
+            confidence: Default::default(),
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        })
+    }
+
+    #[test]
+    fn find_rules_exact_match() {
+        let mut rules = BTreeMap::new();
+        rules.insert("kingfisher.github.1".into(), make_test_rule("kingfisher.github.1", "GitHub Token"));
+        rules.insert("kingfisher.gitlab.1".into(), make_test_rule("kingfisher.gitlab.1", "GitLab Token"));
+
+        let matched = find_rules_by_selector("kingfisher.github.1", &rules).unwrap();
+        assert_eq!(matched.len(), 1);
+        assert_eq!(matched[0].id(), "kingfisher.github.1");
+    }
+
+    #[test]
+    fn find_rules_prefix_match() {
+        let mut rules = BTreeMap::new();
+        rules.insert("kingfisher.github.1".into(), make_test_rule("kingfisher.github.1", "GitHub PAT"));
+        rules.insert("kingfisher.github.2".into(), make_test_rule("kingfisher.github.2", "GitHub App"));
+        rules.insert("kingfisher.gitlab.1".into(), make_test_rule("kingfisher.gitlab.1", "GitLab Token"));
+
+        let matched = find_rules_by_selector("kingfisher.github", &rules).unwrap();
+        assert_eq!(matched.len(), 2);
+    }
+
+    #[test]
+    fn find_rules_auto_prefix_kingfisher() {
+        let mut rules = BTreeMap::new();
+        rules.insert("kingfisher.github.1".into(), make_test_rule("kingfisher.github.1", "GitHub Token"));
+
+        // Searching without "kingfisher." prefix should still find the rule
+        let matched = find_rules_by_selector("github.1", &rules).unwrap();
+        assert_eq!(matched.len(), 1);
+        assert_eq!(matched[0].id(), "kingfisher.github.1");
+    }
+
+    #[test]
+    fn find_rules_no_match() {
+        let mut rules = BTreeMap::new();
+        rules.insert("kingfisher.github.1".into(), make_test_rule("kingfisher.github.1", "GitHub Token"));
+
+        let result = find_rules_by_selector("nonexistent", &rules);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("No rule found"));
+    }
+
+    #[test]
+    fn find_rules_prefix_boundary() {
+        // "kingfisher.git" should NOT match "kingfisher.github.1" because
+        // "github" does not start after a '.' boundary following "git"
+        let mut rules = BTreeMap::new();
+        rules.insert("kingfisher.github.1".into(), make_test_rule("kingfisher.github.1", "GitHub Token"));
+
+        let result = find_rules_by_selector("kingfisher.git", &rules);
+        assert!(result.is_err(), "Prefix 'kingfisher.git' should not match 'kingfisher.github.1'");
+    }
+}
