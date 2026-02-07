@@ -381,11 +381,16 @@ docker run --rm \
 
 ## PyPI Wheels
 
-If you want to run Kingfisher from PyPI, install the `kingfisher-bin` package
-and use the `kingfisher` command it exposes:
+If you want to run Kingfisher from PyPI, you can install it using `uv`, `pip`, or run it directly with `uvx`:
 
 ```bash
+# Install with uv (recommended)
+uv tool install kingfisher-bin
+
+# Or install with pip
 pip install kingfisher-bin
+
+# Then run Kingfisher
 kingfisher --help
 ```
 

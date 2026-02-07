@@ -106,6 +106,9 @@ kingfisher scan /path/to/scan --access-map --view-report
 # Homebrew (Linux/macOS)
 brew install kingfisher
 
+# Or install from PyPI with uv
+uv tool install kingfisher-bin
+
 # Or use the install script (Linux/macOS)
 curl -sSL https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher.sh | bash
 
