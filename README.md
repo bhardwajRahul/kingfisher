@@ -114,8 +114,11 @@ curl -sSL https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/inst
 
 # Or use PowerShell based install script on Windows
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
-./install-kingfisher-pre-commit.ps1
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher.ps1' -OutFile install-kingfisher.ps1
+./install-kingfisher.ps1
+
+# Or run with Docker (no install required)
+docker run --rm -v "$PWD":/src ghcr.io/mongodb/kingfisher:latest scan /src
 ```
 
 ### 2: Scan a directory for secrets ([USAGE.md](/docs/USAGE.md))
@@ -241,8 +244,9 @@ kingfisher scan /path/to/code --access-map --view-report
 Kingfisher supports multiple installation methods:
 
 - **Homebrew**: `brew install kingfisher` ![Homebrew Formula Version](https://img.shields.io/homebrew/v/kingfisher)
+- **PyPI with uv**: `uv tool install kingfisher-bin`
 - **Pre-built releases**: Download from [GitHub Releases](https://github.com/mongodb/kingfisher/releases)
-- **Install scripts**: One-line installers for Linux, macOS, and Windows
+- **Install scripts**: One-line installers for Linux, macOS, and Windows - [INSTALLATION.md](docs/INSTALLATION.md)
 - **Docker**: `docker run ghcr.io/mongodb/kingfisher:latest`
 - **Pre-commit hooks**: Integrate with git hooks, pre-commit framework, or Husky
 - **Compile from source**: Build with `make` for your platform
