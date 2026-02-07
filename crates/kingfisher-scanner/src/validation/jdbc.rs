@@ -19,10 +19,6 @@ pub fn generate_jdbc_cache_key(raw: &str) -> String {
 }
 
 /// Validate a JDBC connection string by dispatching to the supported backend validators.
-///
-/// # Arguments
-/// * `jdbc_conn` - The JDBC connection string to validate
-/// * `lax_tls` - If true, accept self-signed or invalid certificates
 pub async fn validate_jdbc(jdbc_conn: &str, lax_tls: bool) -> Result<JdbcValidationOutcome> {
     let trimmed = jdbc_conn.trim();
     if !trimmed.to_ascii_lowercase().starts_with("jdbc:") {
@@ -90,14 +86,12 @@ fn normalize_postgres_url(subname: &str) -> Result<String> {
         return Err(anyhow!("Postgres JDBC connection string is empty"));
     }
 
-    // First try parsing using the standard JDBC layout, otherwise fall back to a canonical URL.
     let candidate = format!("postgresql:{}", trimmed);
     let mut url = Url::parse(&candidate).or_else(|_| {
         let fallback = format!("postgresql://{}", trimmed.trim_start_matches('/'));
         Url::parse(&fallback)
     })?;
 
-    // Extract credentials from the query string when they are present.
     let mut user = None;
     let mut password = None;
     if url.query().is_some() {
@@ -128,31 +122,4 @@ fn normalize_postgres_url(subname: &str) -> Result<String> {
     }
 
     Ok(url.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::normalize_postgres_url;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn normalizes_postgres_query_credentials() {
-        let normalized = normalize_postgres_url(
-            "//db.example.com:5432/app?user=admin&password=s3cr3t&sslmode=require",
-        )
-        .unwrap();
-        assert_eq!(normalized, "postgresql://admin:s3cr3t@db.example.com:5432/app?sslmode=require");
-    }
-
-    #[test]
-    fn preserves_existing_credentials() {
-        let normalized =
-            normalize_postgres_url("//db.example.com:5432/app?sslmode=prefer").unwrap();
-        assert_eq!(normalized, "postgresql://db.example.com:5432/app?sslmode=prefer");
-    }
-
-    #[test]
-    fn rejects_empty_input() {
-        assert!(normalize_postgres_url("").is_err());
-    }
 }

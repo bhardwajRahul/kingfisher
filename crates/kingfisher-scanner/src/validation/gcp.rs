@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::validation::GLOBAL_USER_AGENT;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{Duration as ChronoDuration, Utc};
@@ -12,6 +11,8 @@ use ring::{rand, signature};
 use serde_json::Value as JsonValue;
 use tokio::sync::Semaphore;
 use tracing::debug;
+
+use super::GLOBAL_USER_AGENT;
 
 static GLOBAL_VALIDATOR: OnceCell<GcpValidator> = OnceCell::new();
 
@@ -52,7 +53,6 @@ impl GcpValidator {
         let _permit = self.semaphore.acquire().await?;
         let token_info: JsonValue = serde_json::from_str(gcp_json)?;
 
-        // Extract required fields.
         let project_id = token_info["project_id"].as_str().unwrap_or("").to_string();
         let client_email = token_info["client_email"].as_str().unwrap_or("").to_string();
         let private_key = token_info["private_key"].as_str().unwrap_or("").to_string();
@@ -185,7 +185,6 @@ impl GcpValidator {
         let iat = now.timestamp();
         let exp = (now + ChronoDuration::hours(1)).timestamp();
 
-        // JWT Header and Claims.
         let header = URL_SAFE_NO_PAD.encode(r#"{"alg":"RS256","typ":"JWT"}"#);
         let claims = format!(
             r#"{{
@@ -200,12 +199,10 @@ impl GcpValidator {
         let claims_encoded = URL_SAFE_NO_PAD.encode(claims);
         let message = format!("{}.{}", header, claims_encoded);
 
-        // Parse PEM and create RSA key pair.
         let pem = parse(private_key_pem).map_err(|e| anyhow!("Failed to parse PEM: {}", e))?;
         let key_pair = signature::RsaKeyPair::from_pkcs8(&pem.contents())
             .map_err(|_| anyhow!("Invalid RSA private key"))?;
 
-        // Sign the message.
         let rng = rand::SystemRandom::new();
         let mut signature = vec![0; key_pair.public().modulus_len()];
         key_pair

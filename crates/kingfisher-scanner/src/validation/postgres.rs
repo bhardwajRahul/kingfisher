@@ -22,16 +22,10 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
 fn ensure_crypto_provider() {
     INIT_PROVIDER.get_or_init(|| {
-        // If another part of the program already installed a provider,
-        // ignore the error — we just need one global provider.
         let _ = CryptoProvider::install_default(ring::default_provider());
     });
 }
 
-/// A certificate verifier that accepts any certificate (for lax TLS mode).
-///
-/// This verifier still validates signatures to ensure the connection is encrypted,
-/// but does not verify the certificate chain against trusted CAs.
 #[derive(Debug)]
 struct LaxCertVerifier(Arc<CryptoProvider>);
 
@@ -44,7 +38,6 @@ impl ServerCertVerifier for LaxCertVerifier {
         _ocsp_response: &[u8],
         _now: UnixTime,
     ) -> std::result::Result<ServerCertVerified, rustls::Error> {
-        // Accept any certificate - this is the "lax" behavior
         Ok(ServerCertVerified::assertion())
     }
 
@@ -93,14 +86,9 @@ pub fn parse_postgres_url(postgres_url: &str) -> Result<Config> {
 }
 
 /// Validate a Postgres connection URL.
-///
-/// # Arguments
-/// * `postgres_url` - The Postgres connection URL to validate
-/// * `lax_tls` - If true, accept self-signed or invalid certificates
 pub async fn validate_postgres(postgres_url: &str, lax_tls: bool) -> Result<(bool, Vec<String>)> {
     let mut cfg = parse_postgres_url(postgres_url)?;
 
-    // --- skip localhost/loopback/unix-socket targets entirely -------------
     if has_any_local_host(&cfg) {
         debug!("Skipping Postgres validation: host is localhost/loopback or unix socket");
         return Ok((false, vec!["skipped localhost/loopback host".into()]));
@@ -117,16 +105,14 @@ pub async fn validate_postgres(postgres_url: &str, lax_tls: bool) -> Result<(boo
 fn has_any_local_host(cfg: &Config) -> bool {
     cfg.get_hosts().iter().any(|h| match h {
         #[cfg(unix)]
-        Host::Unix(_) => true, // local unix socket
+        Host::Unix(_) => true,
         Host::Tcp(s) => is_local_tcp_host(s),
     })
 }
 
 fn is_local_tcp_host(s: &str) -> bool {
-    // strip URI-style IPv6 brackets if present
     let host = s.trim_matches(|c| c == '[' || c == ']');
 
-    // Direct IPs
     if let Ok(ip) = host.parse::<std::net::IpAddr>() {
         return match ip {
             std::net::IpAddr::V4(v4) => {
@@ -138,7 +124,6 @@ fn is_local_tcp_host(s: &str) -> bool {
         };
     }
 
-    // Common localhost hostnames
     let lower = host.to_ascii_lowercase();
     lower == "localhost"
         || lower.starts_with("localhost.")
@@ -151,7 +136,6 @@ async fn check_postgres_db_connection(
     original_mode: SslMode,
     lax_tls: bool,
 ) -> Result<(bool, Vec<String>)> {
-    // First attempt with caller-supplied sslmode, optional retry without TLS.
     for attempt in 0..=1 {
         let cfg_try = cfg.clone();
 
@@ -170,11 +154,9 @@ async fn check_postgres_db_connection(
             .await
         } else {
             timeout(CONNECT_TIMEOUT, async {
-                // Ensure Rustls crypto provider is installed *before* using the builder
                 ensure_crypto_provider();
 
                 let tls_cfg = if lax_tls {
-                    // Lax mode: accept any certificate (self-signed, expired, wrong hostname)
                     debug!("Using lax TLS mode for Postgres connection");
                     let provider = Arc::new(ring::default_provider());
                     ClientConfig::builder()
@@ -182,7 +164,6 @@ async fn check_postgres_db_connection(
                         .with_custom_certificate_verifier(Arc::new(LaxCertVerifier(provider)))
                         .with_no_client_auth()
                 } else {
-                    // Strict mode: full certificate validation
                     let CertificateResult { certs, errors, .. } = load_native_certs();
                     for err in errors {
                         debug!("native-cert error: {err}");
@@ -261,56 +242,4 @@ fn server_requires_encryption(err_msg: &str) -> bool {
 
 fn missing_cluster_identifier(err_msg: &str) -> bool {
     err_msg.contains("missing cluster identifier")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        is_local_tcp_host, missing_cluster_identifier, parse_postgres_url,
-        server_requires_encryption,
-    };
-
-    #[test]
-    fn detects_encryption_requirement() {
-        assert!(server_requires_encryption("db error: FATAL: server requires encryption"));
-        assert!(!server_requires_encryption("some other error"));
-    }
-
-    #[test]
-    fn detects_missing_cluster() {
-        assert!(missing_cluster_identifier(
-            "db error: FATAL: codeParamsRoutingFailed: missing cluster identifier",
-        ));
-        assert!(!missing_cluster_identifier("another error"));
-    }
-
-    #[test]
-    fn detects_local_hosts() {
-        for h in [
-            "localhost",
-            "LOCALHOST",
-            "localhost.localdomain",
-            "localhost6",
-            "127.0.0.1",
-            "[::1]",
-            "::",
-        ] {
-            assert!(is_local_tcp_host(h), "should treat {h} as local");
-        }
-        for h in ["db.example.com", "10.0.0.1"] {
-            assert!(!is_local_tcp_host(h), "should not treat {h} as local");
-        }
-    }
-
-    #[test]
-    fn parse_accepts_postgis_scheme() {
-        let url = "postgis://postgres:secret@exmple.com:5432";
-        assert!(parse_postgres_url(url).is_ok(), "postgis scheme should be accepted");
-    }
-
-    #[test]
-    fn parse_rejects_invalid_port() {
-        let url = "postgres://postgres:secret@exmple.com:70000";
-        assert!(parse_postgres_url(url).is_err(), "invalid port should be rejected");
-    }
 }

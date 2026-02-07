@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 - Added revocation support for SendGrid, Tailscale, MongoDB Atlas, Twilio, and NPM using multi-step (lookup ID then delete) pattern.
 - Added new Sumo Logic rule with direct revocation support.
 - Added `docs/TOKEN_REVOCATION_SUPPORT.md` with detailed revocation implementation guide and testing examples.
+- Fixed AWS access key validation to support temporary/session keys (ASIA prefix) in addition to long-lived keys (AKIA prefix).
+- Consolidated all validator implementations into the `kingfisher-scanner` crate to eliminate code duplication. Validators for AWS, Azure, Coinbase, GCP, JWT, JDBC, MongoDB, MySQL, Postgres, and HTTP are now maintained in a single location with proper feature gating.
 
 ## [v1.78.0]c
 - Added "Skipped Validations" counter to scan summary output to distinguish between validations that failed (HTTP errors, connection failures) and validations that were skipped due to missing preconditions (e.g., missing dependent rules). This provides better visibility into validation coverage for large scans.

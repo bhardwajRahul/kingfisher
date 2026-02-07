@@ -15,11 +15,9 @@ use rand::TryRngCore;
 use reqwest::{Client, StatusCode, Url};
 use sha1::{Digest, Sha1};
 
-use crate::{
-    validation::{
-        httpvalidation, Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS,
-    },
-    validation_body,
+use super::http_validation as httpvalidation;
+use super::{
+    validation_body, Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS,
 };
 
 pub fn generate_coinbase_cache_key(cred_name: &str, private_key: &str) -> String {
@@ -89,7 +87,6 @@ fn build_jwt(
 
     let _ = rng.try_fill_bytes(&mut nonce);
 
-    // Try ECDSA (PEM encoded EC key). Fallback to raw Ed25519 base64 key.
     if let Ok(secret_key) =
         SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))
     {
@@ -118,7 +115,6 @@ fn build_jwt(
 
         return Ok(format!("{signing_input}.{sig_b64}"));
     } else {
-        // Assume base64-encoded Ed25519 keypair
         let key_bytes = base64::engine::general_purpose::STANDARD
             .decode(pem.as_bytes())
             .map_err(|e| anyhow!("invalid base64 key: {e}"))?;

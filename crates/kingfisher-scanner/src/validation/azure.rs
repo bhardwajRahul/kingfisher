@@ -10,9 +10,8 @@ use reqwest::{header::HeaderValue, Client};
 use serde_json::Value as JsonValue;
 use sha2::Sha256;
 
-use crate::{
-    validation::{Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS},
-    validation_body,
+use super::{
+    validation_body, Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS,
 };
 
 pub fn generate_azure_cache_key(azure_json: &str) -> String {
@@ -22,14 +21,13 @@ pub fn generate_azure_cache_key(azure_json: &str) -> String {
     format!("AZURE:{:x}", h.finalize())
 }
 
-/// Validate Azure Storage credentials without Azure SDK crates
+/// Validate Azure Storage credentials without Azure SDK crates.
 pub async fn validate_azure_storage_credentials(
     azure_json: &str,
     cache: &Cache,
 ) -> Result<(bool, ValidationResponseBody)> {
     let cache_key = generate_azure_cache_key(azure_json);
 
-    /* ── short-circuit cached result ───────────────────────────── */
     if let Some(e) = cache.get(&cache_key) {
         let c = e.value();
         if c.timestamp.elapsed() < Duration::from_secs(VALIDATION_CACHE_SECONDS) {
@@ -37,7 +35,6 @@ pub async fn validate_azure_storage_credentials(
         }
     }
 
-    /* ── pull account + key from caller JSON ──────────────────── */
     let tok: JsonValue = serde_json::from_str(azure_json)?;
     let storage_account = tok["storage_account"].as_str().unwrap_or("");
     let storage_key = tok["storage_key"].as_str().unwrap_or("");
@@ -48,12 +45,10 @@ pub async fn validate_azure_storage_credentials(
         return Ok((false, msg));
     }
 
-    /* ── build SignedKey GET /?comp=list ──────────────────────── */
     let now_rfc = Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string();
     let url =
         format!("https://{account}.blob.core.windows.net/?comp=list", account = storage_account);
 
-    // canonical string-to-sign per MSFT docs .
     let canon_headers = format!("x-ms-date:{now_rfc}\nx-ms-version:2023-11-03\n");
     let canon_resource = format!("/{account}/\ncomp:list", account = storage_account);
     let string_to_sign = format!(
@@ -62,7 +57,6 @@ pub async fn validate_azure_storage_credentials(
         resource = canon_resource
     );
 
-    // HMAC-SHA256 -- Base64
     let key_bytes = b64.decode(storage_key)?;
     let mut mac =
         Hmac::<Sha256>::new_from_slice(&key_bytes).map_err(|_| anyhow!("invalid key length"))?;
@@ -84,7 +78,6 @@ pub async fn validate_azure_storage_credentials(
     let client = Client::builder().build()?;
     let resp = client.get(&url).headers(hdrs).send().await?;
 
-    /* ── capture status before `.text()` consumes resp ────────── */
     let status = resp.status();
     let body_txt = resp.text().await?;
 
@@ -95,7 +88,6 @@ pub async fn validate_azure_storage_credentials(
         return Err(anyhow!(body));
     }
 
-    // parse XML payload
     let mut reader = Reader::from_str(&body_txt);
     reader.config_mut().trim_text(true);
     let mut buf = Vec::new();
@@ -114,7 +106,6 @@ pub async fn validate_azure_storage_credentials(
         buf.clear();
     }
 
-    /* ── success ─────────────────────────────────────────────── */
     let body = format!("Account: {}; Containers: {:?}", storage_account, names);
     let body_opt = validation_body::from_string(body);
     cache.insert(cache_key, CachedResponse::new(body_opt.clone(), StatusCode::OK, true));

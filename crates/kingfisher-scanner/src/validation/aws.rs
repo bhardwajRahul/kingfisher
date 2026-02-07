@@ -8,6 +8,10 @@ use std::{collections::HashSet, sync::RwLock, time::Duration};
 use anyhow::{anyhow, Result};
 use aws_config::{retry::RetryConfig, BehaviorVersion, SdkConfig};
 use aws_credential_types::Credentials;
+use aws_sdk_iam::{
+    config::Builder as IamConfigBuilder, error::SdkError as IamSdkError,
+    operation::update_access_key::UpdateAccessKeyError, types::StatusType, Client as IamClient,
+};
 use aws_sdk_sts::{
     config::Builder as StsConfigBuilder, error::SdkError,
     operation::get_caller_identity::GetCallerIdentityError, Client as StsClient,
@@ -188,17 +192,23 @@ pub fn generate_aws_cache_key(aws_access_key_id: &str, aws_secret_access_key: &s
 
 /// Validate AWS credentials format before attempting validation.
 pub fn validate_aws_credentials_input(access_key_id: &str, secret_key: &str) -> Result<(), String> {
-    // Validate access key ID format (typically starts with "AKIA" and is 20 chars)
-    if !access_key_id.starts_with("AKIA") || access_key_id.len() != 20 {
+    // Validate access key ID format (20 chars, known AWS prefixes including STS)
+    if access_key_id.len() != 20 {
+        return Err("Invalid AWS access key ID format".to_string());
+    }
+    if !access_key_id.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err("AWS access key ID contains invalid characters".to_string());
+    }
+    let prefix = &access_key_id[..4];
+    let valid_prefix =
+        matches!(prefix, "AKIA" | "AGPA" | "AIDA" | "AROA" | "AIPA" | "ANPA" | "ANVA" | "ASIA")
+            || prefix.starts_with("A3T");
+    if !valid_prefix {
         return Err("Invalid AWS access key ID format".to_string());
     }
     // Validate secret key format (should be at least 40 chars)
     if secret_key.len() < 40 {
         return Err("Invalid AWS secret key format".to_string());
-    }
-    // Check for invalid characters
-    if !access_key_id.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err("AWS access key ID contains invalid characters".to_string());
     }
 
     Ok(())
@@ -220,6 +230,84 @@ fn is_throttling_or_transient(e: &SdkError<GetCallerIdentityError>) -> bool {
         }
         _ => false,
     }
+}
+
+fn is_iam_throttling_or_transient(e: &IamSdkError<UpdateAccessKeyError>) -> bool {
+    match e {
+        IamSdkError::ServiceError(ctx) => {
+            let code = ctx.err().meta().code().unwrap_or_default();
+            let status: StatusCode = ctx.raw().status().into();
+            code.contains("Throttl")
+                || status == StatusCode::TOO_MANY_REQUESTS
+                || status == StatusCode::SERVICE_UNAVAILABLE
+        }
+        IamSdkError::DispatchFailure(df) => df.is_timeout() || df.is_io(),
+        IamSdkError::ResponseError(ctx) => {
+            let status: StatusCode = ctx.raw().status().into();
+            status == StatusCode::TOO_MANY_REQUESTS || status == StatusCode::SERVICE_UNAVAILABLE
+        }
+        _ => false,
+    }
+}
+
+/// Revoke (deactivate) an AWS access key via IAM.
+pub async fn revoke_aws_access_key(
+    aws_access_key_id: &str,
+    aws_secret_access_key: &str,
+) -> Result<(bool, String)> {
+    // Create static credentials
+    let credentials = Credentials::new(
+        aws_access_key_id,
+        aws_secret_access_key,
+        None,     // session token
+        None,     // expiry
+        "static", // provider name
+    );
+    let config = build_base_config(credentials).await;
+
+    // Create IAM client
+    let iam_config = IamConfigBuilder::from(&config).interceptor(UaInterceptor).build();
+    let iam_client = IamClient::from_conf(iam_config);
+
+    const MAX_ATTEMPTS: usize = 3;
+    const ATTEMPT_TIMEOUT: Duration = Duration::from_secs(5);
+
+    for attempt in 1..=MAX_ATTEMPTS {
+        let result = timeout(
+            ATTEMPT_TIMEOUT,
+            iam_client
+                .update_access_key()
+                .access_key_id(aws_access_key_id)
+                .status(StatusType::Inactive)
+                .send(),
+        )
+        .await;
+
+        match result {
+            Ok(Ok(_)) => {
+                return Ok((true, "AWS access key set to Inactive".to_string()));
+            }
+            Ok(Err(e)) => {
+                if is_iam_throttling_or_transient(&e) {
+                    if attempt == MAX_ATTEMPTS {
+                        return Err(anyhow!("AWS revocation failed: {}", e));
+                    }
+                } else {
+                    return Ok((false, e.to_string()));
+                }
+            }
+            Err(_) => {
+                if attempt == MAX_ATTEMPTS {
+                    return Err(anyhow!("AWS revocation timed out"));
+                }
+            }
+        }
+        let max_delay = 100u64 * 2u64.pow((attempt - 1) as u32);
+        let sleep_ms = rng().random_range(0..=max_delay);
+        sleep(Duration::from_millis(sleep_ms)).await;
+    }
+
+    Err(anyhow!("AWS revocation failed"))
 }
 
 /// Validate AWS credentials by calling STS GetCallerIdentity.

@@ -25,10 +25,34 @@ mod utils;
 mod validation_body;
 
 #[cfg(feature = "validation-http")]
-mod http_validation;
+pub mod http_validation;
 
 #[cfg(feature = "validation-aws")]
 pub mod aws;
+
+#[cfg(feature = "validation-azure")]
+pub mod azure;
+
+#[cfg(feature = "validation-coinbase")]
+pub mod coinbase;
+
+#[cfg(feature = "validation-gcp")]
+pub mod gcp;
+
+#[cfg(feature = "validation-jwt")]
+pub mod jwt;
+
+#[cfg(feature = "validation-database")]
+pub mod jdbc;
+
+#[cfg(feature = "validation-database")]
+pub mod mongodb;
+
+#[cfg(feature = "validation-database")]
+pub mod mysql;
+
+#[cfg(feature = "validation-database")]
+pub mod postgres;
 
 // Re-exports
 pub use utils::{find_closest_variable, process_captures};
@@ -42,13 +66,18 @@ pub use http_validation::{
 
 #[cfg(feature = "validation-aws")]
 pub use aws::{
-    aws_key_to_account_number, generate_aws_cache_key, set_aws_skip_account_ids,
-    set_aws_validation_concurrency, should_skip_aws_validation, validate_aws_credentials,
-    validate_aws_credentials_input,
+    aws_key_to_account_number, generate_aws_cache_key, revoke_aws_access_key,
+    set_aws_skip_account_ids, set_aws_validation_concurrency, should_skip_aws_validation,
+    validate_aws_credentials, validate_aws_credentials_input,
 };
 
 use once_cell::sync::OnceCell;
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
+use crossbeam_skiplist::SkipMap;
 
 /// User agent string used for HTTP validation requests.
 #[cfg(feature = "validation-http")]
@@ -91,6 +120,9 @@ pub fn set_user_agent_suffix<S: Into<String>>(suffix: Option<S>) {
 
 /// Cache duration for validation results (20 minutes).
 pub const VALIDATION_CACHE_SECONDS: u64 = 1200;
+
+/// Cache type used for validation memoization.
+pub type Cache = Arc<SkipMap<String, CachedResponse>>;
 
 /// A cached validation response.
 #[derive(Clone, Debug)]

@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::Result;
-use crossbeam_skiplist::SkipMap;
 use dashmap::DashMap;
 use http::StatusCode;
 use liquid::Object;
@@ -23,24 +22,20 @@ use crate::{
     location::OffsetSpan,
     matcher::{OwnedBlobMatch, SerializableCaptures},
     rules::rule::Validation,
-    validation_body::{self, ValidationResponseBody},
+    validation_body::{self},
 };
 
 // Re-export TlsMode from kingfisher_rules for use in client_for_rule
 pub use kingfisher_rules::TlsMode as RuleTlsMode;
 
-pub mod aws;
-pub mod azure;
-pub mod coinbase;
-pub mod gcp;
-pub mod httpvalidation;
-pub mod jdbc;
-pub mod jwt;
-pub mod mongodb;
-pub mod mysql;
-pub mod postgres;
-pub use mysql::validate_mysql;
-pub use postgres::validate_postgres;
+pub use kingfisher_scanner::validation::aws;
+pub use kingfisher_scanner::validation::http_validation as httpvalidation;
+pub use kingfisher_scanner::validation::mysql::validate_mysql;
+pub use kingfisher_scanner::validation::postgres::validate_postgres;
+pub use kingfisher_scanner::validation::CachedResponse;
+pub use kingfisher_scanner::validation::{
+    azure, coinbase, gcp, jdbc, jwt, mongodb, mysql, postgres,
+};
 pub mod utils;
 
 const VALIDATION_CACHE_SECONDS: u64 = 1200; // 20 minutes
@@ -88,7 +83,8 @@ pub fn set_user_agent_suffix<S: Into<String>>(suffix: Option<S>) {
             return;
         }
 
-        let _ = USER_AGENT_SUFFIX.set(trimmed);
+        let _ = USER_AGENT_SUFFIX.set(trimmed.clone());
+        kingfisher_scanner::validation::set_user_agent_suffix(Some(trimmed));
     }
 }
 
@@ -158,7 +154,7 @@ impl ValidationClients {
 }
 
 // Use SkipMap-based cache instead of a mutex-wrapped FxHashMap.
-type Cache = Arc<SkipMap<String, CachedResponse>>;
+type Cache = kingfisher_scanner::validation::Cache;
 
 /// Returns an opaque 64-bit key for internal validation deduplication.
 ///
@@ -225,24 +221,6 @@ pub fn is_parseable_postgres_uri(uri: &str) -> bool {
 /// Returns `true` if the provided string can be parsed as a MySQL connection URI.
 pub fn is_parseable_mysql_uri(uri: &str) -> bool {
     mysql::parse_mysql_url(uri).is_ok()
-}
-
-#[derive(Clone)]
-pub struct CachedResponse {
-    pub body: ValidationResponseBody,
-    pub status: StatusCode,
-    pub is_valid: bool,
-    pub timestamp: Instant,
-}
-
-impl CachedResponse {
-    pub fn new(body: ValidationResponseBody, status: StatusCode, is_valid: bool) -> Self {
-        Self { body, status, is_valid, timestamp: Instant::now() }
-    }
-
-    pub fn is_still_valid(&self, cache_duration: Duration) -> bool {
-        self.timestamp.elapsed() < cache_duration
-    }
 }
 
 /// Collect dependent variables and missing dependencies from the provided matches.

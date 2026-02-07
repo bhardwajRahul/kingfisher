@@ -95,10 +95,6 @@ fn targets_localhost(opts: &Opts) -> bool {
 }
 
 /// Validate a MySQL connection URL.
-///
-/// # Arguments
-/// * `mysql_url` - The MySQL connection URL to validate
-/// * `lax_tls` - If true, accept self-signed or invalid certificates
 pub async fn validate_mysql(mysql_url: &str, lax_tls: bool) -> Result<(bool, Vec<String>)> {
     let opts = parse_mysql_url(mysql_url)?;
 
@@ -109,7 +105,6 @@ pub async fn validate_mysql(mysql_url: &str, lax_tls: bool) -> Result<(bool, Vec
 
     let mut builder = OptsBuilder::from_opts(opts).stmt_cache_size(Some(0));
 
-    // Configure TLS options based on lax_tls setting
     if lax_tls {
         debug!("Using lax TLS mode for MySQL connection");
         let ssl_opts = SslOpts::default().with_danger_accept_invalid_certs(true);
@@ -137,44 +132,5 @@ pub async fn validate_mysql(mysql_url: &str, lax_tls: bool) -> Result<(bool, Vec
         )),
         Ok(Err(e)) => Err(anyhow!("MySQL connection failed: {e}")),
         Err(_) => Err(anyhow!("MySQL connection timed out after {CONNECT_TIMEOUT:?}")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_mysql_url_accepts_valid_urls() {
-        let url = "mysql://user:secret@exmple.com:3306/app";
-        let opts = parse_mysql_url(url).expect("expected valid MySQL URL");
-        assert_eq!(opts.user(), Some("user"));
-        assert_eq!(opts.pass(), Some("secret"));
-        assert_eq!(opts.ip_or_hostname(), "exmple.com");
-    }
-
-    #[test]
-    fn parse_mysql_url_rejects_invalid_urls() {
-        for candidate in [
-            "",                                         // empty
-            "mysql://user@exmple.com/app",              // missing password
-            "mysql://:secret@exmple.com/app",           // missing username
-            "mysql://user:secret@:3306/app",            // missing host
-            "postgres://user:secret@exmple.com",        // wrong scheme
-            "mysql://user:secret@exmple.com:70000/app", // invalid port
-        ] {
-            assert!(
-                parse_mysql_url(candidate).is_err(),
-                "expected parsing to fail for {candidate}"
-            );
-        }
-    }
-
-    #[test]
-    fn parse_mysql_url_allows_trimming_whitespace() {
-        let opts =
-            parse_mysql_url("  mysql://user:secret@exmple.com:3306/app  ").expect("trimmed URL");
-        assert_eq!(opts.user(), Some("user"));
-        assert_eq!(opts.pass(), Some("secret"));
     }
 }

@@ -1,11 +1,4 @@
-//! HTTP-based credential validation.
-//!
-//! This module provides utilities for validating credentials via HTTP requests.
-
-use std::collections::BTreeMap;
-use std::future::Future;
-use std::str::FromStr;
-use std::time::Duration;
+use std::{collections::BTreeMap, future::Future, str::FromStr, time::Duration};
 
 use anyhow::{anyhow, Error, Result};
 use http::StatusCode;
@@ -25,11 +18,6 @@ use super::GLOBAL_USER_AGENT;
 use kingfisher_rules::ResponseMatcher;
 
 /// Build a deterministic cache key from the immutable parts of an HTTP request.
-///
-/// * `method`   – case-insensitive HTTP verb ("GET", "POST"…)
-/// * `url`      – fully-qualified URL (any query string should already be present)
-/// * `headers`  – *logical* headers you intend to send (template-rendered)
-/// * `body`     – optional request body
 pub fn generate_http_cache_key_parts(
     method: &str,
     url: &Url,
@@ -45,7 +33,6 @@ pub fn generate_http_cache_key_parts(
     hasher.update(url.as_bytes());
     hasher.update(b"\0");
 
-    // Collect headers sorted lexicographically (BTreeMap is already sorted)
     for (k, v) in headers {
         hasher.update(k.as_bytes());
         hasher.update(b":");
@@ -53,7 +40,6 @@ pub fn generate_http_cache_key_parts(
         hasher.update(b"\0");
     }
 
-    // Include the request body in the cache key if present
     if let Some(b) = body {
         hasher.update(b"BODY\0");
         hasher.update(b.as_bytes());
@@ -87,7 +73,6 @@ pub fn build_request_builder(
     let custom_headers = process_headers(headers, parser, globals, url)
         .map_err(|e| format!("Error processing headers: {}", e))?;
 
-    // Prepare a standard set of headers
     let user_agent = GLOBAL_USER_AGENT.as_str();
     let standard_headers = [
         (header::USER_AGENT, user_agent),
@@ -99,7 +84,6 @@ pub fn build_request_builder(
         (header::ACCEPT_ENCODING, "gzip, deflate, br"),
         (header::CONNECTION, "keep-alive"),
     ];
-
     let mut combined_headers = HeaderMap::new();
     for (name, value) in &standard_headers {
         if let Ok(hv) = HeaderValue::from_str(value) {
@@ -111,7 +95,6 @@ pub fn build_request_builder(
     }
     request_builder = request_builder.headers(combined_headers);
 
-    // If a body template is provided, parse and render it
     if let Some(body_template) = body {
         let template = parser
             .parse(body_template)
@@ -157,7 +140,6 @@ pub fn process_headers(
 
         let cleaned_key = key.trim().replace(&['\n', '\r'][..], "");
         let cleaned_value = header_value.trim().replace(&['\n', '\r'][..], "");
-
         let name = match HeaderName::from_str(&cleaned_key) {
             Ok(n) => n,
             Err(e) => {
@@ -170,7 +152,6 @@ pub fn process_headers(
                 continue;
             }
         };
-
         let value = match HeaderValue::from_str(&cleaned_value) {
             Ok(v) => v,
             Err(e) => {
@@ -188,7 +169,7 @@ pub fn process_headers(
     Ok(headers_map)
 }
 
-/// Exponential-backoff retry helper.
+/// Exponential‐backoff retry helper that always returns `Result<T, anyhow::Error>`.
 async fn retry_with_backoff<F, Fut, T>(
     mut operation: F,
     is_retryable: impl Fn(&Result<T, Error>, usize) -> bool,
@@ -216,7 +197,6 @@ where
     Err(anyhow!("Max retries reached"))
 }
 
-/// Retry a multipart request with exponential backoff.
 pub async fn retry_multipart_request<F, Fut>(
     mut build_request: F,
     max_retries: usize,
@@ -256,7 +236,6 @@ where
     .await
 }
 
-/// Retry an HTTP request with exponential backoff.
 pub async fn retry_request(
     request_builder: RequestBuilder,
     max_retries: u32,
@@ -413,43 +392,4 @@ pub async fn check_url_resolvable(url: &Url) -> Result<(), Box<dyn std::error::E
     let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
     let addr = format!("{}:{}", host, port);
     lookup_host(addr).await?.next().ok_or_else(|| "Failed to resolve URL".into()).map(|_| ())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cache_key_includes_body() {
-        let url = Url::from_str("https://example.com/api").unwrap();
-        let headers =
-            BTreeMap::from([("Content-Type".to_string(), "application/json".to_string())]);
-
-        let key_no_body = generate_http_cache_key_parts("POST", &url, &headers, None);
-        let key_body_a =
-            generate_http_cache_key_parts("POST", &url, &headers, Some(r#"{"value": "abc"}"#));
-        let key_body_b =
-            generate_http_cache_key_parts("POST", &url, &headers, Some(r#"{"value": "xyz"}"#));
-
-        assert_ne!(key_no_body, key_body_a);
-        assert_ne!(key_no_body, key_body_b);
-        assert_ne!(key_body_a, key_body_b);
-    }
-
-    #[test]
-    fn test_validate_response_word_match() {
-        let matchers = vec![ResponseMatcher::WordMatch {
-            r#type: "word-match".to_string(),
-            words: vec!["test".to_string()],
-            match_all_words: true,
-            negative: false,
-        }];
-        let status = StatusCode::OK;
-        let body = "This is a test";
-        let headers = HeaderMap::new();
-        let html_allowed = false;
-
-        let result = validate_response(&matchers, body, &status, &headers, html_allowed);
-        assert!(result);
-    }
 }

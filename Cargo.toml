@@ -52,7 +52,7 @@ assets = [
 # Library crates
 kingfisher-core = { path = "crates/kingfisher-core" }
 kingfisher-rules = { path = "crates/kingfisher-rules" }
-kingfisher-scanner = { path = "crates/kingfisher-scanner" }
+kingfisher-scanner = { path = "crates/kingfisher-scanner", features = ["validation-all"] }
 
 clap = { version = "4.5", features = [
     "cargo",
