@@ -209,6 +209,39 @@ async fn render_and_parse_url(
     reqwest::Url::parse(&rendered).map_err(|e| anyhow!("Invalid URL '{}': {}", rendered, e))
 }
 
+/// Render Liquid templates within an extractor's string fields.
+///
+/// This allows extraction patterns/paths to use `{{ TOKEN | prefix: 8 }}` etc.
+/// so that multi-step revocations can locate the correct item in a list response.
+fn render_extractor(
+    extractor: &ResponseExtractor,
+    parser: &liquid::Parser,
+    globals: &Object,
+) -> Result<ResponseExtractor> {
+    let render = |template_str: &str| -> Result<String> {
+        let template = parser
+            .parse(template_str)
+            .map_err(|e| anyhow!("Failed to parse extractor template: {}", e))?;
+        template
+            .render(globals)
+            .map_err(|e| anyhow!("Failed to render extractor template: {}", e))
+    };
+
+    match extractor {
+        ResponseExtractor::JsonPath { path } => {
+            Ok(ResponseExtractor::JsonPath { path: render(path)? })
+        }
+        ResponseExtractor::Regex { pattern } => {
+            Ok(ResponseExtractor::Regex { pattern: render(pattern)? })
+        }
+        ResponseExtractor::Header { name } => {
+            Ok(ResponseExtractor::Header { name: render(name)? })
+        }
+        // Body and StatusCode have no string fields to render
+        other => Ok(other.clone()),
+    }
+}
+
 /// Extract a value from an HTTP response using the specified extractor.
 fn extract_value_from_response(
     extractor: &ResponseExtractor,
@@ -309,6 +342,9 @@ async fn execute_http_revocation(
     let headers = response.headers().clone();
     let body = response.text().await.context("Failed to read response body")?;
 
+    debug!("Revocation response status: {}", status);
+    debug!("Revocation response body: {}", body);
+
     let display_body = if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
 
     let matchers = http_revocation
@@ -372,22 +408,40 @@ async fn execute_revocation_step(
         .await
         .with_context(|| format!("Failed to read response body for {}", step_name))?;
 
+    debug!("Step {} response status: {}", step_number, status);
+    debug!("Step {} response body: {}", step_number, body);
+
     // Extract variables from the response if configured
     if let Some(extractors) = &step.extract {
         debug!("Extracting {} variable(s) from step {} response", extractors.len(), step_number);
 
         for (var_name, extractor) in extractors {
-            match extract_value_from_response(extractor, &body, &headers, &status) {
+            // Render any Liquid templates in the extractor (e.g., {{ TOKEN | prefix: 8 }})
+            let rendered_extractor = render_extractor(extractor, parser, globals)
+                .with_context(|| {
+                    format!(
+                        "Failed to render extractor template for '{}' in step {}",
+                        var_name, step_number
+                    )
+                })?;
+            debug!(
+                "Step {}: Rendered extractor for '{}': {:?}",
+                step_number, var_name, rendered_extractor
+            );
+
+            match extract_value_from_response(&rendered_extractor, &body, &headers, &status) {
                 Ok(value) => {
                     debug!("Step {}: Extracted variable {} = '{}'", step_number, var_name, value);
                     globals.insert(var_name.to_uppercase().into(), Value::scalar(value));
                 }
                 Err(e) => {
                     return Err(anyhow!(
-                        "Failed to extract variable '{}' in step {}: {}",
+                        "Failed to extract variable '{}' in step {}: {}\nResponse status: {}\nResponse body: {}",
                         var_name,
                         step_number,
-                        e
+                        e,
+                        status,
+                        body
                     ));
                 }
             }
@@ -1187,5 +1241,75 @@ mod tests {
 
         let result = find_rules_by_selector("kingfisher.git", &rules);
         assert!(result.is_err(), "Prefix 'kingfisher.git' should not match 'kingfisher.github.1'");
+    }
+
+    // ---- render_extractor ----
+
+    #[test]
+    fn render_extractor_renders_liquid_in_regex() {
+        let parser = crate::liquid_filters::register_all(liquid::ParserBuilder::with_stdlib())
+            .build()
+            .unwrap();
+        let mut globals = Object::new();
+        // kingfisher:ignore (test fixture, not a real token)
+        globals.insert("TOKEN".into(), Value::scalar("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".to_string()));
+
+        let extractor = ResponseExtractor::Regex {
+            pattern: r#""key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}"#.to_string(),
+        };
+
+        let rendered = render_extractor(&extractor, &parser, &globals).unwrap();
+        match rendered {
+            ResponseExtractor::Regex { pattern } => {
+                assert_eq!(pattern, r#""key":"([^"]+)","token":"npm_rmll"#);
+            }
+            _ => panic!("Expected Regex variant"),
+        }
+    }
+
+    #[test]
+    fn render_extractor_regex_matches_correct_token_in_npm_response() {
+        let parser = crate::liquid_filters::register_all(liquid::ParserBuilder::with_stdlib())
+            .build()
+            .unwrap();
+        let mut globals = Object::new();
+        // kingfisher:ignore (test fixture, not a real token)
+        globals.insert("TOKEN".into(), Value::scalar("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".to_string()));
+
+        let extractor = ResponseExtractor::Regex {
+            pattern: r#""key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}"#.to_string(),
+        };
+        let rendered = render_extractor(&extractor, &parser, &globals).unwrap();
+
+        // Simulated npm API response with multiple tokens
+        let body = r#"{"objects":[{"key":"e089a40c-800b-4ec0-95b1-c17a63305887","token":"npm_yJcQ...rEf1"},{"key":"43c14e2d-8b5d-4f8b-91cd-280a7afead0c","token":"npm_rmll...aQIU"},{"key":"1ced5278-29a9-4266-bf8e-03223bc9c30c","token":"npm_ahWC...2pw1"}]}"#;
+
+        let result = extract_value_from_response(
+            &rendered,
+            body,
+            &HeaderMap::new(),
+            &StatusCode::OK,
+        )
+        .unwrap();
+
+        // Should extract the key for the token matching prefix "npm_rmll", NOT the first one
+        assert_eq!(result, "43c14e2d-8b5d-4f8b-91cd-280a7afead0c");
+    }
+
+    #[test]
+    fn render_extractor_leaves_non_template_patterns_unchanged() {
+        let parser = crate::liquid_filters::register_all(liquid::ParserBuilder::with_stdlib())
+            .build()
+            .unwrap();
+        let globals = Object::new();
+
+        let extractor = ResponseExtractor::JsonPath { path: "$.objects[0].key".to_string() };
+        let rendered = render_extractor(&extractor, &parser, &globals).unwrap();
+        match rendered {
+            ResponseExtractor::JsonPath { path } => {
+                assert_eq!(path, "$.objects[0].key");
+            }
+            _ => panic!("Expected JsonPath variant"),
+        }
     }
 }
