@@ -219,6 +219,9 @@ fn render_extractor(
     globals: &Object,
 ) -> Result<ResponseExtractor> {
     let render = |template_str: &str| -> Result<String> {
+        if !template_str.contains("{{") && !template_str.contains("{%") {
+            return Ok(template_str.to_string());
+        }
         let template = parser
             .parse(template_str)
             .map_err(|e| anyhow!("Failed to parse extractor template: {}", e))?;
@@ -235,6 +238,15 @@ fn render_extractor(
         ResponseExtractor::Header { name } => Ok(ResponseExtractor::Header { name: render(name)? }),
         // Body and StatusCode have no string fields to render
         other => Ok(other.clone()),
+    }
+}
+
+fn truncate_with_ellipsis(input: &str, max_chars: usize) -> String {
+    let truncated: String = input.chars().take(max_chars).collect();
+    if input.chars().count() > max_chars {
+        format!("{}...", truncated)
+    } else {
+        input.to_string()
     }
 }
 
@@ -338,10 +350,11 @@ async fn execute_http_revocation(
     let headers = response.headers().clone();
     let body = response.text().await.context("Failed to read response body")?;
 
-    debug!("Revocation response status: {}", status);
-    debug!("Revocation response body: {}", body);
+    let display_body = truncate_with_ellipsis(&body, 500);
+    let body_len = body.chars().count();
 
-    let display_body = if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+    debug!("Revocation response status: {}", status);
+    debug!("Revocation response body (len={}): {}", body_len, display_body);
 
     let matchers = http_revocation
         .request
@@ -404,8 +417,11 @@ async fn execute_revocation_step(
         .await
         .with_context(|| format!("Failed to read response body for {}", step_name))?;
 
+    let display_body = truncate_with_ellipsis(&body, 500);
+    let body_len = body.chars().count();
+
     debug!("Step {} response status: {}", step_number, status);
-    debug!("Step {} response body: {}", step_number, body);
+    debug!("Step {} response body (len={}): {}", step_number, body_len, display_body);
 
     // Extract variables from the response if configured
     if let Some(extractors) = &step.extract {
@@ -437,7 +453,7 @@ async fn execute_revocation_step(
                         step_number,
                         e,
                         status,
-                        body
+                        display_body
                     ));
                 }
             }
@@ -481,8 +497,7 @@ async fn execute_multi_step_revocation(
 
         if is_final_step {
             // Final step: validate response to determine success
-            let display_body =
-                if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+            let display_body = truncate_with_ellipsis(&body, 500);
 
             let matchers = step
                 .request
@@ -1309,5 +1324,24 @@ mod tests {
             }
             _ => panic!("Expected JsonPath variant"),
         }
+    }
+
+    // ---- truncate_with_ellipsis ----
+
+    #[test]
+    fn truncate_with_ellipsis_no_truncation() {
+        let input = "ok";
+        let output = truncate_with_ellipsis(input, 500);
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn truncate_with_ellipsis_handles_unicode() {
+        let input = "é".repeat(501);
+        let output = truncate_with_ellipsis(&input, 500);
+
+        assert!(output.ends_with("..."));
+        assert_eq!(output.chars().count(), 503);
+        assert!(output.chars().take(500).all(|ch| ch == 'é'));
     }
 }
