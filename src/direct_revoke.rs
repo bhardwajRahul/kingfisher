@@ -222,9 +222,7 @@ fn render_extractor(
         let template = parser
             .parse(template_str)
             .map_err(|e| anyhow!("Failed to parse extractor template: {}", e))?;
-        template
-            .render(globals)
-            .map_err(|e| anyhow!("Failed to render extractor template: {}", e))
+        template.render(globals).map_err(|e| anyhow!("Failed to render extractor template: {}", e))
     };
 
     match extractor {
@@ -234,9 +232,7 @@ fn render_extractor(
         ResponseExtractor::Regex { pattern } => {
             Ok(ResponseExtractor::Regex { pattern: render(pattern)? })
         }
-        ResponseExtractor::Header { name } => {
-            Ok(ResponseExtractor::Header { name: render(name)? })
-        }
+        ResponseExtractor::Header { name } => Ok(ResponseExtractor::Header { name: render(name)? }),
         // Body and StatusCode have no string fields to render
         other => Ok(other.clone()),
     }
@@ -417,8 +413,8 @@ async fn execute_revocation_step(
 
         for (var_name, extractor) in extractors {
             // Render any Liquid templates in the extractor (e.g., {{ TOKEN | prefix: 8 }})
-            let rendered_extractor = render_extractor(extractor, parser, globals)
-                .with_context(|| {
+            let rendered_extractor =
+                render_extractor(extractor, parser, globals).with_context(|| {
                     format!(
                         "Failed to render extractor template for '{}' in step {}",
                         var_name, step_number
@@ -1252,7 +1248,10 @@ mod tests {
             .unwrap();
         let mut globals = Object::new();
         // kingfisher:ignore (test fixture, not a real token)
-        globals.insert("TOKEN".into(), Value::scalar("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".to_string()));
+        globals.insert(
+            "TOKEN".into(),
+            Value::scalar("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".to_string()),
+        );
 
         let extractor = ResponseExtractor::Regex {
             pattern: r#""key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}"#.to_string(),
@@ -1274,7 +1273,10 @@ mod tests {
             .unwrap();
         let mut globals = Object::new();
         // kingfisher:ignore (test fixture, not a real token)
-        globals.insert("TOKEN".into(), Value::scalar("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".to_string()));
+        globals.insert(
+            "TOKEN".into(),
+            Value::scalar("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".to_string()),
+        );
 
         let extractor = ResponseExtractor::Regex {
             pattern: r#""key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}"#.to_string(),
@@ -1284,13 +1286,9 @@ mod tests {
         // Simulated npm API response with multiple tokens
         let body = r#"{"objects":[{"key":"e089a40c-800b-4ec0-95b1-c17a63305887","token":"npm_yJcQ...rEf1"},{"key":"43c14e2d-8b5d-4f8b-91cd-280a7afead0c","token":"npm_rmll...aQIU"},{"key":"1ced5278-29a9-4266-bf8e-03223bc9c30c","token":"npm_ahWC...2pw1"}]}"#;
 
-        let result = extract_value_from_response(
-            &rendered,
-            body,
-            &HeaderMap::new(),
-            &StatusCode::OK,
-        )
-        .unwrap();
+        let result =
+            extract_value_from_response(&rendered, body, &HeaderMap::new(), &StatusCode::OK)
+                .unwrap();
 
         // Should extract the key for the token matching prefix "npm_rmll", NOT the first one
         assert_eq!(result, "43c14e2d-8b5d-4f8b-91cd-280a7afead0c");

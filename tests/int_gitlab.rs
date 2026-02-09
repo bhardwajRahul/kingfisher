@@ -164,6 +164,7 @@ fn test_gitlab_remote_scan() -> Result<()> {
         no_ignore_if_contains: false,
         validation_retries: 1,
         validation_timeout: 10,
+        full_validation_response: false,
     };
 
     let global_args = GlobalArgs {
@@ -328,6 +329,7 @@ fn test_gitlab_remote_scan_no_history() -> Result<()> {
         view_report: false,
         validation_retries: 1,
         validation_timeout: 10,
+        full_validation_response: false,
     };
 
     let global_args = GlobalArgs {

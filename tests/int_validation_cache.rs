@@ -222,6 +222,7 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         no_ignore_if_contains: false,
         validation_retries: 1,
         validation_timeout: 10,
+        full_validation_response: false,
     };
 
     /* --------------------------------------------------------- *

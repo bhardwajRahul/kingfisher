@@ -662,12 +662,16 @@ impl DetailsReporter {
             "Inactive Credential".to_string()
         };
 
-        const MAX_RESPONSE_LENGTH: usize = 512;
         let validation_body_str = validation_body::as_str(&rm.validation_response_body);
-        let truncated_body: String =
-            validation_body_str.chars().take(MAX_RESPONSE_LENGTH).collect();
-        let ellipsis = if validation_body_str.len() > MAX_RESPONSE_LENGTH { "..." } else { "" };
-        let response_body = format!("{}{}", truncated_body, ellipsis);
+        let response_body = if args.full_validation_response {
+            validation_body_str.to_string()
+        } else {
+            const MAX_RESPONSE_LENGTH: usize = 512;
+            let truncated_body: String =
+                validation_body_str.chars().take(MAX_RESPONSE_LENGTH).collect();
+            let ellipsis = if validation_body_str.len() > MAX_RESPONSE_LENGTH { "..." } else { "" };
+            format!("{}{}", truncated_body, ellipsis)
+        };
 
         let git_metadata_val = rm
             .origin
@@ -1237,6 +1241,7 @@ mod tests {
             no_ignore_if_contains: false,
             validation_timeout: 10,
             validation_retries: 1,
+            full_validation_response: false,
         }
     }
 

@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.80.0]
+- Added `--full-validation-response` flag to include complete validation response bodies without truncation. By default, validation responses are still truncated to 512 characters for readability. When enabled, users can parse and present full validation responses as needed (e.g., for GitHub token validation responses that include user metadata beyond the first 512 characters).
+
 ## [v1.79.0]
 - Added revocation support for SendGrid, Tailscale, MongoDB Atlas, Twilio, and NPM using multi-step (lookup ID then delete) pattern.
 - Added new Sumo Logic rule with direct revocation support.

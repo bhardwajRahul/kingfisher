@@ -547,6 +547,7 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         no_ignore_if_contains: false,
         validation_timeout: 10,
         validation_retries: 1,
+        full_validation_response: false,
     }
 }
 /// Run the rules check command
