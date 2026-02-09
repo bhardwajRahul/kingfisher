@@ -370,6 +370,10 @@ kingfisher scan /path/to/repo --rule kingfisher.aws
 # Display rule performance statistics
 kingfisher scan /path/to/repo --rule-stats
 
+# Include full validation response bodies (not truncated to 512 characters)
+# Useful for parsing complete validation responses (e.g., GitHub token metadata)
+kingfisher scan /path/to/repo --full-validation-response
+
 # Exclude specific paths
 kingfisher scan ./my-project \
   --exclude '*.py' \

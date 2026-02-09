@@ -171,14 +171,19 @@ kingfisher scan /path/to/code --validation-timeout 15
 # Set number of retry attempts (default: 1, range: 0-5)
 kingfisher scan /path/to/code --validation-retries 2
 
+# Include full validation response bodies without truncation
+kingfisher scan /path/to/code --full-validation-response
+
 # Combine options
 kingfisher scan /path/to/code \
   --validation-timeout 20 \
-  --validation-retries 3
+  --validation-retries 3 \
+  --full-validation-response
 ```
 
 - `--validation-timeout SECONDS`: per-request and per-match timeout for validation (default: 10, range: 1-60).
 - `--validation-retries N`: number of retry attempts for validation requests (default: 1, range: 0-5).
+- `--full-validation-response`: include complete validation response bodies without truncation. By default, validation responses are truncated to 512 characters for readability. This flag is useful when you need to parse full validation responses (e.g., GitHub token validation responses that include user metadata beyond the first 512 characters).
 
 ## Scanning in CI Pipelines
 

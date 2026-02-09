@@ -142,6 +142,7 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         no_ignore_if_contains: false,
         validation_retries: 1,
         validation_timeout: 10,
+        full_validation_response: false,
     };
 
     let global_args = GlobalArgs {

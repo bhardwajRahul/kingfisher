@@ -662,12 +662,17 @@ impl DetailsReporter {
             "Inactive Credential".to_string()
         };
 
-        const MAX_RESPONSE_LENGTH: usize = 512;
         let validation_body_str = validation_body::as_str(&rm.validation_response_body);
-        let truncated_body: String =
-            validation_body_str.chars().take(MAX_RESPONSE_LENGTH).collect();
-        let ellipsis = if validation_body_str.len() > MAX_RESPONSE_LENGTH { "..." } else { "" };
-        let response_body = format!("{}{}", truncated_body, ellipsis);
+        let response_body = if args.full_validation_response {
+            validation_body_str.to_string()
+        } else {
+            const MAX_RESPONSE_LENGTH: usize = 512;
+            let truncated_body: String =
+                validation_body_str.chars().take(MAX_RESPONSE_LENGTH).collect();
+            let ellipsis =
+                if validation_body_str.chars().count() > MAX_RESPONSE_LENGTH { "..." } else { "" };
+            format!("{}{}", truncated_body, ellipsis)
+        };
 
         let git_metadata_val = rm
             .origin
@@ -1237,6 +1242,7 @@ mod tests {
             no_ignore_if_contains: false,
             validation_timeout: 10,
             validation_retries: 1,
+            full_validation_response: false,
         }
     }
 
@@ -1318,6 +1324,20 @@ mod tests {
         (report_match, blob_path)
     }
 
+    fn build_validation_response(validation_body: &str, full_response: bool) -> String {
+        let temp = tempdir().unwrap();
+        let datastore =
+            Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
+        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+
+        let (report_match, _) = sample_report_match(validation_body, StatusCode::OK.as_u16(), true);
+        let mut scan_args = sample_scan_args();
+        scan_args.full_validation_response = full_response;
+
+        let record = reporter.build_finding_record(&report_match, &scan_args);
+        record.finding.validation.response
+    }
+
     #[test]
     fn build_finding_record_uses_git_blob_path() {
         let temp = tempdir().unwrap();
@@ -1363,6 +1383,30 @@ mod tests {
             record.finding.validation.response,
             "(skip list entry) AWS validation not attempted for account 111122223333."
         );
+    }
+
+    #[test]
+    fn validation_response_truncates_when_flag_off() {
+        let body = "a".repeat(513);
+        let response = build_validation_response(&body, false);
+        assert_eq!(response, format!("{}...", "a".repeat(512)));
+    }
+
+    #[test]
+    fn validation_response_full_when_flag_on() {
+        let body = "a".repeat(513);
+        let response = build_validation_response(&body, true);
+        assert_eq!(response, body);
+    }
+
+    #[test]
+    fn validation_response_truncation_counts_chars() {
+        let body = "é".repeat(513);
+        let response = build_validation_response(&body, false);
+
+        assert!(response.ends_with("..."));
+        assert_eq!(response.chars().count(), 515);
+        assert!(response.chars().take(512).all(|ch| ch == 'é'));
     }
 
     use super::build_git_urls;

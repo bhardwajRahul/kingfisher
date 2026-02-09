@@ -36,14 +36,16 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: WordMatch                               
-              words: ['"name":']
-          url: https://registry.npmjs.org/-/npm/v1/user
+              words: ['"username":']
+          url: https://registry.npmjs.org/-/whoami
     
     revocation:
       type: HttpMultiStep
       content:
         steps:
-          # Step 1: List all tokens to find the current token's key ID
+          # Step 1: List all tokens and find the key for the matching token.
+          # The response contains truncated tokens like "npm_rmll...aQIU".
+          # We use a Regex with a Liquid-rendered prefix to locate the correct entry.
           - name: lookup_token_id
             request:
               method: GET
@@ -56,10 +58,9 @@ rules:
                   status: [200]
                 - type: JsonValid
             extract:
-              # Extract the first token's key
               TOKEN_KEY:
-                type: JsonPath
-                path: "$.objects[0].token.key"
+                type: Regex
+                pattern: '"key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}'
           
           # Step 2: Revoke the token using its key
           - name: revoke_token
@@ -71,7 +72,7 @@ rules:
               response_matcher:
                 - report_response: true
                 - type: StatusMatch
-                  status: [200, 204] 
+                  status: [200, 204]
 
   - name: NPM Access Token (old format)
     id: kingfisher.npm.2
@@ -88,8 +89,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - '"_authToken": "b98ec224-cdb2-4340-b7bd-9617fc719d1d"'
-      - '-export NPM_TOKEN="007e64c7-635d-4d54-8295-f364cd8e0e0f"'
+      - '"_authToken": "b98ec224-cdb2-4340-b7bd-9617fc719d1d"' # kingfisher:ignore
+      - '-export NPM_TOKEN="007e64c7-635d-4d54-8295-f364cd8e0e0f"' # kingfisher:ignore
     validation:
       type: Http
       content:
@@ -102,14 +103,15 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: WordMatch                               
-              words: ['"name":']
-          url: https://registry.npmjs.org/-/npm/v1/user
+              words: ['"username":']
+          url: https://registry.npmjs.org/-/whoami
     
     revocation:
       type: HttpMultiStep
       content:
         steps:
-          # Step 1: List all tokens to find the current token's key ID
+          # Step 1: List all tokens and find the key for the matching token.
+          # Old-format tokens are UUIDs; the response truncates them too.
           - name: lookup_token_id
             request:
               method: GET
@@ -122,10 +124,9 @@ rules:
                   status: [200]
                 - type: JsonValid
             extract:
-              # Extract the first token's key
               TOKEN_KEY:
-                type: JsonPath
-                path: "$.objects[0].token.key"
+                type: Regex
+                pattern: '"key":"([^"]+)","token":"{{ TOKEN | prefix: 8 }}'
           
           # Step 2: Revoke the token using its key
           - name: revoke_token
@@ -137,4 +138,4 @@ rules:
               response_matcher:
                 - report_response: true
                 - type: StatusMatch
-                  status: [200, 204] 
+                  status: [200, 204]

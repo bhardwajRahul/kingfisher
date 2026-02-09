@@ -102,6 +102,10 @@ pub struct ScanArgs {
     )]
     pub validation_retries: u32,
 
+    /// Include full validation response bodies without truncation
+    #[arg(global = true, long, default_value_t = false)]
+    pub full_validation_response: bool,
+
     /// Map validated cloud credentials to their effective identities; use only when
     /// authorized for the target account because this triggers additional network
     /// requests to determine granted access

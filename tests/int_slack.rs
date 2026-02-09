@@ -147,6 +147,7 @@ impl TestContext {
             no_ignore_if_contains: false,
             validation_retries: 1,
             validation_timeout: 10,
+            full_validation_response: false,
         };
 
         let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
@@ -297,6 +298,7 @@ async fn test_scan_slack_messages() -> Result<()> {
         view_report: false,
         validation_retries: 1,
         validation_timeout: 10,
+        full_validation_response: false,
     };
 
     let global_args = GlobalArgs {

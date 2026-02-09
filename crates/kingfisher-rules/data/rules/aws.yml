@@ -6,7 +6,7 @@ rules:
       \b
       (
         (?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)
-        [2-7A-Z]{16}
+        [A-Z0-9]{16}
       )
       \b
     pattern_requirements:

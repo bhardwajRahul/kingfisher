@@ -866,6 +866,7 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
         no_ignore_if_contains: false,
         validation_timeout: 10,
         validation_retries: 1,
+        full_validation_response: false,
     }
 }
 
