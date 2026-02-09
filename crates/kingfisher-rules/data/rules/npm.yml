@@ -22,7 +22,7 @@ rules:
       - https://github.blog/changelog/2022-12-06-limit-scope-of-npm-tokens-with-the-new-granular-access-tokens/
     min_entropy: 3.3
     confidence: medium
-    examples: # kingfisher:ignore
+    examples:
       - "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"
     validation:
       type: Http
