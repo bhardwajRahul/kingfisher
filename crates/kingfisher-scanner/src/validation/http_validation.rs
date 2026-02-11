@@ -222,6 +222,9 @@ where
                     StatusCode::BAD_GATEWAY
                         | StatusCode::SERVICE_UNAVAILABLE
                         | StatusCode::GATEWAY_TIMEOUT
+                        // Common when validation concurrency hits per-service limits.
+                        | StatusCode::TOO_MANY_REQUESTS
+                        | StatusCode::REQUEST_TIMEOUT
                 ) =>
             {
                 true
@@ -255,6 +258,9 @@ pub async fn retry_request(
                     StatusCode::BAD_GATEWAY
                         | StatusCode::SERVICE_UNAVAILABLE
                         | StatusCode::GATEWAY_TIMEOUT
+                        // Common when validation concurrency hits per-service limits.
+                        | StatusCode::TOO_MANY_REQUESTS
+                        | StatusCode::REQUEST_TIMEOUT
                 ) =>
             {
                 true

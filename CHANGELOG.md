@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.82.0]
+- Fixed validation flakiness under service rate limiting by retrying HTTP validations on 429/408 in addition to transient 5xx failures.
+- Prevented transient HTTP validation failures (429/5xx) from being cached, avoiding cache poisoning that could suppress later successful validations in the same scan.
+
 ## [v1.81.0]
 - Fixed checksum-template evaluation for prefixed tokens by using explicit checksum/body captures in NPM, GitHub, Confluent, and GitLab rules.
 - Updated references sections to rules with API documentation links.

@@ -715,7 +715,10 @@ async fn timed_validate_single_match<'a>(
                         http_validation.request.response_is_html,
                     );
 
-                    if !is_multipart && !cache_key.is_empty() {
+                    // Avoid poisoning the cache with transient failures (rate limits, 5xx, etc).
+                    let cacheable_status =
+                        !(status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS);
+                    if !is_multipart && !cache_key.is_empty() && cacheable_status {
                         cache.insert(
                             cache_key,
                             CachedResponse {
