@@ -27,13 +27,14 @@ rules:
       content:
         request:
           method: GET
-          url: "https://owlbot.info/api/v4/dictionary/owl?format=json"
+          url: "https://www.owlbot.ai/api/login/checkToken"
           headers:
-            Authorization: "Token {{ TOKEN }}"
+            # Owlbot expects the API key directly in `Authorization`.
+            Authorization: "{{ TOKEN }}"
             Accept: application/json
           response_matcher:
             - report_response: true
             - type: StatusMatch
               status: [200]
             - type: WordMatch
-              words: ['"word"', '"definitions"']
+              words: ['"user"', '"chatbot"']

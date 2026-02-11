@@ -43,6 +43,20 @@ use crate::{
 
 use crate::grpc_validation;
 
+fn preview_body_for_display(body: &str, max_bytes: usize) -> String {
+    if body.len() <= max_bytes {
+        return body.to_string();
+    }
+
+    // `String` slicing must be on a UTF-8 char boundary to avoid panics.
+    let mut end = max_bytes.min(body.len());
+    while end > 0 && !body.is_char_boundary(end) {
+        end -= 1;
+    }
+
+    format!("{}...", &body[..end])
+}
+
 /// Result of a direct validation attempt.
 #[derive(Debug, Clone, Serialize)]
 pub struct DirectValidationResult {
@@ -314,7 +328,7 @@ async fn execute_http_validation(
         response.text().await.unwrap_or_else(|e| format!("Failed to read response body: {}", e));
 
     // Truncate body for display if too long
-    let display_body = if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+    let display_body = preview_body_for_display(&body, 500);
 
     // Validate the response
     let matchers = http_validation.request.response_matcher.as_deref().unwrap_or(&[]);
@@ -369,7 +383,7 @@ async fn execute_grpc_validation(
     }
 
     // Truncate body for display if too long
-    let display_body = if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+    let display_body = preview_body_for_display(&body, 500);
 
     // Validate the response
     let matchers = grpc_validation_cfg.request.response_matcher.as_deref().unwrap_or(&[]);

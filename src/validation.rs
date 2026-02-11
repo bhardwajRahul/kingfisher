@@ -693,11 +693,19 @@ async fn timed_validate_single_match<'a>(
                     m.validation_response_status = status;
                     let body_opt = validation_body::from_string(body.clone());
                     m.validation_response_body = body_opt.clone();
-                    let matchers = http_validation
-                        .request
-                        .response_matcher
-                        .as_ref()
-                        .expect("missing response_matcher");
+                    let matchers = match http_validation.request.response_matcher.as_ref() {
+                        Some(m) => m,
+                        None => {
+                            m.validation_success = false;
+                            m.validation_response_body = validation_body::from_string(format!(
+                                "HTTP validation for rule '{}' is missing `response_matcher`",
+                                rule_syntax.name
+                            ));
+                            m.validation_response_status = StatusCode::BAD_REQUEST;
+                            commit_and_return(m);
+                            return;
+                        }
+                    };
 
                     m.validation_success = httpvalidation::validate_response(
                         matchers,
@@ -799,11 +807,19 @@ async fn timed_validate_single_match<'a>(
             m.validation_response_status = status;
             m.validation_response_body = validation_body::from_string(body.clone());
 
-            let matchers = grpc_validation_cfg
-                .request
-                .response_matcher
-                .as_ref()
-                .expect("missing response_matcher");
+            let matchers = match grpc_validation_cfg.request.response_matcher.as_ref() {
+                Some(m) => m,
+                None => {
+                    m.validation_success = false;
+                    m.validation_response_body = validation_body::from_string(format!(
+                        "gRPC validation for rule '{}' is missing `response_matcher`",
+                        rule_syntax.name
+                    ));
+                    m.validation_response_status = StatusCode::BAD_REQUEST;
+                    commit_and_return(m);
+                    return;
+                }
+            };
 
             m.validation_success =
                 httpvalidation::validate_response(matchers, &body, &status, &headers, false);

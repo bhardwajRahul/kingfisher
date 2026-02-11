@@ -5,6 +5,7 @@ use bytes::Bytes;
 use h2::client;
 use http::{header::HeaderName, HeaderMap, HeaderValue, Request, Uri};
 use liquid::Object;
+use once_cell::sync::OnceCell;
 use reqwest::Url;
 use rustls::{ClientConfig, RootCertStore};
 use tokio::net::TcpStream;
@@ -29,6 +30,21 @@ fn build_root_store() -> Result<RootCertStore> {
         roots.add(cert).map_err(|e| anyhow!("Failed to add native root cert: {e:?}"))?;
     }
     Ok(roots)
+}
+
+fn cached_h2_tls_config() -> Result<Arc<ClientConfig>> {
+    static TLS_CONFIG: OnceCell<Arc<ClientConfig>> = OnceCell::new();
+
+    let cfg = TLS_CONFIG.get_or_try_init(|| -> Result<Arc<ClientConfig>> {
+        // Loading native roots can be relatively expensive; do it once and reuse.
+        let mut cfg = ClientConfig::builder()
+            .with_root_certificates(build_root_store()?)
+            .with_no_client_auth();
+        cfg.alpn_protocols = vec![b"h2".to_vec()];
+        Ok(Arc::new(cfg))
+    })?;
+
+    Ok(Arc::clone(cfg))
 }
 
 fn url_to_h2_uri(url: &Url) -> Result<Uri> {
@@ -94,11 +110,7 @@ pub async fn grpc_unary_call(
         .context("Timed out connecting to gRPC host")?
         .context("Failed to connect to gRPC host")?;
 
-    let mut tls_config =
-        ClientConfig::builder().with_root_certificates(build_root_store()?).with_no_client_auth();
-    tls_config.alpn_protocols = vec![b"h2".to_vec()];
-
-    let connector = TlsConnector::from(Arc::new(tls_config));
+    let connector = TlsConnector::from(cached_h2_tls_config()?);
     let server_name = rustls::pki_types::ServerName::try_from(host.to_string())
         .map_err(|_| anyhow!("Invalid TLS server name: {host}"))?;
 

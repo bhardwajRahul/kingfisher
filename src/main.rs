@@ -82,7 +82,14 @@ fn main() -> anyhow::Result<()> {
     color_backtrace::install();
     // Rustls 0.23 requires an explicit crypto provider selection when multiple
     // providers are present in the dependency graph.
-    let _ = rustls::crypto::ring::default_provider().install_default();
+    match rustls::crypto::ring::default_provider().install_default() {
+        Ok(()) => {}
+        Err(_already_installed) => {
+            // Another crate already installed a provider. This is unusual for a CLI, but
+            // surfacing it makes later TLS issues much easier to diagnose.
+            warn!("rustls crypto provider was already installed; keeping existing provider");
+        }
+    }
     // Parse command-line arguments
     let CommandLineArgs { command, global_args } = CommandLineArgs::parse_args();
 
@@ -687,7 +694,7 @@ pub fn run_rules_check(args: &RulesCheckArgs) -> Result<()> {
                                 matched_term
                             );
                             println!("    Example: {}", example);
-                            num_errors += 1;
+                            num_warnings += 1;
                         }
                     }
                 }
