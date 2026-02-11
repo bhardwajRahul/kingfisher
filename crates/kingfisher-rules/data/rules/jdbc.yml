@@ -29,4 +29,4 @@ rules:
       - jdbc:sqlserver://sql.example.org:1433;databaseName=inventory;user=sa;password=s3cr3t!
     references:
       - https://docs.oracle.com/javase/8/docs/api/java/sql/DriverManager.html
-      - https://www.postgresql.org/docs/current/jdbc-use.html
+      - https://jdbc.postgresql.org/documentation/use/

@@ -27,6 +27,8 @@ rules:
               negative: true
             - type: StatusMatch
               status: [200]
+    references:
+      - https://posthog.com/docs/api/overview#authentication
   - name: PostHog Personal API Key
     id: kingfisher.posthog.2
     pattern: |
@@ -53,3 +55,5 @@ rules:
               words:
                 - "authentication_failed"
               negative: true
+    references:
+      - https://posthog.com/docs/api/overview#authentication

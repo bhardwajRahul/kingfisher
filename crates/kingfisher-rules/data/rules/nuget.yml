@@ -31,6 +31,8 @@ rules:
               status: [200]
             - type: WordMatch            
               words: ['"Key":']             
+    references:
+      - https://learn.microsoft.com/en-us/nuget/api/overview#authentication
 
           
   - name: NuGet API Key
@@ -66,3 +68,5 @@ rules:
               status: [200]
             - type: WordMatch           
               words: ['"Key":']         
+    references:
+      - https://learn.microsoft.com/en-us/nuget/api/overview#authentication

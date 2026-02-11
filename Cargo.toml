@@ -19,7 +19,7 @@ publish = false
 
 [package]
 name = "kingfisher"
-version = "1.80.0"
+version = "1.81.0"
 description = "MongoDB's blazingly fast and accurate secret scanning and validation tool"
 edition.workspace = true
 rust-version.workspace = true
@@ -221,6 +221,9 @@ gcloud-storage = { version = "1.1.1", default-features = false, features = [
 ] }
 tokei = "12.1.2"
 crc32fast = "1.5.0"
+bytes = "1.11.1"
+tokio-rustls = "0.26.4"
+h2 = "0.4.13"
 
 [target.'cfg(not(windows))'.dependencies]
 sha1 = { version = "0.10.6", features = ["asm"] }

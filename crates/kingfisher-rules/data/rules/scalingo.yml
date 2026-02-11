@@ -13,10 +13,10 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - SCALINGO_TOKEN=tk-us-abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef
+      - SCALINGO_TOKEN=tk-us-abcdefabcde12bcdefabcdefabcdefabcdefabcdefabcdef
       - '"scalingo": "tk-us-1234567890abcdef1234567890abcdef1234567890abcdef"'
     references:
-      - https://developers.scalingo.com/apps/api/authentication
+      - https://developers.scalingo.com/index#authentication
     validation:
       type: Http
       content:

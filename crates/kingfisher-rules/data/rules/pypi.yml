@@ -63,3 +63,6 @@ rules:
                 type: file
                 content: "path/to/my_package-0.0.1.tar.gz"
                 content_type: "application/octet-stream"
+    references:
+      - https://pypi.org/help/#apitoken
+      - https://warehouse.pypa.io/api-reference/

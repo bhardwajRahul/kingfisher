@@ -40,3 +40,5 @@ rules:
     validation:
       type: Postgres
     tls_mode: lax
+    references:
+      - https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING

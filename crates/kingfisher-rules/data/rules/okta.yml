@@ -16,8 +16,6 @@ rules:
     min_entropy: 3.3
     examples:
       - okta_api_token=00hqNORUpnTcdFWA5WEM4YwOkw6RXeFw21lFDRKmY1
-      - 'okta_api_token = 00aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-      - 'OKTA_API_KEY = "00-aaaaaaaaaaaaa-aaaaaaaaaaaaaaaaaaaaaaaaa"'
       - 'okta_secret:  00QCjAl4MlV-WPXM-ABCDEFGHIJKL-0HmjFx-vbGua'
       - 'Authorization: SSWS 00QCjAl4MlV-WPXM-ABCDEFGHIJKL-0HmjFx-vbGua'
       - |
@@ -40,6 +38,8 @@ rules:
               words:
                 - activated
           url: https://{{ DOMAIN }}/api/v1/users/me
+    references:
+      - https://developer.okta.com/docs/reference/core-okta-api/#authentication
     depends_on_rule:
       - rule_id: "kingfisher.okta.2"
         variable: DOMAIN
@@ -55,3 +55,5 @@ rules:
     visible: false
     examples:
       - company-name.okta.com
+    references:
+      - https://developer.okta.com/docs/concepts/okta-organizations/

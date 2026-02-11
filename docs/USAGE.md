@@ -150,7 +150,7 @@ kingfisher validate --rule jwt \
   "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-**Supported validators:** HTTP, AWS, GCP, MongoDB, MySQL, Postgres, JDBC, JWT, Azure Storage, and Coinbase.
+**Supported validators:** HTTP, Grpc, AWS, GCP, MongoDB, MySQL, Postgres, JDBC, JWT, Azure Storage, and Coinbase.
 
 **Exit codes:** Returns `0` if any matching rule validates the secret as valid, `1` if all are invalid or an error occurred.
 

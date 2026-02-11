@@ -80,6 +80,9 @@ use crate::cli::commands::{
 
 fn main() -> anyhow::Result<()> {
     color_backtrace::install();
+    // Rustls 0.23 requires an explicit crypto provider selection when multiple
+    // providers are present in the dependency graph.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     // Parse command-line arguments
     let CommandLineArgs { command, global_args } = CommandLineArgs::parse_args();
 
@@ -583,55 +586,112 @@ pub fn run_rules_check(args: &RulesCheckArgs) -> Result<()> {
             num_errors += 1;
             continue;
         }
-        // Test each example against both vectorscan and regex
+        // Test each example against regex and pattern_requirements
         for (example_index, example) in rule_syntax.examples.iter().enumerate() {
-            // Create a test blob from the example
-            // let blob = Blob::new(BlobId::new(example.as_bytes()),
-            // example.as_bytes().to_vec()); let origin = OriginSet::new(
-            //     Origin::from_file(PathBuf::from("test_example")),
-            //     Vec::new(),
-            // );
-            // // Check vectorscan match
-            // let vectorscan_matched = match matcher.scan_blob(&blob, &origin, None)? {
-            //     ScanResult::New(matches) => !matches.is_empty(),
-            //     _ => false,
-            // };
-            // Check regex match
             // Get the regex using the public method
             let re =
                 rules_db.get_regex_by_rule_id(rule.id()).expect("Failed to get regex for rule");
-            let regex_matched = re.is_match(example.as_bytes());
+
+            // Check if the example matches the pattern
+            let example_bytes = example.as_bytes();
+            let regex_matched = re.is_match(example_bytes);
+
             if !regex_matched {
-                // ||!vectorscan_matched  {
                 println!("\nTesting rule {} - {}", rule_index + 1, rule_syntax.name);
                 println!("  Processing example {}", example_index + 1);
-                println!("    [!] Mismatch detected for example: {}", example);
-                // if !vectorscan_matched {
-                //     println!("    Vectorscan match: {}", vectorscan_matched);
-                //     num_errors += 1;
-                // }
-                if !regex_matched {
-                    println!("    Regex match: {}", regex_matched);
-                    num_errors += 1;
-                }
+                println!("    [!] Pattern mismatch detected for example: {}", example);
+                println!("    Regex match: {}", regex_matched);
+                num_errors += 1;
+                continue;
             }
 
-            // // Report any mismatches
-            // if !vectorscan_matched || !regex_matched {
-            //     error!("Rule '{}' example {} failed validation:",
-            // rule.name(), example_index + 1);     println!("
-            // Example text: {}", example);
+            // If the rule has pattern_requirements, validate them against the match
+            if let Some(pattern_reqs) = rule.pattern_requirements() {
+                // Get the captures from the match
+                if let Some(captures) = re.captures(example_bytes) {
+                    // Get the full match (group 0)
+                    let full_capture = captures.get(0).expect("Group 0 should always exist");
+                    let full_bytes = full_capture.as_bytes();
 
-            //     if !vectorscan_matched {
-            //         error!("  - Vectorscan pattern did not match example");
-            //         num_errors += 1;
-            //     }
+                    // Determine which bytes to validate (same logic as in matcher.rs)
+                    // Find the primary capture group for validation
+                    let matching_input_for_validation = 'block: {
+                        // 1. Look for a named capture "secret" (case-insensitive).
+                        if let Some(secret_cap) =
+                            captures.name("secret").or_else(|| captures.name("SECRET"))
+                        {
+                            break 'block secret_cap;
+                        }
 
-            //     if !regex_matched {
-            //         error!("  - Regex pattern did not match example");
-            //         num_errors += 1;
-            //     }
-            // }
+                        // 2. Look for any other named capture.
+                        if let Some(named_cap) = (1..captures.len()).find_map(|i| {
+                            let name_opt = re.capture_names().nth(i).and_then(|n| n);
+                            name_opt.and_then(|_| captures.get(i))
+                        }) {
+                            break 'block named_cap;
+                        }
+
+                        // 3. Fall back to first positional capture (group 1) if it exists.
+                        if let Some(pos_cap) = captures.get(1) {
+                            break 'block pos_cap;
+                        }
+
+                        // 4. Finally, fall back to the full match (group 0).
+                        break 'block full_capture;
+                    };
+
+                    let validation_bytes = matching_input_for_validation.as_bytes();
+
+                    // Create context for pattern requirements validation
+                    use kingfisher_rules::PatternRequirementContext;
+                    let context = PatternRequirementContext {
+                        regex: re,
+                        captures: &captures,
+                        full_match: full_bytes,
+                    };
+
+                    // Validate pattern requirements (without respect_ignore_if_contains for examples)
+                    use kingfisher_rules::PatternValidationResult;
+                    match pattern_reqs.validate(validation_bytes, Some(context), false) {
+                        PatternValidationResult::Passed => {
+                            // All requirements met
+                        }
+                        PatternValidationResult::Failed => {
+                            println!("\nTesting rule {} - {}", rule_index + 1, rule_syntax.name);
+                            println!("  Processing example {}", example_index + 1);
+                            println!(
+                                "    [!] Pattern requirements not met for example: {}",
+                                example
+                            );
+                            println!("    The match does not satisfy the character requirements (min_digits, min_uppercase, etc.)");
+                            num_errors += 1;
+                        }
+                        PatternValidationResult::FailedChecksum { actual_len, expected_len } => {
+                            println!("\nTesting rule {} - {}", rule_index + 1, rule_syntax.name);
+                            println!("  Processing example {}", example_index + 1);
+                            println!("    [!] Checksum validation failed for example: {}", example);
+                            println!(
+                                "    Actual checksum length: {}, Expected checksum length: {}",
+                                actual_len, expected_len
+                            );
+                            num_errors += 1;
+                        }
+                        PatternValidationResult::IgnoredBySubstring { matched_term } => {
+                            // For examples, we don't want to treat this as an error in check mode
+                            // since ignore_if_contains is meant for runtime filtering
+                            // But we can warn about it
+                            println!("\nTesting rule {} - {}", rule_index + 1, rule_syntax.name);
+                            println!("  Processing example {}", example_index + 1);
+                            println!(
+                                "    [!] Example would be ignored due to containing term: {}",
+                                matched_term
+                            );
+                            println!("    Example: {}", example);
+                            num_errors += 1;
+                        }
+                    }
+                }
+            }
         }
     }
     // Print summary

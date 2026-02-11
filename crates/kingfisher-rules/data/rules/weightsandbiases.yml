@@ -35,3 +35,5 @@ rules:
             - type: WordMatch
               words:
                 - '"username"'
+    references:
+      - https://docs.wandb.ai/ref/cli/wandb-login

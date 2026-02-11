@@ -35,7 +35,7 @@ rules:
       - rule_id: "kingfisher.clickhouse.2"
         variable: CLICKHOUSE_ID
     references:
-      - https://clickhouse.com/docs/en/cloud/security/service-accounts
+      - https://clickhouse.com/docs/cloud/security/cloud-access-management/overview
   - name: ClickHouse Cloud Key ID
     id: kingfisher.clickhouse.2
     pattern: |

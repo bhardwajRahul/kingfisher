@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.81.0]
+- Fixed checksum-template evaluation for prefixed tokens by using explicit checksum/body captures in NPM, GitHub, Confluent, and GitLab rules.
+- Updated references sections to rules with API documentation links.
+- Updated Google OAuth credentials rule requirements so bundled client-id/client-secret examples pass `rules check` consistently.
+- Added gRPC validation support for gRPC-only APIs via `validation: type: Grpc` (e.g., Modal administrative keys).
+
 ## [v1.80.0]
 - Added `--full-validation-response` flag to include complete validation response bodies without truncation. By default, validation responses are still truncated to 512 characters for readability. When enabled, users can parse and present full validation responses as needed (e.g., for GitHub token validation responses that include user metadata beyond the first 512 characters).
 - Improved AWS rule.

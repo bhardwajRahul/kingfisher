@@ -32,3 +32,5 @@ rules:
       - "tgram://110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawd"
       - "telegram: 508627689:AAEuLPKs-EhrjrYGnz60bnYNZqakf6HJxc0"
       - "telegram token is 3628091811:BAG9RuJiqgOGIfFbOPBpAo6QhIJoD9mCdDs"
+    references:
+      - https://core.telegram.org/bots/api#authorizing-your-bot

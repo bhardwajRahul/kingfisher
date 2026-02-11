@@ -34,3 +34,5 @@ rules:
             - type: WordMatch
               words: ['"username"']
               match_all_words: true
+    references:
+      - https://docs.snyk.io/snyk-api/authentication-for-api

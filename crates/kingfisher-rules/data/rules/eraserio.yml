@@ -18,7 +18,7 @@ rules:
     examples:
       - eraser_token = Q7MD4J9L2X0B6R3T8W1P
     references:
-      - https://eraser.io/docs/api/authentication
+      - https://docs.eraser.io/reference/api-token
     validation:
       type: Http
       content:

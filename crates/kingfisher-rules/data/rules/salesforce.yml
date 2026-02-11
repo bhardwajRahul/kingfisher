@@ -41,6 +41,8 @@ rules:
               words: ["DailyApiRequests"]
               match_all_words: true
           url: "https://{{ INSTANCE }}.my.salesforce.com/services/data/v60.0/limits"
+    references:
+      - https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_authentication.htm
     depends_on_rule:
       - rule_id: "kingfisher.salesforce.2"
         variable: INSTANCE
@@ -63,6 +65,8 @@ rules:
     examples:
       - https://example123.my.salesforce.com
       - mydomainname.my.salesforce.com
+    references:
+      - https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_authentication.htm
   - name: Salesforce Consumer Key
     id: kingfisher.salesforce.3
     pattern: |
@@ -121,6 +125,8 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
+    references:
+      - https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_oauth_and_connected_apps.htm
   - name: Salesforce Consumer Secret
     id: kingfisher.salesforce.4
     pattern: |
@@ -178,6 +184,8 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
+    references:
+      - https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_oauth_and_connected_apps.htm
   - name: Salesforce Consumer Key and Secret
     id: kingfisher.salesforce.5
     pattern: |
@@ -245,3 +253,5 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
+    references:
+      - https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_oauth_and_connected_apps.htm

@@ -38,3 +38,5 @@ rules:
               header: content-type
               expected: ["application/json"]
             - type: JsonValid
+    references:
+      - https://www.file.io/developers

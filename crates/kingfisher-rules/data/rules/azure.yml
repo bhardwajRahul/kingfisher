@@ -8,8 +8,6 @@ rules:
       (?: AccountKey | SharedAccessKey | SharedSecretValue) \s*=\s* ([^;]{1,100})
       (?: ;|$ )
     min_entropy: 3.3
-    pattern_requirements:
-      min_digits: 2
     confidence: medium
     examples:
       - |

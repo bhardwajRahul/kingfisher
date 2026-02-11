@@ -38,6 +38,9 @@ rules:
       type: GCP
     revocation:
       type: GCP
+    references:
+      - https://cloud.google.com/iam/docs/service-accounts
+      - https://cloud.google.com/iam/docs/creating-managing-service-account-keys
   - name: GCP Private Key ID
     id: kingfisher.gcp.3
     pattern: |
@@ -63,3 +66,5 @@ rules:
     confidence: medium
     examples:
       - gcp_secret = ANzaSy0c3475372a7b10f7740dbda47abfdca42
+    references:
+      - https://cloud.google.com/iam/docs/keys-create-delete

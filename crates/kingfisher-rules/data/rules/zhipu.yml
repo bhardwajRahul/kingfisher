@@ -34,3 +34,5 @@ rules:
               status: [200]
             - type: WordMatch
               words: ["object", "data"]
+    references:
+      - https://open.bigmodel.cn/dev/api

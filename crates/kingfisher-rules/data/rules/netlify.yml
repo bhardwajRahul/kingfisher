@@ -30,6 +30,8 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    references:
+      - https://docs.netlify.com/api/get-started/#authentication
 
   - name: Netlify API Key
     id: kingfisher.netlify.2
@@ -64,3 +66,5 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    references:
+      - https://docs.netlify.com/api/get-started/#authentication

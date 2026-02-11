@@ -34,3 +34,5 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    references:
+      - https://docs.newrelic.com/docs/apis/intro-apis/new-relic-api-keys/

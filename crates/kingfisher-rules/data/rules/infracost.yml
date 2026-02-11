@@ -13,10 +13,10 @@ rules:
     min_entropy: 3.3
     confidence: medium
     examples:
-      - export INFRACOST_API_KEY=ico-abcdefabcdefabcdefabcdefabcdefab
+      - export INFRACOST_API_KEY=ico-abcd12abcdefabcdefabcdefabcdefab
       - '"infracost": "ico-1234567890abcdef1234567890abcdef"'
     references:
-      - https://www.infracost.io/docs/api_reference/
+      - https://www.infracost.io/docs/integrations/infracost_api/
     validation:
       type: Http
       content:

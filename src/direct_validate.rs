@@ -29,7 +29,8 @@ use crate::{
         azure::validate_azure_storage_credentials,
         coinbase::validate_cdp_api_key,
         gcp::GcpValidator,
-        httpvalidation::{build_request_builder, retry_request, validate_response},
+        httpvalidation::validate_response,
+        httpvalidation::{build_request_builder, retry_request},
         jdbc::validate_jdbc,
         jwt::validate_jwt,
         mongodb::validate_mongodb,
@@ -39,6 +40,8 @@ use crate::{
     },
     validation_body,
 };
+
+use crate::grpc_validation;
 
 /// Result of a direct validation attempt.
 #[derive(Debug, Clone, Serialize)]
@@ -132,6 +135,21 @@ fn extract_validation_vars(validation: &Validation) -> BTreeSet<String> {
 
             // Extract from body
             if let Some(body) = &http.request.body {
+                vars.extend(extract_template_vars(body));
+            }
+        }
+        Validation::Grpc(grpc) => {
+            // Extract from URL
+            vars.extend(extract_template_vars(&grpc.request.url));
+
+            // Extract from headers
+            for (key, value) in &grpc.request.headers {
+                vars.extend(extract_template_vars(key));
+                vars.extend(extract_template_vars(value));
+            }
+
+            // Extract from body
+            if let Some(body) = &grpc.request.body {
                 vars.extend(extract_template_vars(body));
             }
         }
@@ -312,6 +330,60 @@ async fn execute_http_validation(
     })
 }
 
+/// Execute gRPC validation against the provided rule.
+async fn execute_grpc_validation(
+    grpc_validation_cfg: &kingfisher_rules::GrpcValidation,
+    globals: &Object,
+    parser: &liquid::Parser,
+    timeout: Duration,
+) -> Result<DirectValidationResult> {
+    // Render the URL
+    let url = render_and_parse_url(parser, globals, &grpc_validation_cfg.request.url).await?;
+
+    debug!("Validating against gRPC URL: {}", url);
+
+    let res = grpc_validation::grpc_unary_call_from_rule(
+        &url,
+        &grpc_validation_cfg.request.headers,
+        &grpc_validation_cfg.request.body,
+        parser,
+        globals,
+        timeout,
+    )
+    .await
+    .map_err(|e| anyhow!("gRPC request failed: {e}"))?;
+
+    let status = res.http_status;
+    let headers = res.headers;
+    let mut body = String::from_utf8_lossy(&res.body_bytes).to_string();
+    let grpc_status =
+        headers.get("grpc-status").and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let grpc_message =
+        headers.get("grpc-message").and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    if grpc_status == "0" {
+        body = "grpc-status=0".to_string();
+    } else if body.trim().is_empty() && (!grpc_status.is_empty() || !grpc_message.is_empty()) {
+        body = format!("grpc-status={grpc_status} grpc-message={grpc_message}");
+    } else if body.as_bytes().contains(&0) {
+        body = format!("grpc-status={grpc_status} grpc-message={grpc_message}");
+    }
+
+    // Truncate body for display if too long
+    let display_body = if body.len() > 500 { format!("{}...", &body[..500]) } else { body.clone() };
+
+    // Validate the response
+    let matchers = grpc_validation_cfg.request.response_matcher.as_deref().unwrap_or(&[]);
+    let is_valid = validate_response(matchers, &body, &status, &headers, false);
+
+    Ok(DirectValidationResult {
+        rule_id: String::new(), // Will be filled in by caller
+        rule_name: String::new(),
+        is_valid,
+        status_code: Some(status.as_u16()),
+        message: display_body,
+    })
+}
+
 /// Run direct validation of a secret against one or more rules.
 ///
 /// If the rule selector matches multiple rules, all matching rules are tried.
@@ -475,6 +547,9 @@ pub async fn run_direct_validation(
                     args.retries,
                 )
                 .await?
+            }
+            Validation::Grpc(grpc_validation_cfg) => {
+                execute_grpc_validation(grpc_validation_cfg, &globals, &parser, timeout).await?
             }
 
             Validation::AWS => {

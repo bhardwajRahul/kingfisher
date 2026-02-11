@@ -155,14 +155,14 @@ rules:
       # valid GitLab-style checksum.
       checksum:
         actual:
-          template: "{{ MATCH | suffix: 7 }}"
+          template: "{{ crc32 }}"
           requires_capture: crc32
-        expected: "{{ \"glpat-\" | append: BASE64_PAYLOAD | append: \".01.\" | append: BASE36_PAYLOAD_LENGTH | crc32 | base36: 7 }}"
+        expected: "{{ \"glpat-\" | append: base64_payload | append: \".01.\" | append: base36_payload_length | crc32 | base36: 7 }}"
         skip_if_missing: true
     min_entropy: 3.5
     confidence: medium
     examples:
-      - glpat-ymiBP0-I-J6ghspoBPoZxtSC3g7MyHYG0X0r.01.101erjmwl
+      - glpat-vSY1cyL948aAB440qB6L4zlu9OzsUmEV.01.0w0sfevch
     references:
       - https://github.com/diffblue/gitlab/blob/39c63ee83369bf5353256a6b95f3116728edd102/doc/api/personal_access_tokens.md
       - https://docs.gitlab.com/api/personal_access_tokens/

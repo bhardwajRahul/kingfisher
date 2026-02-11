@@ -35,3 +35,5 @@ rules:
             - type: WordMatch
               words: ["data", "me", "id"]
               match_all_words: true
+    references:
+      - https://developer.monday.com/api-reference/docs/authentication

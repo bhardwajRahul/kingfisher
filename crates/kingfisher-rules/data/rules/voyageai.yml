@@ -24,3 +24,5 @@ rules:
           response_matcher:
             - type: StatusMatch
               status: [200]
+    references:
+      - https://docs.voyageai.com/reference

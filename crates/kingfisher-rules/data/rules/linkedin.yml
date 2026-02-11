@@ -17,7 +17,6 @@ rules:
     min_entropy: 2.5
     confidence: medium
     examples:
-      - 'Email IDÂ Last 5 Digits of your SSNÂ LinkedIn IDÂ Availability'
       - |
         LINKEDIN_KEY = "77yg7tx91p4lag"
         LINKEDIN_SECRET = "zt7GeN6IH911xvRj"

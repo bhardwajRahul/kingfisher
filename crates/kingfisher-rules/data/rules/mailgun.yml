@@ -14,7 +14,6 @@ rules:
       )
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
       min_lowercase: 1
     min_entropy: 3.5
     confidence: medium
@@ -34,6 +33,8 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.mailgun.net/v3/address/validate?address=test@example.com
+    references:
+      - https://documentation.mailgun.com/docs/mailgun/api-reference/mg-auth
   - name: MailGun Primary Key
     id: kingfisher.mailgun.2
     pattern: |
@@ -65,3 +66,5 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.mailgun.net/v3/address/validate?address=test@example.com
+    references:
+      - https://documentation.mailgun.com/docs/mailgun/api-reference/mg-auth

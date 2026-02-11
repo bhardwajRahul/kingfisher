@@ -30,3 +30,5 @@ rules:
             - type: WordMatch
               words:
                 - '"email":'
+    references:
+      - https://developers.google.com/identity/protocols/oauth2

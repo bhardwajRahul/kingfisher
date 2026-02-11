@@ -33,3 +33,5 @@ rules:
                 - '"account_id":'
                 - '"email":'
           url: https://api.dropboxapi.com/2/users/get_current_account
+    references:
+      - https://www.dropbox.com/developers/documentation/http/documentation#auth

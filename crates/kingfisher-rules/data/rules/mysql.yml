@@ -45,3 +45,5 @@ rules:
     validation:
       type: MySQL
     tls_mode: lax
+    references:
+      - https://dev.mysql.com/doc/refman/8.0/en/connecting.html

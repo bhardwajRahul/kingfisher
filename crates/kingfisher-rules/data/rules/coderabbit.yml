@@ -16,7 +16,7 @@ rules:
       - "cr-33420bb12fddf6cde6fba5414df88b07f75b2258e30c956b95f2ddbb2d"
     references:
       - https://coderabbit.ai/
-      - https://api.coderabbit.ai/docs
+      - https://docs.coderabbit.ai/api-reference/
     validation:
       type: Http
       content:

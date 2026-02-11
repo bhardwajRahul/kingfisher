@@ -26,7 +26,6 @@ rules:
       \b
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
       min_lowercase: 1
     min_entropy: 3.7
     examples:
@@ -48,6 +47,8 @@ rules:
                 - '"orgId":'
                 - '"id":'
           url: https://cloud.mongodb.com/api/atlas/v2/groups
+    references:
+      - https://www.mongodb.com/docs/atlas/api/
     depends_on_rule:
       - rule_id: "kingfisher.mongodb.2"
         variable: PUBKEY
@@ -108,6 +109,8 @@ rules:
     visible: false
     examples:
       - 'mongodb-public: qj4Zrh8e6A'
+    references:
+      - https://www.mongodb.com/docs/atlas/api/
   - name: MongoDB URI Connection String
     id: kingfisher.mongodb.3
     pattern: |
@@ -130,6 +133,8 @@ rules:
     validation:
       type: MongoDB
     tls_mode: lax
+    references:
+      - https://www.mongodb.com/docs/manual/reference/connection-string/
   - name: MongoDB Atlas Service Account Token
     id: kingfisher.mongodb.4
     pattern: |
@@ -144,3 +149,5 @@ rules:
     validation:
       type: MongoDB
     tls_mode: lax
+    references:
+      - https://www.mongodb.com/docs/atlas/api/service-accounts-overview/

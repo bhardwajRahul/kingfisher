@@ -22,7 +22,7 @@ rules:
     confidence: medium
     examples:
       - 'gocardless_token = "live_8uq9fsUA28SqKT=CTsQxgKrqB6_7QV5tA39I8y5H'
-      - GOCARDLESS_LIVE_KEY = "live_cpo0k9jbnb2djeaq=tga45ua_bnhev5ivv294a6cs"
+      - GOCARDLESS_LIVE_KEY = "live_80M81I_T_DG2T604LSO5HVGVMJS40-CVUOS2S69YNY"
     categories:
       - api
       - payment
@@ -42,3 +42,5 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.gocardless.com/customers?limit=1
+    references:
+      - https://developer.gocardless.com/api-reference/#authentication

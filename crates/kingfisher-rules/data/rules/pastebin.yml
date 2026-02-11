@@ -37,3 +37,5 @@ rules:
             - type: WordMatch                                
               words: ['invalid api_dev_key']
               negative: true
+    references:
+      - https://pastebin.com/doc_api

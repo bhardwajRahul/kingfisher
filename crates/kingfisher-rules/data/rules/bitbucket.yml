@@ -30,6 +30,9 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.bitbucket.org/2.0/user
+    references:
+      - https://developer.atlassian.com/cloud/bitbucket/oauth-2/
+      - https://developer.atlassian.com/cloud/bitbucket/rest/intro/#authentication
 
   - name: Bitbucket Secret
     id: kingfisher.bitbucket.3
@@ -65,3 +68,6 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.bitbucket.org/2.0/user
+    references:
+      - https://developer.atlassian.com/cloud/bitbucket/oauth-2/
+      - https://developer.atlassian.com/cloud/bitbucket/rest/intro/#authentication

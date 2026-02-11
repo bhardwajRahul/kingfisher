@@ -30,3 +30,5 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.easypost.com/v2/shipments?page_size=5
+    references:
+      - https://docs.easypost.com/docs/authentication

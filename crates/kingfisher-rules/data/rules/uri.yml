@@ -40,3 +40,5 @@ rules:
               type: StatusMatch
               status:
                 - 200
+    references:
+      - https://www.rfc-editor.org/rfc/rfc3986#section-3.2.1

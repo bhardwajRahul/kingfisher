@@ -30,6 +30,7 @@ pub mod git_url;
 pub mod gitea;
 pub mod github;
 pub mod gitlab;
+pub mod grpc_validation;
 pub mod huggingface;
 pub mod inline_ignore;
 pub mod jira;

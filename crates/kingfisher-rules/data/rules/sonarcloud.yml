@@ -35,3 +35,5 @@ rules:
               match_all_words: true
               words:
                 - '"tokens":'
+    references:
+      - https://sonarcloud.io/web_api

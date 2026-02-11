@@ -23,7 +23,7 @@ rules:
       - CODECLIMATE_API_TOKEN=d37a8b9e09642cb73cfcf4e1284815fc3d6a55a7714110187ac59856ae4ab5ad
       - CODECLIMATE_API_TOKEN="d37a8b9e09642cb73cfcf4e1284815fc3d6a55a7714110187ac59856ae4ab5ad"
     references:
-      - https://developer.codeclimate.com/#overview
+      - https://github.com/codeclimate/codeclimate-services
     validation:
       type: Http
       content:

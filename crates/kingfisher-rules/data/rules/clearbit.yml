@@ -33,3 +33,5 @@ rules:
               words:
                 - '"Invalid API key provided"'
               negative: true
+    references:
+      - https://dashboard.clearbit.com/docs#authentication

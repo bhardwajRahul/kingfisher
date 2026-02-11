@@ -17,6 +17,8 @@ rules:
     visible: false
     examples:
       - paypal_client_id=AZJ6y8Dpr1TYbqAIdhkPzyhjXoY6mIdhkPzyhjXoY6m8GplL7C3zZ3lPrkTIdhkPzyhjXo_Dx3IdhkPzyhjXoY6m
+    references:
+      - https://developer.paypal.com/api/rest/authentication/
 
   - name: PayPal OAuth Secret
     id: kingfisher.paypal.2
@@ -57,3 +59,5 @@ rules:
       depends_on_rule:
         - rule_id: kingfisher.paypal.1
           variable: CLIENTID
+    references:
+      - https://developer.paypal.com/api/rest/authentication/

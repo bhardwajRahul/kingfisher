@@ -17,7 +17,7 @@ rules:
       - LAUNCHDARKLY_TOKEN=api-123abc456def789ghi012jkl345mno678pqr
       - '"launchdarkly": "ld-abcdefghijklmno1234567890pqrstuvwxzab"'
     references:
-      - https://docs.launchdarkly.com/sdk/api/
+      - https://launchdarkly.com/docs/api
     validation:
       type: Http
       content:

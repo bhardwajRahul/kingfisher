@@ -31,6 +31,8 @@ rules:
             - type: WordMatch
               words: ['"site":{']
               match_all_words: true
+    references:
+      - https://docs.sourcegraph.com/admin/api#authentication
 
   - name: Sourcegraph _Legacy_ API Key
     id: kingfisher.sourcegraph.2
@@ -68,6 +70,8 @@ rules:
               status: [200]
             - type: WordMatch
               words: ['"site":{']
+    references:
+      - https://docs.sourcegraph.com/admin/api#authentication
 
   - name: Sourcegraph Cody Gateway Key
     id: kingfisher.sourcegraph.3
@@ -95,3 +99,5 @@ rules:
             - type: WordMatch
               words: ['"token"', '"limit"']
               match_all_words: true
+    references:
+      - https://docs.sourcegraph.com/cody/cody_gateway

@@ -79,6 +79,7 @@ pub enum Validation {
     JWT,
     Raw(String),
     Http(HttpValidation),
+    Grpc(GrpcValidation),
 }
 
 /// Represents revocation actions that a rule can perform.
@@ -385,6 +386,33 @@ pub enum PatternValidationResult {
 pub struct HttpValidation {
     pub request: HttpRequest,
     pub multipart: Option<MultipartConfig>,
+}
+
+/// Configuration for gRPC validation.
+///
+/// This is intended for services that are gRPC-only (HTTP/2 + trailers),
+/// such as Modal's control plane.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct GrpcValidation {
+    pub request: GrpcRequest,
+}
+
+/// Configuration for a single gRPC unary request.
+///
+/// Notes:
+/// - `url` should include the full gRPC method path, e.g.
+///   `https://api.modal.com/modal.client.ModalClientModal/ContainerHello`
+/// - `headers` can include custom auth headers, content-type, etc.
+/// - `body` is sent as raw bytes; YAML `\u0000` escapes are supported.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct GrpcRequest {
+    pub url: String,
+    #[serde(default)]
+    pub headers: BTreeMap<String, String>,
+    #[serde(default)]
+    pub body: Option<String>,
+    #[serde(default)]
+    pub response_matcher: Option<Vec<ResponseMatcher>>,
 }
 
 /// Configuration for an HTTP request used for validation.

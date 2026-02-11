@@ -18,7 +18,6 @@ rules:
     examples:
       - "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"
       - "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"
-      - 'TAVILY_API_KEY = "tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
     validation:
       type: Http
       content:

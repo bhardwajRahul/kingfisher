@@ -12,8 +12,6 @@ rules:
         \}
         [^}]*?
       \}
-    pattern_requirements:
-      min_digits: 2
     min_entropy: 2.0
     confidence: medium
     examples:
@@ -21,12 +19,12 @@ rules:
         {
           "auths": {
             "quay.io": {
-              "auth": "cmhkaCtyaHRhcDowM1BERl1RQTJQTDlaQUE5T1gzSU9IQjFYTUlXOVNGNU1XRzNSRVRHNThKVXpKMzEwV0ZZRVMOQTdGMExMNOYx"
+              "auth": "dXNlcjEyOnRva2VuMzQ1Njc4OTA="
             }
           }
         }
       - |
-        {"auths":{"index.docker.io/v1/":{"auth":"dXNlcjp0b2tlbg=="}}}
+        {"auths":{"index.docker.io/v1/":{"auth":"dXNlcjEyOnRva2VuMzQ1Njc4OTA="}}}
     references:
       - https://distribution.github.io/distribution/spec/api/
     validation:

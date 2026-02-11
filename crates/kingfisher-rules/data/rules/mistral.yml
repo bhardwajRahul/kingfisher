@@ -25,7 +25,7 @@ rules:
       - https://docs.mistral.ai/getting-started/quickstart :contentReference[oaicite:1]{index=1}
       - https://docs.mistral.ai/api/ :contentReference[oaicite:2]{index=2}
       - https://medium.com/@stephane.giron/explore-mistral-ai-api-with-google-apps-script-d41b851c55e3 :contentReference[oaicite:3]{index=3}
-      - https://apidog.com/blog/mistral-ai-api/ :contentReference[oaicite:4]{index=4}
+      - https://docs.mistral.ai/api/ :contentReference[oaicite:4]{index=4}
     validation:
       type: Http
       content:

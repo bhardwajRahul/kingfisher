@@ -59,17 +59,17 @@ rules:
       min_lowercase: 2
       checksum:
         actual:
-          template: "{{ MATCH | suffix: 6 }}"
+          template: "{{ checksum }}"
           requires_capture: checksum
-        expected: "{{ BODY | crc32 | base62: 6 }}"
+        expected: "{{ body | crc32 | base62: 6 }}"
         skip_if_missing: true
     min_entropy: 3.5
     examples:
-      - "GITHUB_KEY=ghp_XIxB7KMNdAr3zqWtQqhE94qglHqOzn1D1stg"
-      - "let g:gh_token='ghp_4U3LSowpDx8XvYE7A8GH56oxU5aWnY2mzIbV'"
+      - "GITHUB_KEY=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"
+      - "let g:gh_token='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'"
       - |
         ## git developer settings
-        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
+        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
     references:
       - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
     validation:
@@ -114,15 +114,15 @@ rules:
       min_digits: 2
       checksum:
         actual:
-          template: "{{ MATCH | suffix: 6 }}"
+          template: "{{ checksum }}"
           requires_capture: checksum
-        expected: "{{ BODY | crc32 | base62: 6 }}"
+        expected: "{{ body | crc32 | base62: 6 }}"
         skip_if_missing: true
     min_entropy: 3.5
     confidence: medium
     examples:
-      - '    "url": "git+https://FelipeMestre:gho_psT9pqNFsehnc4se0ZzzR0HBxapxZD35hNHi@github.com/gontarz/PW_2021_Website-FelipeMestre.git"'
-      - '    oauth_token: gho_fq75OMU7UVbS9pTZmoCCzJT6TM5d1w099FgG'
+      - '    "url": "git+https://FelipeMestre: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@github.com/gontarz/PW_2021_Website-FelipeMestre.git"'
+      - '    oauth_token: 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'
     references:
       - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
     validation:

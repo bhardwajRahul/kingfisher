@@ -31,3 +31,5 @@ rules:
             - type: WordMatch
               words:
                 - '"username"'
+    references:
+      - https://io.adafruit.com/api/docs/#authentication

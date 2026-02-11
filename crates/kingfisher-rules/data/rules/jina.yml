@@ -32,4 +32,4 @@ rules:
                 - '"_id":'
               match_all_words: true
     references:
-      - https://jina.ai/docs/jina-ai-cloud/api-reference/
+      - https://jina.ai/serve/jina-ai-cloud/

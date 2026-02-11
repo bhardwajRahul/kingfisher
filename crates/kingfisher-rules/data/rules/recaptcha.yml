@@ -10,7 +10,7 @@ rules:
         6l[c-f][a-z0-9_-].{36}
       )
     pattern_requirements:
-      min_digits: 3
+      min_digits: 1
     min_entropy: 3
     confidence: medium
     examples:
@@ -33,3 +33,5 @@ rules:
               words:
                 - '"success": true'
           url: https://www.google.com/recaptcha/api/siteverify
+    references:
+      - https://developers.google.com/recaptcha/docs/verify

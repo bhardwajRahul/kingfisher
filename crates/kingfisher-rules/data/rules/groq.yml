@@ -29,7 +29,7 @@ rules:
                 - '"data"'
               match_all_words: true
     references:
-      - https://console.groq.com/docs/api-keys
+      - https://console.groq.com/keys
       - https://console.groq.com/docs/api-reference#models
     examples:
       - "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"

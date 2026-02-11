@@ -31,3 +31,5 @@ rules:
           }
       - "credentials {\n  username 'user'\n  password 'password'\n}"
       - "credentials {\n  username \"user\"\n  password \"password\"\n}"
+    references:
+      - https://docs.gradle.org/current/userguide/declaring_repositories.html#sec:handling_credentials

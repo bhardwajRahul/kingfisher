@@ -32,3 +32,5 @@ rules:
             - type: WordMatch
               words:
                 - '"success":true'
+    references:
+      - https://docs.kickbox.com/reference

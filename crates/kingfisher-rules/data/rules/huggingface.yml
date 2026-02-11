@@ -10,8 +10,6 @@ rules:
         )   
       )
       \b
-    pattern_requirements:
-      min_digits: 2
     references:
       - https://huggingface.co/docs/hub/security-tokens
     min_entropy: 3.3

@@ -33,6 +33,9 @@ rules:
               type: StatusMatch
             - type: JsonValid
           url: https://{{ JFROGURL }}/artifactory/api/repositories
+    references:
+      - https://jfrog.com/help/r/jfrog-platform-administration-documentation/access-tokens
+      - https://jfrog.com/help/r/jfrog-rest-apis/authentication
     depends_on_rule:
       - rule_id: "kingfisher.artifactory.2"
         variable: JFROGURL
@@ -58,6 +61,8 @@ rules:
       - mycompany.jfrog.io
       - my-company-name.jfrog.io
       - a.jfrog.io
+    references:
+      - https://jfrog.com/help/r/jfrog-rest-apis/artifactory-rest-apis
 
   - name: Artifactory Identity Reference Token
     id: kingfisher.artifactory.3
@@ -89,6 +94,9 @@ rules:
                 - 200
               type: StatusMatch
           url: https://{{ JFROGURL }}/artifactory/api/repositories
+    references:
+      - https://jfrog.com/help/r/jfrog-platform-administration-documentation/access-tokens
+      - https://jfrog.com/help/r/jfrog-rest-apis/authentication
     depends_on_rule:
       - rule_id: "kingfisher.artifactory.2"
         variable: JFROGURL

@@ -12,9 +12,9 @@ rules:
       min_digits: 2
       checksum:
         actual:
-          template: "{{ MATCH | suffix: 6 }}"
+          template: "{{ checksum }}"
           requires_capture: checksum
-        expected: "{{ BODY | crc32 | base62: 6 }}"
+        expected: "{{ body | crc32 | base62: 6 }}"
         skip_if_missing: true
     references:
       - https://docs.npmjs.com/about-access-tokens
@@ -23,7 +23,7 @@ rules:
     min_entropy: 3.3
     confidence: medium
     examples:
-      - "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"
+      - "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"
     validation:
       type: Http
       content:

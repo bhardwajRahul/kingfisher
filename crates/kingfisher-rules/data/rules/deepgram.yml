@@ -22,7 +22,7 @@ rules:
       - deepgram token 1 == 1f8946087e64b14dffd069b78554e217b3ed34d4
     references:
       - https://developers.deepgram.com/docs/authenticating
-      - https://developers.deepgram.com/reference/management-api/models/list
+      - https://developers.deepgram.com/reference/manage/models/list
       - https://developers.deepgram.com/reference/list-keys
 
     validation:

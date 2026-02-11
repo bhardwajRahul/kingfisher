@@ -29,6 +29,8 @@ rules:
               match_all_words: true
               words: ['"shop":']
           url: https://{{ DOMAIN }}/admin/api/2024-10/shop.json
+    references:
+      - https://shopify.dev/docs/api/admin-rest#authentication
     depends_on_rule:
       - rule_id: "kingfisher.shopify.2"
         variable: DOMAIN
@@ -40,3 +42,5 @@ rules:
     visible: false
     examples:
       - example.myshopify.com
+    references:
+      - https://shopify.dev/docs/api/admin-rest#authentication

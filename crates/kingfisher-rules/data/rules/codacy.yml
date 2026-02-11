@@ -34,3 +34,5 @@ rules:
                 - 200
               type: StatusMatch
           url: https://app.codacy.com/api/v3/user/organizations
+    references:
+      - https://docs.codacy.com/codacy-api/using-the-codacy-api

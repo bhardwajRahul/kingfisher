@@ -31,3 +31,5 @@ rules:
               status: [200]
             - type: WordMatch
               words: ['"data"']
+    references:
+      - https://developers.klaviyo.com/en/docs/authenticate_

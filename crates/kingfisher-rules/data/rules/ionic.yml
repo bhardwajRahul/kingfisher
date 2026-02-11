@@ -28,3 +28,5 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.ionic.io/v1/auth/status
+    references:
+      - https://ionicframework.com/docs

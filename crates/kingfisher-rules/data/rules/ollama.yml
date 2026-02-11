@@ -40,7 +40,7 @@ rules:
                 - '"response":'
                 - '"done":true'
     references:
-      - https://ollama.com/blog/turbo
+      - https://ollama.com/blog
     examples:
       - "ollama key = 8bcdd9b4e28e4e1b8bf14a2eb8701220.QH5p5TU2BDwzHu5_RCtvJXsj"
       - "ollama key = e56714bd7c1146e4b4801244bc2bc67a.3GAswjZGZ5YY6Qdgt0xg56vM"

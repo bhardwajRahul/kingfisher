@@ -25,6 +25,9 @@ rules:
       - AccountName=mystorageaccount
       - mystorageaccount.blob.core.windows.net
       - azure_storage_name="prodblob2024"
+    references:
+      - https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview
+      - https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key
   - name: Azure Storage Account Key
     id: kingfisher.azurestorage.2
     pattern: |
@@ -54,6 +57,9 @@ rules:
       - Azure AccountKey=Ky7aC1cD7eF6gH5iJ4kL3mN2oP1qR0sT9uV8wX7yZ6aB5cD4eF3gH2iJ1kL0mN9oP8qR7sT6uV5wX4yZ3aB2cD1g==\
     validation:
       type: AzureStorage
+    references:
+      - https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key
+      - https://learn.microsoft.com/en-us/rest/api/storageservices/
     depends_on_rule:
       - rule_id: kingfisher.azurestorage.1
         variable: AZURENAME

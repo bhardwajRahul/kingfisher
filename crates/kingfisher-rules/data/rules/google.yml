@@ -19,8 +19,6 @@ rules:
       (?:[^A-Z0-9_-] | $)
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
-      min_lowercase: 1
     min_entropy: 3.3
     confidence: medium
     examples:
@@ -36,13 +34,12 @@ rules:
       )
       (?: [^a-z0-9_-] |$)
     pattern_requirements:
-      min_digits: 4
+      min_digits: 1
       min_uppercase: 3
       min_lowercase: 3
     min_entropy: 3.3
     confidence: medium
     examples:
-      - '"client_secret":"aaaaaaaaaaaaaaaaaaaaaaa-"'
       - "                 //$google_client_secret = 'fnhqAakzWrX-mtFQ4PRdMoy0';"
       - "                'clientSecret' : 'Ufvuj-d6alhwGKvvLh_8Nq0K'"
 
@@ -54,8 +51,6 @@ rules:
       (?: [^0-9A-Z_-])
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
-      min_lowercase: 1
     min_entropy: 3.3
     confidence: medium
     examples:
@@ -91,20 +86,18 @@ rules:
       (?:[^A-Z0-9_-] | $)
     pattern_requirements:
       min_digits: 2
-      min_uppercase: 1
-      min_lowercase: 1
     min_entropy: 3.3
     confidence: medium
     examples:
       - |
-        const CLIENT_ID = '304167046824-45h8no7j0s38akv998nivvb7i17ckqeh.apps.googleusercontent.com';
-        const CLIENT_SECRET = '1QcFpNjHoAf4_XczYwhYicTl';
+        const CLIENT_ID = '204945162815-59422evifqzluuklf_09qff9pk6ehd4r.apps.googleusercontent.com';
+        const CLIENT_SECRET = 'P5C9REQW_6NT5NMQO8FP75VO';
       - |
         public static GAPIS_CREDENTIALS = {
           // 1. Generate credentials: https://console.cloud.google.com/apis/
           // 2. Create OAuth page and set spreadsheets and drive.metadata.readonly scopes
-          client_id: '132261435625-69ubohrvppjr9hcc5t9uighsb7j2cqhv.apps.googleusercontent.com',
-          client_secret: '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',
+          client_id: '024565785402-92sn01z4gfwbv4zfu79ttqg2j7uphacz.apps.googleusercontent.com',
+          client_secret: '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',
           redirect_uri: `http://localhost:${Config.OAUTH_HTTP_PORT}/oauth2callback`
         };
   - name: Google Gemini API Key

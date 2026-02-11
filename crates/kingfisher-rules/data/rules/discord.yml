@@ -31,6 +31,8 @@ rules:
                 - 200
               type: StatusMatch
           url: '{{ TOKEN }}'
+    references:
+      - https://discord.com/developers/docs/resources/webhook
   - name: Discord Bot Token
     id: kingfisher.discord.2
     pattern: |
@@ -56,6 +58,8 @@ rules:
                 - 200
               type: StatusMatch
           url: https://discord.com/api/v8/users/@me
+    references:
+      - https://discord.com/developers/docs/reference#authentication
     depends_on_rule:
       - rule_id: "kingfisher.discord.3"
         variable: BOTID
@@ -74,3 +78,5 @@ rules:
     examples:
       - discord = 12345678901234567
       - 'bot_id: "123456789012345678"'
+    references:
+      - https://discord.com/developers/docs/topics/oauth2#bots

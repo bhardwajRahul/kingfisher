@@ -17,8 +17,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - TWITCH_TOKEN=abcdefghijklmnopqrstuvwx123456
-      - "twitch_api_token: '0123456789abcdefghijklmnopqrst'"
+      - TWITCH_TOKEN=abCDefghijklmnopqrstuvwx123456
+      - "twitch_api_token: '0123456789ABcdefghijklmnopqrst'"
     references:
       - https://dev.twitch.tv/docs/authentication/validate-tokens/
     validation:

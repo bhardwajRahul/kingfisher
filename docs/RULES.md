@@ -71,6 +71,24 @@ rules:
               expected: ["application/json"]
             - type: JsonValid
 
+    # NOTE: Some providers are gRPC-only (no REST endpoint). For those, use Grpc validation.
+    validation:
+      type: Grpc
+      content:
+        request:
+          url: https://api.example.com/<package>.<Service>/<Method>
+          headers:
+            content-type: application/grpc
+            te: trailers
+            Authorization: "Bearer {{ TOKEN }}"
+          # Raw bytes are allowed (YAML \\u0000 escapes become NUL bytes).
+          body: "\\u0000\\u0000\\u0000\\u0000\\u0000"
+          response_matcher:
+            - report_response: true
+            - type: HeaderMatch
+              header: grpc-status
+              expected: ["0"]
+
     revocation:                     # (optional) revoke a secret
       type: Http
       content:
@@ -152,6 +170,36 @@ revocation:
 | pattern_requirements  | Require character types and/or exclude placeholder words from matches |
 | validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
 | revocation              | Configure HTTP, AWS, or multi-step revocation for a detected secret  |
+
+## gRPC Validation (Grpc)
+
+Some services (notably CLI/SDK control planes) are **gRPC-only**. For these, `validation: type: Http`
+is not sufficient because gRPC status is typically returned via HTTP/2 trailers (`grpc-status`,
+`grpc-message`). Kingfisher’s `Grpc` validator performs an HTTP/2 request and evaluates matchers
+against the merged headers+trailers.
+
+`Grpc` is currently intended for unary requests and expects you to provide a fully-qualified method URL:
+
+```yaml
+validation:
+  type: Grpc
+  content:
+    request:
+      url: https://api.modal.com/modal.client.ModalClient/ClientHello
+      headers:
+        content-type: application/grpc
+        te: trailers
+        x-modal-token-id: "{{ TOKEN_ID }}"
+        x-modal-token-secret: "{{ TOKEN }}"
+        x-modal-client-type: "1"
+        x-modal-client-version: "1.0.0"
+      body: "\u0000\u0000\u0000\u0000\u0000"  # Empty protobuf frame
+      response_matcher:
+        - report_response: true
+        - type: HeaderMatch
+          header: grpc-status
+          expected: ["0"]
+```
 
 
 *responser_matcher* variants. Multiple can be used

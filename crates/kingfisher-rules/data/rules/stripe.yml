@@ -21,6 +21,8 @@ rules:
     categories: [api, key]
     examples:
       - stripe_pub_key = pk_live_HQS0j4H75XpthOW87eY1sXa2BYz3Ab
+    references:
+      - https://stripe.com/docs/api/authentication
 
   - name: Stripe Secret / Restricted Key
     id: kingfisher.stripe.2
@@ -61,3 +63,5 @@ rules:
             - type: WordMatch
               match_all_words: true
               words: ['"object":"account"']
+    references:
+      - https://stripe.com/docs/api/authentication

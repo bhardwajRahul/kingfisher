@@ -39,3 +39,5 @@ rules:
               status: [200]
             - type: WordMatch
               words: ['"PONG!"']
+    references:
+      - https://mandrillapp.com/api/docs/

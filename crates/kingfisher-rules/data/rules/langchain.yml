@@ -27,6 +27,8 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: JsonValid
+    references:
+      - https://docs.smith.langchain.com/administration/api-keys
   - name: LangSmith Service Key
     id: kingfisher.langchain.2
     pattern: |
@@ -54,3 +56,5 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    references:
+      - https://docs.smith.langchain.com/administration/api-keys

@@ -36,7 +36,8 @@ rules:
         sb_secret_[a-z0-9_-]{31}
       )
     pattern_requirements:
-      min_digits: 2
+      min_uppercase: 3
+      min_lowercase: 3
     min_entropy: 4.0
     confidence: medium
     validation:

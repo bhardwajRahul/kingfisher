@@ -13,8 +13,6 @@ rules:
         private_[A-Z0-9_-]{8,128}
       )
       \b
-    pattern_requirements:
-      min_digits: 2
     min_entropy: 3.2
     confidence: medium
     examples:

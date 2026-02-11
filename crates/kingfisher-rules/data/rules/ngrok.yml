@@ -33,3 +33,5 @@ rules:
             - type: WordMatch                          
               words:
                 - '"endpoints":'
+    references:
+      - https://ngrok.com/docs/api#authentication

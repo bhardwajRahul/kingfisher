@@ -209,4 +209,4 @@ rules:
       - some+thing:02PDFMQN2PL2ZAB9OX3IOHC1XMIW1SE5NWG3RETG58JUZJ310WFYESRA7F0LM461
       - org+builder:1C2F9D0BB1E67E9F6B3B5B9A2A3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1
     references:
-      - https://docs.quay.io/use_quay.html#robot-accounts
+      - https://docs.quay.io/glossary/robot-accounts.html

@@ -181,6 +181,15 @@ fn build_validate_command(
                 escape_for_shell(snippet)
             ))
         }
+        Validation::Grpc(_) => {
+            // gRPC-based validation with dependent variables
+            Some(format!(
+                "kingfisher validate --rule {} {}{}",
+                rule_id,
+                var_args,
+                escape_for_shell(snippet)
+            ))
+        }
         Validation::MongoDB
         | Validation::MySQL
         | Validation::Postgres
@@ -645,8 +654,17 @@ impl DetailsReporter {
         let source_span = rm.m.location.resolved_source_span();
         let line_num = source_span.start.line;
 
-        // Get raw snippet value (for revoke command) and display snippet (for output)
-        let (raw_snippet, snippet) = if let Some(capture) = rm.m.groups.captures.get(0) {
+        // Prefer the named TOKEN capture (when present) for display + validate/revoke commands.
+        // This avoids cases like Modal CLI pairs where capture(0) is an ID and TOKEN is the secret.
+        let snippet_capture =
+            rm.m.groups
+                .captures
+                .iter()
+                .find(|c| c.name.map(|n| n.eq_ignore_ascii_case("TOKEN")).unwrap_or(false))
+                .or_else(|| rm.m.groups.captures.get(0));
+
+        // Get raw snippet value (for revoke/validate command) and display snippet (for output)
+        let (raw_snippet, snippet) = if let Some(capture) = snippet_capture {
             let raw = capture.raw_value().to_string();
             let displayed = capture.display_value();
             (raw, Escaped(displayed.as_ref().as_bytes()).to_string())
@@ -718,11 +736,24 @@ impl DetailsReporter {
 
             // Generate validate command for findings with validation support
             let validate_cmd = if let Some(validation) = &rm.m.rule.syntax().validation {
+                // Merge dependent captures with named regex captures so the generated command is runnable.
+                // (E.g., Modal needs TOKEN_ID, which is a named capture on the same rule.)
+                let mut merged_vars = rm.m.dependent_captures.clone();
+                for cap in rm.m.groups.captures.iter() {
+                    let Some(name) = cap.name else { continue };
+                    if name.eq_ignore_ascii_case("TOKEN") {
+                        continue;
+                    }
+                    merged_vars
+                        .entry(name.to_uppercase())
+                        .or_insert_with(|| cap.raw_value().to_string());
+                }
+
                 build_validate_command(
                     rm.m.rule.id(),
                     validation,
                     &raw_snippet,
-                    &rm.m.dependent_captures,
+                    &merged_vars,
                     akid_from_captures.as_deref(),
                     akid_from_body.as_deref(),
                 )

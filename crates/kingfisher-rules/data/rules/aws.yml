@@ -10,7 +10,7 @@ rules:
       )
       \b
     pattern_requirements:
-      min_digits: 2
+      min_digits: 1
       ignore_if_contains:
         - "EXAMPLE"
         - "TEST"

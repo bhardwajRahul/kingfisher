@@ -25,6 +25,8 @@ use crate::{
     validation_body::{self},
 };
 
+use crate::grpc_validation;
+
 // Re-export TlsMode from kingfisher_rules for use in client_for_rule
 pub use kingfisher_rules::TlsMode as RuleTlsMode;
 
@@ -464,6 +466,15 @@ async fn timed_validate_single_match<'a>(
     let mut globals = Object::new();
     populate_globals_from_captures(&mut globals, &captured_values);
 
+    // Persist named captures (non-TOKEN) for validate/revoke command generation.
+    // This is especially important for gRPC validators like Modal where TOKEN_ID is required.
+    for (k, v, ..) in &captured_values {
+        if k.eq_ignore_ascii_case("TOKEN") {
+            continue;
+        }
+        m.dependent_captures.entry(k.to_uppercase()).or_insert_with(|| v.clone());
+    }
+
     let rule_syntax = m.rule.syntax();
 
     // ──────────────────────────────────────────────────────────
@@ -715,6 +726,87 @@ async fn timed_validate_single_match<'a>(
                     m.validation_response_status = StatusCode::BAD_GATEWAY;
                 }
             }
+        }
+
+        // ---------------------------------------------------- gRPC validator
+        Some(Validation::Grpc(grpc_validation_cfg)) => {
+            let request_timeout = validation_timeout;
+
+            // Render URL
+            let url = match render_and_parse_url(
+                parser,
+                &globals,
+                &rule_syntax.name,
+                &grpc_validation_cfg.request.url,
+            )
+            .await
+            {
+                Ok(u) => u,
+                Err(e) => {
+                    m.validation_success = false;
+                    m.validation_response_body = validation_body::from_string(e);
+                    m.validation_response_status = StatusCode::BAD_REQUEST;
+                    commit_and_return(m);
+                    return;
+                }
+            };
+
+            // Execute gRPC unary call (HTTP/2 + trailers).
+            let res = match grpc_validation::grpc_unary_call_from_rule(
+                &url,
+                &grpc_validation_cfg.request.headers,
+                &grpc_validation_cfg.request.body,
+                parser,
+                &globals,
+                request_timeout,
+            )
+            .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    m.validation_success = false;
+                    m.validation_response_body =
+                        validation_body::from_string(format!("gRPC error: {}", e));
+                    m.validation_response_status = StatusCode::BAD_GATEWAY;
+                    commit_and_return(m);
+                    return;
+                }
+            };
+
+            let status = StatusCode::from_u16(res.http_status.as_u16()).unwrap_or(StatusCode::OK);
+            let headers = res.headers;
+            let mut body = String::from_utf8_lossy(&res.body_bytes).to_string();
+
+            // gRPC errors are typically reported in trailers, not the body.
+            // Surface them for debugging and for `--full-validation-response` output.
+            let grpc_status =
+                headers.get("grpc-status").and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+            let grpc_message =
+                headers.get("grpc-message").and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+            // Avoid storing raw protobuf bytes in the report (they often contain NULs and make
+            // output logs non-UTF8). Prefer a compact status/message string.
+            if grpc_status == "0" {
+                body = "grpc-status=0".to_string();
+            } else if body.trim().is_empty()
+                && (!grpc_status.is_empty() || !grpc_message.is_empty())
+            {
+                body = format!("grpc-status={grpc_status} grpc-message={grpc_message}");
+            } else if body.as_bytes().contains(&0) {
+                body = format!("grpc-status={grpc_status} grpc-message={grpc_message}");
+            }
+            truncate_to_char_boundary(&mut body, MAX_VALIDATION_BODY_LEN);
+
+            m.validation_response_status = status;
+            m.validation_response_body = validation_body::from_string(body.clone());
+
+            let matchers = grpc_validation_cfg
+                .request
+                .response_matcher
+                .as_ref()
+                .expect("missing response_matcher");
+
+            m.validation_success =
+                httpvalidation::validate_response(matchers, &body, &status, &headers, false);
         }
 
         // ---------------------------------------------------- MongoDB validator
