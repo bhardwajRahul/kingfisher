@@ -355,6 +355,18 @@ kingfisher revoke --rule slack "xoxb-..."
 kingfisher revoke --rule github "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
+Validation throttling is also available for direct validation:
+
+- `--validation-rps <RPS>` sets a global request rate.
+- `--validation-rps-rule <RULE_SELECTOR=RPS>` sets per-rule overrides (repeatable).
+- Rule selectors accept short names, so `github=2` matches `kingfisher.github.*`.
+
+```bash
+# Limit direct validation to 1 req/sec for GitHub rules
+kingfisher validate --rule github "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  --validation-rps-rule github=1
+```
+
 ## Advanced Scanning Options
 
 ```bash
@@ -370,6 +382,15 @@ kingfisher scan /path/to/repo --rule kingfisher.aws
 # Display rule performance statistics
 kingfisher scan /path/to/repo --rule-stats
 
+# Throttle validation request rate globally
+kingfisher scan /path/to/repo --validation-rps 5
+
+# Override specific rule families (kingfisher. prefix optional)
+kingfisher scan /path/to/repo \
+  --validation-rps 10 \
+  --validation-rps-rule github=2 \
+  --validation-rps-rule pypi=0.5
+
 # Include full validation response bodies (not truncated to 512 characters)
 # Useful for parsing complete validation responses (e.g., GitHub token metadata)
 kingfisher scan /path/to/repo --full-validation-response
@@ -384,6 +405,8 @@ kingfisher scan . \
   --since-commit origin/main \
   --branch "$CI_BRANCH"
 ```
+
+> Validation rate limiting applies to all built-in validator types (HTTP/gRPC, cloud SDK validators such as AWS/GCP/Coinbase, and database/token validators such as MongoDB, Postgres, MySQL, JDBC, JWT, and Azure Storage). `Raw` validators are excluded.
 
 # Platform Integrations
 

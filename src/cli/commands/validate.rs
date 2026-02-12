@@ -42,6 +42,14 @@ pub struct ValidateArgs {
     )]
     pub retries: u32,
 
+    /// Global validation request rate limit in requests per second
+    #[arg(long = "validation-rps", value_name = "RPS")]
+    pub validation_rps: Option<f64>,
+
+    /// Rule-scoped validation request rate limit (RULE_SELECTOR=RPS), repeatable
+    #[arg(long = "validation-rps-rule", value_name = "RULE_SELECTOR=RPS")]
+    pub validation_rps_rule: Vec<String>,
+
     /// Path to custom rules file or directory
     #[arg(long = "rules-path", value_hint = ValueHint::AnyPath)]
     pub rules_path: Vec<PathBuf>,

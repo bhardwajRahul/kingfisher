@@ -102,6 +102,14 @@ pub struct ScanArgs {
     )]
     pub validation_retries: u32,
 
+    /// Global validation request rate limit in requests per second
+    #[arg(global = true, long = "validation-rps", value_name = "RPS")]
+    pub validation_rps: Option<f64>,
+
+    /// Rule-scoped validation request rate limit (RULE_SELECTOR=RPS), repeatable
+    #[arg(global = true, long = "validation-rps-rule", value_name = "RULE_SELECTOR=RPS")]
+    pub validation_rps_rule: Vec<String>,
+
     /// Include full validation response bodies without truncation
     #[arg(global = true, long, default_value_t = false)]
     pub full_validation_response: bool,

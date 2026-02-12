@@ -26,6 +26,7 @@ use crate::{
 };
 
 use crate::grpc_validation;
+use crate::validation_rate_limit::should_rate_limit_validation;
 
 // Re-export TlsMode from kingfisher_rules for use in client_for_rule
 pub use kingfisher_rules::TlsMode as RuleTlsMode;
@@ -331,6 +332,7 @@ pub async fn validate_single_match(
     cache: &Cache,
     validation_timeout: Duration,
     validation_retries: u32,
+    rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
 ) {
     let timeout_result = time::timeout(validation_timeout, async {
         timed_validate_single_match(
@@ -342,6 +344,7 @@ pub async fn validate_single_match(
             cache,
             validation_timeout,
             validation_retries,
+            rate_limiter,
         )
         .await
     })
@@ -369,6 +372,7 @@ async fn timed_validate_single_match<'a>(
     cache: &Cache,
     validation_timeout: Duration,
     validation_retries: u32,
+    rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
 ) {
     // Select the appropriate HTTP client based on rule's TLS mode preference
     let rule_tls_mode = m.rule.tls_mode();
@@ -476,6 +480,12 @@ async fn timed_validate_single_match<'a>(
     }
 
     let rule_syntax = m.rule.syntax();
+
+    if let (Some(limiter), Some(validation)) = (rate_limiter, rule_syntax.validation.as_ref()) {
+        if should_rate_limit_validation(validation) {
+            limiter.wait_for_rule(m.rule.id()).await;
+        }
+    }
 
     // ──────────────────────────────────────────────────────────
     // 4. validator switch

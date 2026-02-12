@@ -248,7 +248,9 @@ endif
 linux-x64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/amd64 --rm \
+          -e CARGO_HOME=/src/.cargo-home \
           -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
+                mkdir -p /src/.cargo-home && \
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -256,8 +258,8 @@ linux-x64: check-docker create-dockerignore
 		    bzip2-dev bzip2-static \
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
-		    patch perl ragel && \
-	        git openssl-dev curl && \
+		    patch perl ragel \
+		    git openssl-dev curl && \
 		\
 		cargo test --workspace --all-targets ; \
 		\
@@ -277,7 +279,9 @@ linux-x64: check-docker create-dockerignore
 linux-arm64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/arm64 --rm \
+          -e CARGO_HOME=/src/.cargo-home \
           -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
+                mkdir -p /src/.cargo-home && \
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -285,8 +289,8 @@ linux-arm64: check-docker create-dockerignore
 		    bzip2-dev bzip2-static \
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
-		    patch perl ragel && \
-	        git openssl-dev curl && \
+		    patch perl ragel \
+		    git openssl-dev curl && \
 		\
 		rustup target add aarch64-unknown-linux-musl && \
 		\

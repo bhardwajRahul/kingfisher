@@ -39,6 +39,7 @@ use crate::{
         GLOBAL_USER_AGENT,
     },
     validation_body,
+    validation_rate_limit::{should_rate_limit_validation, ValidationRateLimiter},
 };
 
 use crate::grpc_validation;
@@ -452,6 +453,9 @@ pub async fn run_direct_validation(
     let parser = register_all(liquid::ParserBuilder::with_stdlib()).build()?;
 
     let timeout = Duration::from_secs(args.timeout);
+    let rate_limiter =
+        ValidationRateLimiter::from_cli(args.validation_rps, &args.validation_rps_rule)?
+            .map(Arc::new);
 
     let mut results = Vec::new();
 
@@ -549,6 +553,12 @@ pub async fn run_direct_validation(
             );
         }
 
+        if let Some(limiter) = rate_limiter.as_deref() {
+            if should_rate_limit_validation(validation) {
+                limiter.wait_for_rule(&rule_id).await;
+            }
+        }
+
         // Execute validation based on type
         let mut result = match validation {
             Validation::Http(http_validation) => {
@@ -563,7 +573,13 @@ pub async fn run_direct_validation(
                 .await?
             }
             Validation::Grpc(grpc_validation_cfg) => {
-                execute_grpc_validation(grpc_validation_cfg, &globals, &parser, timeout).await?
+                execute_grpc_validation(
+                    grpc_validation_cfg,
+                    &globals,
+                    &parser,
+                    timeout,
+                )
+                .await?
             }
 
             Validation::AWS => {
@@ -955,6 +971,8 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
         no_ignore_if_contains: false,
         validation_timeout: 10,
         validation_retries: 1,
+        validation_rps: None,
+        validation_rps_rule: Vec::new(),
         full_validation_response: false,
     }
 }

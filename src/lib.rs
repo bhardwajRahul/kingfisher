@@ -54,6 +54,7 @@ pub mod update;
 pub mod util;
 pub mod validation;
 pub mod validation_body;
+pub mod validation_rate_limit;
 
 use std::path::{Path, PathBuf};
 

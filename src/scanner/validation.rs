@@ -28,6 +28,7 @@ use crate::{
         collect_variables_and_dependencies, utils, validate_single_match, CachedResponse,
     },
     validation_body,
+    validation_rate_limit::ValidationRateLimiter,
 };
 
 #[derive(Clone, Default)]
@@ -113,6 +114,7 @@ pub async fn run_secret_validation(
     num_jobs: usize,
     range: Option<std::ops::Range<usize>>,
     access_map: Option<AccessMapCollector>,
+    rate_limiter: Option<Arc<ValidationRateLimiter>>,
     validation_timeout: Duration,
     validation_retries: u32,
 ) -> Result<()> {
@@ -213,6 +215,7 @@ pub async fn run_secret_validation(
             // *** FIX: Clone the progress bar for each concurrent task ***
             let pb = pb.clone();
             let access_map = access_map.clone();
+            let rate_limiter = rate_limiter.clone();
 
             async move {
                 // VALIDATION DEDUP: Use get(0) for the primary secret value.
@@ -250,6 +253,7 @@ pub async fn run_secret_validation(
                     &fail,
                     &cache_glob,
                     access_map.as_ref(),
+                    rate_limiter.as_deref(),
                     validation_timeout,
                     validation_retries,
                 )
@@ -325,6 +329,7 @@ pub async fn run_secret_validation(
                     let fail = fail_count.clone();
                     let cache_glob = cache.clone();
                     let access_map = access_map.clone();
+                    let rate_limiter = rate_limiter.clone();
                     let validation_timeout = validation_timeout;
                     let validation_retries = validation_retries;
 
@@ -361,6 +366,7 @@ pub async fn run_secret_validation(
                                 let fail = fail.clone();
                                 let cache_glob = cache_glob.clone();
                                 let access_map = access_map.clone();
+                                let rate_limiter = rate_limiter.clone();
                                 async move {
                                     validate_single(
                                         &mut rep,
@@ -374,6 +380,7 @@ pub async fn run_secret_validation(
                                         &fail,
                                         &cache_glob,
                                         access_map.as_ref(),
+                                        rate_limiter.as_deref(),
                                         validation_timeout,
                                         validation_retries,
                                     )
@@ -461,6 +468,7 @@ async fn validate_single(
     fail_count: &AtomicUsize,
     cache2: &Arc<SkipMap<String, CachedResponse>>,
     access_map: Option<&AccessMapCollector>,
+    rate_limiter: Option<&ValidationRateLimiter>,
     validation_timeout: Duration,
     validation_retries: u32,
 ) {
@@ -523,6 +531,7 @@ async fn validate_single(
             cache2,
             validation_timeout,
             validation_retries,
+            rate_limiter,
         )
         .await
     })

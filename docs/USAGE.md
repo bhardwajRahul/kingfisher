@@ -116,6 +116,28 @@ This is useful for:
 
 > **Note:** The `kingfisher.` prefix is optional for built-in rules. You can use `--rule aws` instead of `--rule kingfisher.aws`.
 
+To reduce API pressure during validation, you can limit request rate:
+
+- `--validation-rps <RPS>` applies a global rate limit to network validators.
+- `--validation-rps-rule <RULE_SELECTOR=RPS>` applies a rule-scoped override and can be repeated.
+
+Rule selectors use the same prefix behavior as `--rule`: `github=2` targets `kingfisher.github.*`.
+
+```bash
+# Global limit for all validation requests
+kingfisher scan ./repo --validation-rps 5
+
+# Per-rule overrides (prefix match, kingfisher. prefix optional)
+kingfisher scan ./repo \
+  --validation-rps 10 \
+  --validation-rps-rule github=2 \
+  --validation-rps-rule pypi=0.5
+
+# Direct validation can use the same limiter options
+kingfisher validate --rule github "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  --validation-rps-rule github=1
+```
+
 ```bash
 # Validate an OpsGenie API key (using rule prefix matching)
 kingfisher validate --rule opsgenie "12345678-9abc-def0-1234-56789abcdef0"

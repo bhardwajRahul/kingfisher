@@ -24,6 +24,8 @@ jobs:
   linux-x64:
     name: Linux x64
     runs-on: ubuntu-24.04
+    env:
+      CARGO_HOME: ${{ github.workspace }}/.cargo-home
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +46,13 @@ jobs:
           override: true
 
       - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          cache-directories: |
+            .cargo-home
+          cache-all-crates: true
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
@@ -52,7 +61,7 @@ jobs:
         run: make linux-x64
 
       - name: Fix permissions
-        run: sudo chown -R $(id -u):$(id -g) target
+        run: sudo chown -R $(id -u):$(id -g) target .cargo-home || true
 
       - name: Build Debian package
         run: |
@@ -88,6 +97,8 @@ jobs:
   linux-arm64:
     name: Linux arm64
     runs-on: ubuntu-24.04-arm
+    env:
+      CARGO_HOME: ${{ github.workspace }}/.cargo-home
     steps:
       - uses: actions/checkout@v4
 
@@ -108,6 +119,13 @@ jobs:
           override: true
 
       - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          cache-directories: |
+            .cargo-home
+          cache-all-crates: true
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
@@ -116,7 +134,7 @@ jobs:
         run: make linux-arm64
 
       - name: Fix permissions
-        run: sudo chown -R $(id -u):$(id -g) target
+        run: sudo chown -R $(id -u):$(id -g) target .cargo-home || true
 
       - name: Build Debian package
         run: |
@@ -162,6 +180,11 @@ jobs:
           override: true
 
       - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          cache-all-crates: true
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build Darwin x64
         run: make darwin-x64
@@ -190,6 +213,11 @@ jobs:
           override: true
 
       - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          cache-all-crates: true
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build Darwin arm64
         run: make darwin-arm64
@@ -285,6 +313,11 @@ jobs:
 
 
       - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+          cache-all-crates: true
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build
         run: .\buildwin.bat

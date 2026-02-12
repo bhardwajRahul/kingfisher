@@ -158,6 +158,8 @@ fn test_bitbucket_remote_scan() -> Result<()> {
         no_inline_ignore: false,
         no_ignore_if_contains: false,
         validation_retries: 1,
+        validation_rps: None,
+        validation_rps_rule: Vec::new(),
         validation_timeout: 10,
         full_validation_response: false,
     };

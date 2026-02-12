@@ -41,6 +41,7 @@ use crate::{
         summary::{compute_scan_totals, print_scan_summary},
         AccessMapCollector,
     },
+    validation_rate_limit::ValidationRateLimiter,
     util::set_redaction_enabled,
 };
 
@@ -273,12 +274,17 @@ pub async fn run_async_scan(
         repo_roots.iter().filter(|p| p.join(".git").is_dir()).count() + repo_urls.len();
     let use_parallel_repo_scan = git_repo_count > 10;
 
+    let validation_rate_limiter =
+        ValidationRateLimiter::from_cli(args.validation_rps, &args.validation_rps_rule)?
+            .map(Arc::new);
+
     let validation_deps = if !args.no_validate {
         info!("Starting secret validation phase...");
         Some(Arc::new((
             register_all(liquid::ParserBuilder::with_stdlib()).build()?,
             crate::validation::ValidationClients::new(global_args.tls_mode)?,
             Arc::new(SkipMap::new()),
+            validation_rate_limiter.clone(),
         )))
     } else {
         None
@@ -347,7 +353,8 @@ pub async fn run_async_scan(
         }
 
         if let Some(validation) = &validation_deps {
-            let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
+            let (parser, clients, cache, rate_limiter) =
+                (&validation.0, &validation.1, &validation.2, &validation.3);
             run_secret_validation(
                 Arc::clone(&datastore),
                 parser,
@@ -356,6 +363,7 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 None,
                 access_map_collector.clone(),
+                rate_limiter.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
             )
@@ -430,7 +438,8 @@ pub async fn run_async_scan(
     }
 
     if let Some(validation) = &validation_deps {
-        let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
+        let (parser, clients, cache, rate_limiter) =
+            (&validation.0, &validation.1, &validation.2, &validation.3);
         let initial_match_count = { datastore.lock().unwrap().get_matches().len() };
         if initial_match_count > 0 {
             run_secret_validation(
@@ -441,6 +450,7 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 Some(0..initial_match_count),
                 access_map_collector.clone(),
+                rate_limiter.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
             )
@@ -512,8 +522,8 @@ pub async fn run_async_scan(
                         }
 
                         if let Some(validation) = validation_deps.clone() {
-                            let (parser, clients, cache) =
-                                (&validation.0, &validation.1, &validation.2);
+                            let (parser, clients, cache, rate_limiter) =
+                                (&validation.0, &validation.1, &validation.2, &validation.3);
                             let match_count =
                                 { repo_datastore.lock().unwrap().get_matches().len() };
                             if match_count > 0 {
@@ -525,6 +535,7 @@ pub async fn run_async_scan(
                                     args.num_jobs,
                                     Some(0..match_count),
                                     access_map.clone(),
+                                    rate_limiter.clone(),
                                     Duration::from_secs(args.validation_timeout),
                                     args.validation_retries,
                                 ))?;
@@ -593,7 +604,8 @@ pub async fn run_async_scan(
         }
 
         if let Some(validation) = &validation_deps {
-            let (parser, clients, cache) = (&validation.0, &validation.1, &validation.2);
+            let (parser, clients, cache, rate_limiter) =
+                (&validation.0, &validation.1, &validation.2, &validation.3);
             run_secret_validation(
                 Arc::clone(&datastore),
                 parser,
@@ -602,6 +614,7 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 None,
                 access_map_collector.clone(),
+                rate_limiter.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
             )

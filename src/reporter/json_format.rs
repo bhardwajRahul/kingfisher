@@ -197,6 +197,8 @@ mod tests {
             no_ignore_if_contains: false,
             validation_timeout: 10,
             validation_retries: 1,
+            validation_rps: None,
+            validation_rps_rule: Vec::new(),
             full_validation_response: false,
         }
     }
