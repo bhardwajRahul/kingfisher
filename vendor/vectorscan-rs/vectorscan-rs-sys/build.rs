@@ -262,6 +262,16 @@ fn main() {
                     .define("BUILD_SVE2_BITPERM", "OFF");
             }
 
+            // Under cargo-zigbuild for x86_64-unknown-linux-musl, Vectorscan's
+            // configure-time probes can incorrectly miss posix_memalign/unistd.
+            // Scope this workaround to musl targets only to avoid impacting
+            // unrelated native dependencies.
+            let target = env("TARGET");
+            if target.ends_with("-musl") {
+                cfg.define("HAVE_UNISTD_H", "1")
+                    .define("HAVE_POSIX_MEMALIGN", "1");
+            }
+
             let dst = cfg.build();
             println!("cargo:rustc-link-lib=static=hs");
             println!("cargo:rustc-link-search={}", dst.join("lib").display());

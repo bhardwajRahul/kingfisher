@@ -143,8 +143,6 @@ ubuntu-x64: setup-zig   # ensures Zig & cargo-zigbuild exist
 	@. $$HOME/.cargo/env && \
 	    rustup target add x86_64-unknown-linux-musl && \
 	    export PKG_CONFIG_ALLOW_CROSS=1 && \
-	    export CFLAGS_x86_64_unknown_linux_musl="-DHAVE_UNISTD_H=1 -DHAVE_POSIX_MEMALIGN=1" && \
-	    export CXXFLAGS_x86_64_unknown_linux_musl="-DHAVE_UNISTD_H=1 -DHAVE_POSIX_MEMALIGN=1" && \
 	    cargo zigbuild --release --target x86_64-unknown-linux-musl
 
 	@echo "🗜️   Packaging archive …"
