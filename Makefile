@@ -256,7 +256,7 @@ linux-x64: check-docker create-dockerignore
 		    bzip2-dev bzip2-static \
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
-		    patch perl ragel && \
+		    patch perl ragel \
 	        git openssl-dev curl && \
 		\
 		cargo test --workspace --all-targets -- --test-threads=1 ; \
@@ -285,7 +285,7 @@ linux-arm64: check-docker create-dockerignore
 		    bzip2-dev bzip2-static \
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
-		    patch perl ragel && \
+		    patch perl ragel \
 	        git openssl-dev curl && \
 		\
 		rustup target add aarch64-unknown-linux-musl && \
