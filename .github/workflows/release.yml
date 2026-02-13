@@ -57,7 +57,7 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-x64)
+      - name: Build and Run Tests (Makefile linux-x64)
         run: make linux-x64
 
       - name: Fix permissions
@@ -130,7 +130,7 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-arm64)
+      - name: Build and Run Tests (Makefile linux-arm64)
         run: make linux-arm64
 
       - name: Fix permissions

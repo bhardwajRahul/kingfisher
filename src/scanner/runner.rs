@@ -41,8 +41,8 @@ use crate::{
         summary::{compute_scan_totals, print_scan_summary},
         AccessMapCollector,
     },
-    validation_rate_limit::ValidationRateLimiter,
     util::set_redaction_enabled,
+    validation_rate_limit::ValidationRateLimiter,
 };
 
 pub async fn run_scan(

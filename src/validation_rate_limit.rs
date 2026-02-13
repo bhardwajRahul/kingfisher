@@ -31,11 +31,7 @@ impl ValidationRateLimiter {
             return Ok(None);
         }
 
-        Ok(Some(Self {
-            default_rps,
-            per_rule: normalized,
-            next_allowed: Arc::new(DashMap::new()),
-        }))
+        Ok(Some(Self { default_rps, per_rule: normalized, next_allowed: Arc::new(DashMap::new()) }))
     }
 
     pub fn effective_rps(&self, rule_id: &str) -> Option<f64> {
@@ -118,9 +114,7 @@ fn validate_rps(value: f64) -> Result<f64> {
 
 fn selector_matches(rule_id: &str, selector: &str) -> bool {
     rule_id == selector
-        || rule_id
-            .strip_prefix(selector)
-            .is_some_and(|suffix| suffix.starts_with('.'))
+        || rule_id.strip_prefix(selector).is_some_and(|suffix| suffix.starts_with('.'))
 }
 
 pub fn should_rate_limit_validation(validation: &Validation) -> bool {

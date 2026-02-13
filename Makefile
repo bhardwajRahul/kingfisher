@@ -276,7 +276,38 @@ linux-x64: check-docker create-dockerignore
 	'
 	$(MAKE) list-archives
 
-linux-arm64: ubuntu-arm64
+linux-arm64: check-docker create-dockerignore
+	@mkdir -p target/release
+	docker run --platform linux/arm64 --rm \
+          -e CARGO_HOME=/src/.cargo-home \
+          -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
+                mkdir -p /src/.cargo-home && \
+		apk add --no-cache \
+		    musl-dev \
+		    gcc g++ make cmake pkgconfig \
+		    zlib-dev  zlib-static \
+		    bzip2-dev bzip2-static \
+		    xz-dev    xz-static \
+		    boost-dev linux-headers \
+		    patch perl ragel \
+		    git curl && \
+		\
+		rustup target add aarch64-unknown-linux-musl && \
+		\
+		cargo test --workspace --all-targets ; \
+		\
+		export PKG_CONFIG_ALLOW_CROSS=1 ; \
+		export RUSTFLAGS="-C target-feature=+crt-static" ; \
+		\
+		cargo build --release --target aarch64-unknown-linux-musl && \
+		\
+		cd target/aarch64-unknown-linux-musl/release && \
+	    sha256sum kingfisher > CHECKSUM.txt && \
+	    tar -czf /src/target/release/kingfisher-linux-arm64.tgz \
+	        kingfisher CHECKSUM.txt \
+	'
+	$(MAKE) list-archives
+
 
 
 # =============  AGGREGATE TARGETS  =============

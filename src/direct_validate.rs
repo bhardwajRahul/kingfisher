@@ -573,13 +573,7 @@ pub async fn run_direct_validation(
                 .await?
             }
             Validation::Grpc(grpc_validation_cfg) => {
-                execute_grpc_validation(
-                    grpc_validation_cfg,
-                    &globals,
-                    &parser,
-                    timeout,
-                )
-                .await?
+                execute_grpc_validation(grpc_validation_cfg, &globals, &parser, timeout).await?
             }
 
             Validation::AWS => {
