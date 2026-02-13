@@ -13,6 +13,40 @@ env:
   RUST_TOOLCHAIN: "1.92"
 
 jobs:
+  linux-x64:
+    name: Linux x64
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Free up disk space on Ubuntu runners
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          profile: minimal
+          override: true
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
+          cache-on-failure: true
+
+      - name: Build (Makefile linux-x64)
+        run: make ubuntu-x64
+      - name: Run tests
+        run: make tests
+        env:
+          CARGO_BUILD_JOBS: 1
+
   linux-arm64:
     name: Linux arm64
     runs-on: ubuntu-24.04-arm

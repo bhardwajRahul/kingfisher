@@ -2,6 +2,7 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 PROJECT_NAME := kingfisher
+ZIG_VERSION ?= 0.15.1
 
 # Determine OS and whether to use gtar on darwin
 OS := $(shell uname)
@@ -74,7 +75,7 @@ create-dockerignore:
 .PHONY: setup-zig
 setup-zig:
 	@command -v zig >/dev/null 2>&1 || { \
-	  echo "⬇️  Installing Zig 0.14.0 …"; \
+	  echo "⬇️  Installing Zig $(ZIG_VERSION) …"; \
 	  if $(SUDO_CMD) apt-get update -qq && \
 	     $(SUDO_CMD) apt-get install -y --no-install-recommends zig 2>/dev/null ; then \
 	    echo "✓ Zig installed via apt"; \
@@ -82,13 +83,27 @@ setup-zig:
 	    echo "⚠️  Package 'zig' not in apt repos – falling back to manual install"; \
 	    arch=$$(uname -m); \
 	    case "$$arch" in \
-	      x86_64)   pkg=zig-linux-x86_64-0.14.0 ;; \
-	      aarch64|arm64) pkg=zig-linux-aarch64-0.14.0 ;; \
+	      x86_64)   arch_tag=x86_64 ;; \
+	      aarch64|arm64) arch_tag=aarch64 ;; \
 	      *) echo "Unsupported architecture: $$arch"; exit 1 ;; \
 	    esac; \
-	    curl -L -o /tmp/zig.tar.xz https://ziglang.org/download/0.14.0/$${pkg}.tar.xz; \
+	    url_new="https://ziglang.org/download/$(ZIG_VERSION)/zig-$${arch_tag}-linux-$(ZIG_VERSION).tar.xz"; \
+	    url_old="https://ziglang.org/download/$(ZIG_VERSION)/zig-linux-$${arch_tag}-$(ZIG_VERSION).tar.xz"; \
+	    if ! curl -fL --retry 3 --retry-delay 2 -o /tmp/zig.tar.xz "$$url_new"; then \
+	      echo "↩️  New Zig filename pattern failed, trying legacy pattern"; \
+	      curl -fL --retry 3 --retry-delay 2 -o /tmp/zig.tar.xz "$$url_old"; \
+	    fi; \
+	    xz -t /tmp/zig.tar.xz >/dev/null 2>&1 || { \
+	      echo "Downloaded Zig archive is invalid (not a tar.xz)."; \
+	      ls -lh /tmp/zig.tar.xz || true; \
+	      exit 1; \
+	    }; \
 	    tar -C /tmp -xf /tmp/zig.tar.xz; \
-	    $(SUDO_CMD) mv /tmp/$${pkg} /opt/zig; \
+	    tar -tf /tmp/zig.tar.xz > /tmp/zig-contents.txt; \
+	    IFS=/ read -r zig_dir _ < /tmp/zig-contents.txt; \
+	    [ -n "$$zig_dir" ] || { echo "Could not determine Zig extract directory"; exit 1; }; \
+	    $(SUDO_CMD) rm -rf /opt/zig; \
+	    $(SUDO_CMD) mv "/tmp/$${zig_dir}" /opt/zig; \
 	    $(SUDO_CMD) ln -sf /opt/zig/zig /usr/local/bin/zig; \
 	    echo "✓ Zig installed to /usr/local/bin/zig"; \
 	  fi; \
