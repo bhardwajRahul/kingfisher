@@ -53,8 +53,6 @@ jobs:
 
       - name: Build (Makefile linux-x64)
         run: make linux-x64
-        env:
-          CARGO_BUILD_JOBS: 1
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
@@ -122,8 +120,6 @@ jobs:
 
       - name: Build (Makefile linux-arm64)
         run: make linux-arm64
-        env:
-          CARGO_BUILD_JOBS: 1
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
