@@ -51,11 +51,8 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile ubuntu-x64)
-        run: make ubuntu-x64
-
-      - name: Run tests
-        run: make tests
+      - name: Build (Makefile linux-x64)
+        run: make linux-x64
         env:
           CARGO_BUILD_JOBS: 1
 
@@ -123,11 +120,8 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile ubuntu-arm64)
-        run: make ubuntu-arm64
-
-      - name: Run tests
-        run: make tests
+      - name: Build (Makefile linux-arm64)
+        run: make linux-arm64
         env:
           CARGO_BUILD_JOBS: 1
 
@@ -184,9 +178,6 @@ jobs:
 
       - name: Build Darwin x64
         run: make darwin-x64
-
-      - name: Run tests
-        run: make tests
 
       - name: Move artifacts to dist
         shell: bash

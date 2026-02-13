@@ -248,9 +248,7 @@ endif
 linux-x64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/amd64 --rm \
-          -e CARGO_HOME=/src/.cargo-home \
           -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
-                mkdir -p /src/.cargo-home && \
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -259,9 +257,9 @@ linux-x64: check-docker create-dockerignore
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
 		    patch perl ragel \
-		    git curl && \
+	        git openssl-dev curl && \
 		\
-		cargo test --workspace --all-targets ; \
+		cargo test --workspace --all-targets -- --test-threads=1 ; \
 		\
 		rustup target add x86_64-unknown-linux-musl && \
 		\
@@ -279,9 +277,7 @@ linux-x64: check-docker create-dockerignore
 linux-arm64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/arm64 --rm \
-          -e CARGO_HOME=/src/.cargo-home \
           -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
-                mkdir -p /src/.cargo-home && \
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -290,11 +286,11 @@ linux-arm64: check-docker create-dockerignore
 		    xz-dev    xz-static \
 		    boost-dev linux-headers \
 		    patch perl ragel \
-		    git curl && \
+	        git openssl-dev curl && \
 		\
 		rustup target add aarch64-unknown-linux-musl && \
 		\
-		cargo test --workspace --all-targets ; \
+		cargo test --workspace --all-targets -- --test-threads=1 ; \
 		\
 		export PKG_CONFIG_ALLOW_CROSS=1 ; \
 		export RUSTFLAGS="-C target-feature=+crt-static" ; \
@@ -307,7 +303,6 @@ linux-arm64: check-docker create-dockerignore
 	        kingfisher CHECKSUM.txt \
 	'
 	$(MAKE) list-archives
-
 
 
 # =============  AGGREGATE TARGETS  =============
