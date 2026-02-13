@@ -130,8 +130,12 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build and Run Tests (Makefile linux-arm64)
-        run: make linux-arm64
+      - name: Build (Makefile linux-arm64)
+        run: make ubuntu-arm64
+      - name: Run tests
+        run: make tests
+        env:
+          CARGO_BUILD_JOBS: 1
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target .cargo-home || true
