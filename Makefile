@@ -83,13 +83,26 @@ setup-zig:
 	    echo "⚠️  Package 'zig' not in apt repos – falling back to manual install"; \
 	    arch=$$(uname -m); \
 	    case "$$arch" in \
-	      x86_64)   pkg=zig-linux-x86_64-$(ZIG_VERSION) ;; \
-	      aarch64|arm64) pkg=zig-linux-aarch64-$(ZIG_VERSION) ;; \
+	      x86_64)   arch_tag=x86_64 ;; \
+	      aarch64|arm64) arch_tag=aarch64 ;; \
 	      *) echo "Unsupported architecture: $$arch"; exit 1 ;; \
 	    esac; \
-	    curl -L -o /tmp/zig.tar.xz https://ziglang.org/download/$(ZIG_VERSION)/$${pkg}.tar.xz; \
+	    url_new="https://ziglang.org/download/$(ZIG_VERSION)/zig-$${arch_tag}-linux-$(ZIG_VERSION).tar.xz"; \
+	    url_old="https://ziglang.org/download/$(ZIG_VERSION)/zig-linux-$${arch_tag}-$(ZIG_VERSION).tar.xz"; \
+	    if ! curl -fL --retry 3 --retry-delay 2 -o /tmp/zig.tar.xz "$$url_new"; then \
+	      echo "↩️  New Zig filename pattern failed, trying legacy pattern"; \
+	      curl -fL --retry 3 --retry-delay 2 -o /tmp/zig.tar.xz "$$url_old"; \
+	    fi; \
+	    xz -t /tmp/zig.tar.xz >/dev/null 2>&1 || { \
+	      echo "Downloaded Zig archive is invalid (not a tar.xz)."; \
+	      ls -lh /tmp/zig.tar.xz || true; \
+	      exit 1; \
+	    }; \
 	    tar -C /tmp -xf /tmp/zig.tar.xz; \
-	    $(SUDO_CMD) mv /tmp/$${pkg} /opt/zig; \
+	    zig_dir=$$(tar -tf /tmp/zig.tar.xz | head -n1 | cut -d/ -f1); \
+	    [ -n "$$zig_dir" ] || { echo "Could not determine Zig extract directory"; exit 1; }; \
+	    $(SUDO_CMD) rm -rf /opt/zig; \
+	    $(SUDO_CMD) mv "/tmp/$${zig_dir}" /opt/zig; \
 	    $(SUDO_CMD) ln -sf /opt/zig/zig /usr/local/bin/zig; \
 	    echo "✓ Zig installed to /usr/local/bin/zig"; \
 	  fi; \
