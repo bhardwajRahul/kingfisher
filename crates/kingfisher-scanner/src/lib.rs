@@ -52,6 +52,7 @@
 //! - **validation-all**: Enable all validation features
 
 mod finding;
+pub mod primitives;
 mod scanner;
 mod scanner_pool;
 

@@ -24,6 +24,7 @@ pub mod findings_store;
 pub mod gcs;
 pub mod git_binary;
 pub mod git_commit_metadata;
+pub mod git_host;
 pub mod git_metadata_graph;
 mod git_repo_enumerator;
 pub mod git_url;

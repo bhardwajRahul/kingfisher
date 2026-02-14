@@ -5,15 +5,13 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
-use base64::{engine::general_purpose, Engine};
 use kingfisher_core::{calculate_shannon_entropy, Blob, BlobIdMap, LocationMapping, OffsetSpan};
 use kingfisher_rules::RulesDatabase;
-use regex::bytes::Regex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::debug;
-use xxhash_rust::xxh3::xxh3_64;
 
 use crate::finding::{Finding, FindingLocation};
+use crate::primitives;
 use crate::scanner_pool::ScannerPool;
 
 /// Configuration options for the scanner.
@@ -185,21 +183,15 @@ impl Scanner {
             let current_span = OffsetSpan::from_range(start..end);
 
             // Check for overlapping spans
-            if !self.record_span(&mut previous_spans, rule_id, current_span) {
+            if !primitives::record_match(&mut previous_spans, rule_id, current_span) {
                 continue;
             }
 
             let haystack = &bytes[start..end];
 
             for captures in anchored_regex.captures_iter(haystack) {
-                let full_capture = match captures.get(0) {
-                    Some(c) => c,
-                    None => continue,
-                };
-
                 // Get the primary secret value
-                let secret_capture =
-                    self.get_secret_capture(&anchored_regex, &captures, full_capture);
+                let secret_capture = primitives::find_secret_capture(&anchored_regex, &captures);
                 let secret_bytes = secret_capture.as_bytes();
 
                 // Check entropy
@@ -211,7 +203,7 @@ impl Scanner {
                 }
 
                 // Compute match key for dedup
-                let match_key = self.compute_match_key(
+                let match_key = primitives::compute_match_key(
                     secret_bytes,
                     rule.id().as_bytes(),
                     start + secret_capture.start(),
@@ -242,7 +234,7 @@ impl Scanner {
                     }
                 }
 
-                let fingerprint = self.compute_fingerprint(
+                let fingerprint = primitives::compute_finding_fingerprint(
                     &secret,
                     &blob.id().to_string(),
                     offset_span.start as u64,
@@ -295,92 +287,6 @@ impl Scanner {
         // In a real implementation, you'd want to add a clear method or use a different approach
     }
 
-    fn get_secret_capture<'a>(
-        &self,
-        regex: &Regex,
-        captures: &regex::bytes::Captures<'a>,
-        full_capture: regex::bytes::Match<'a>,
-    ) -> regex::bytes::Match<'a> {
-        // Prefer named capture called TOKEN
-        for (i, name_opt) in regex.capture_names().enumerate() {
-            if let Some(name) = name_opt {
-                if name.eq_ignore_ascii_case("TOKEN") {
-                    if let Some(cap) = captures.get(i) {
-                        return cap;
-                    }
-                }
-            }
-        }
-
-        // Otherwise, first named capture
-        for (i, name_opt) in regex.capture_names().enumerate() {
-            if name_opt.is_some() {
-                if let Some(cap) = captures.get(i) {
-                    return cap;
-                }
-            }
-        }
-
-        // Otherwise, first positional capture (group 1)
-        if let Some(cap) = captures.get(1) {
-            return cap;
-        }
-
-        // Fall back to full match
-        full_capture
-    }
-
-    fn record_span(
-        &self,
-        map: &mut FxHashMap<usize, Vec<OffsetSpan>>,
-        rule_id: usize,
-        span: OffsetSpan,
-    ) -> bool {
-        let spans = map.entry(rule_id).or_default();
-
-        // Binary search for insertion point
-        let idx = spans.binary_search_by(|s| s.start.cmp(&span.start)).unwrap_or_else(|i| i);
-
-        // Check if new span is contained in an existing one
-        if idx > 0 && spans[idx - 1].fully_contains(&span) {
-            return false;
-        }
-        if idx < spans.len() && spans[idx].fully_contains(&span) {
-            return false;
-        }
-
-        // Remove spans that the new span contains
-        let remove_idx = idx;
-        while remove_idx < spans.len() && span.fully_contains(&spans[remove_idx]) {
-            spans.remove(remove_idx);
-        }
-        if idx > 0 && span.fully_contains(&spans[idx - 1]) {
-            spans.remove(idx - 1);
-        }
-
-        spans.insert(idx.min(spans.len()), span);
-        true
-    }
-
-    fn compute_match_key(&self, content: &[u8], rule_id: &[u8], start: usize, end: usize) -> u64 {
-        use std::hash::{Hash, Hasher};
-        let mut hasher = rustc_hash::FxHasher::default();
-        content.hash(&mut hasher);
-        rule_id.hash(&mut hasher);
-        start.hash(&mut hasher);
-        end.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    fn compute_fingerprint(&self, value: &str, blob_id: &str, start: u64, end: u64) -> u64 {
-        let mut buf = Vec::with_capacity(value.len() + blob_id.len() + 16);
-        buf.extend_from_slice(value.as_bytes());
-        buf.extend_from_slice(blob_id.as_bytes());
-        buf.extend_from_slice(&start.to_le_bytes());
-        buf.extend_from_slice(&end.to_le_bytes());
-        xxh3_64(&buf)
-    }
-
     fn redact(&self, bytes: &[u8]) -> String {
         let s = String::from_utf8_lossy(bytes);
         if s.len() <= 8 {
@@ -400,7 +306,7 @@ impl Scanner {
         let bytes = blob.bytes();
 
         // Find Base64-encoded strings
-        let b64_items = self.find_base64_strings(bytes);
+        let b64_items = primitives::get_base64_strings(bytes);
 
         for item in b64_items {
             // Try to match decoded content against all rules
@@ -411,12 +317,7 @@ impl Scanner {
                 };
 
                 for captures in regex.captures_iter(&item.decoded) {
-                    let full_capture = match captures.get(0) {
-                        Some(c) => c,
-                        None => continue,
-                    };
-
-                    let secret_capture = self.get_secret_capture(&regex, &captures, full_capture);
+                    let secret_capture = primitives::find_secret_capture(&regex, &captures);
                     let secret_bytes = secret_capture.as_bytes();
 
                     let min_entropy =
@@ -426,7 +327,7 @@ impl Scanner {
                         continue;
                     }
 
-                    let match_key = self.compute_match_key(
+                    let match_key = primitives::compute_match_key(
                         secret_bytes,
                         rule.id().as_bytes(),
                         item.pos_start,
@@ -455,7 +356,7 @@ impl Scanner {
                         }
                     }
 
-                    let fingerprint = self.compute_fingerprint(
+                    let fingerprint = primitives::compute_finding_fingerprint(
                         &secret,
                         &blob.id().to_string(),
                         offset_span.start as u64,
@@ -488,62 +389,6 @@ impl Scanner {
 
         findings
     }
-
-    fn find_base64_strings(&self, input: &[u8]) -> Vec<DecodedData> {
-        let mut results = Vec::new();
-        let mut i = 0;
-
-        while i < input.len() {
-            // Skip non-base64 characters
-            while i < input.len() && !Self::is_base64_byte(input[i]) {
-                i += 1;
-            }
-            let start = i;
-
-            // Collect base64 characters
-            while i < input.len() && Self::is_base64_byte(input[i]) {
-                i += 1;
-            }
-
-            // Handle padding
-            let mut eq_count = 0;
-            while i < input.len() && input[i] == b'=' && eq_count < 2 {
-                i += 1;
-                eq_count += 1;
-            }
-            let end = i;
-
-            let len = end - start;
-            if len >= 32 && len % 4 == 0 {
-                let base64_slice = &input[start..end];
-
-                // Try decoding
-                let decode_result = general_purpose::STANDARD
-                    .decode(base64_slice)
-                    .or_else(|_| general_purpose::URL_SAFE.decode(base64_slice))
-                    .or_else(|_| general_purpose::URL_SAFE_NO_PAD.decode(base64_slice));
-
-                if let Ok(decoded) = decode_result {
-                    if decoded.is_ascii() {
-                        results.push(DecodedData { decoded, pos_start: start, pos_end: end });
-                    }
-                }
-            }
-        }
-
-        results
-    }
-
-    #[inline]
-    fn is_base64_byte(b: u8) -> bool {
-        matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'+' | b'/' | b'-' | b'_')
-    }
-}
-
-struct DecodedData {
-    decoded: Vec<u8>,
-    pos_start: usize,
-    pos_end: usize,
 }
 
 #[cfg(test)]

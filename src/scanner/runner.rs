@@ -42,8 +42,17 @@ use crate::{
         AccessMapCollector,
     },
     util::set_redaction_enabled,
+    validation::CachedResponse,
     validation_rate_limit::ValidationRateLimiter,
 };
+
+/// Shared validation dependencies: (liquid parser, HTTP clients, validation cache, rate limiter).
+type ValidationDeps = Arc<(
+    liquid::Parser,
+    crate::validation::ValidationClients,
+    Arc<SkipMap<String, CachedResponse>>,
+    Option<Arc<ValidationRateLimiter>>,
+)>;
 
 pub async fn run_scan(
     global_args: &global::GlobalArgs,
@@ -64,22 +73,9 @@ pub async fn run_async_scan(
     rules_db: &RulesDatabase,
     update_status: &crate::update::UpdateStatus,
 ) -> Result<()> {
-    // Ensure all provided paths exist before proceeding
-    for path in &args.input_specifier_args.path_inputs {
-        if !path.exists() {
-            error!("Specified input path does not exist: {}", path.display());
-            bail!("Invalid input: Path does not exist - {}", path.display());
-        }
-    }
-
-    // Register user-provided allow-list patterns
-    for pattern in &args.skip_regex {
-        safe_list::add_user_regex(pattern)
-            .map_err(|e| anyhow::anyhow!("Invalid skip-regex '{pattern}': {e}"))?;
-    }
-    for word in &args.skip_word {
-        safe_list::add_user_skipword(word);
-    }
+    // ── Phase 1: Input validation and environment setup ──────────────────
+    validate_inputs(args)?;
+    register_safe_list_patterns(args)?;
 
     let start_time = Instant::now();
     let scan_started_at = chrono::Local::now();
@@ -90,123 +86,26 @@ pub async fn run_async_scan(
 
     set_redaction_enabled(args.redact);
 
-    let mut repo_urls = enumerate_github_repos(args, global_args).await?;
-    let gitlab_repo_urls = enumerate_gitlab_repos(args, global_args).await?;
-    let gitea_repo_urls = enumerate_gitea_repos(args, global_args).await?;
-    let huggingface_repo_urls = enumerate_huggingface_repos(args, global_args).await?;
-    let bitbucket_repo_urls = enumerate_bitbucket_repos(args, global_args).await?;
-    let azure_repo_urls = enumerate_azure_repos(args, global_args).await?;
-
-    // Combine repository URLs
-    repo_urls.extend(gitlab_repo_urls);
-    repo_urls.extend(gitea_repo_urls);
-    repo_urls.extend(huggingface_repo_urls);
-    repo_urls.extend(bitbucket_repo_urls);
-    repo_urls.extend(azure_repo_urls);
-
-    // Add wiki repositories for each URL when requested
-    if args.input_specifier_args.repo_artifacts {
-        let mut wiki_urls = Vec::new();
-        for url in &repo_urls {
-            if let Some(w) = github::wiki_url(url) {
-                wiki_urls.push(w);
-            }
-            if let Some(w) = gitlab::wiki_url(url) {
-                wiki_urls.push(w);
-            }
-            if let Some(w) = gitea::wiki_url(url) {
-                wiki_urls.push(w);
-            }
-            if let Some(w) = bitbucket::wiki_url(url) {
-                wiki_urls.push(w);
-            }
-            if let Some(w) = azure::wiki_url(url) {
-                wiki_urls.push(w);
-            }
-        }
-        repo_urls.extend(wiki_urls);
-    }
-
-    // just sort and dedup once
-    repo_urls.sort();
-    repo_urls.dedup();
+    // ── Phase 2: Repository enumeration ─────────────────────────────────
+    let repo_urls = enumerate_all_repos(args, global_args).await?;
 
     let mut input_roots = args.input_specifier_args.path_inputs.clone();
     let (repo_tx, repo_rx) = crossbeam_channel::unbounded();
-    let repo_clone_handle = if repo_urls.is_empty() {
-        None
-    } else {
-        let clone_args = args.clone();
-        let clone_globals = global_args.clone();
-        let clone_repo_urls = repo_urls.clone();
-        let clone_datastore = Arc::clone(&datastore);
-        let clone_repo_tx = repo_tx.clone();
-        Some(std::thread::spawn(move || {
-            if let Err(e) = clone_or_update_git_repos_streaming(
-                &clone_args,
-                &clone_globals,
-                &clone_repo_urls,
-                &clone_datastore,
-                |path| {
-                    let _ = clone_repo_tx.send(path);
-                },
-            ) {
-                error!("Failed to fetch one or more Git repositories: {e}");
-            }
-        }))
-    };
-    drop(repo_tx);
+    let repo_clone_handle =
+        start_repo_cloning(&repo_urls, args, global_args, &datastore, repo_tx, progress_enabled);
 
-    // Fetch issues, gists, and wikis if enabled
-    let bitbucket_auth = bitbucket::AuthConfig::from_env();
-    let bitbucket_host =
-        args.input_specifier_args.bitbucket_api_url.host_str().map(|s| s.to_string());
+    // ── Phase 3: Artifact fetching ──────────────────────────────────────
+    fetch_all_artifacts(
+        args,
+        global_args,
+        &repo_urls,
+        &datastore,
+        &mut input_roots,
+        progress_enabled,
+    )
+    .await?;
 
-    if args.input_specifier_args.repo_artifacts {
-        let repo_artifact_dirs = fetch_git_host_artifacts(
-            &repo_urls,
-            &args.input_specifier_args.bitbucket_api_url,
-            &bitbucket_auth,
-            bitbucket_host.clone(),
-            global_args,
-            &datastore,
-        )
-        .await?;
-        input_roots.extend(repo_artifact_dirs);
-    }
-    // Fetch Jira issues if requested
-    let jira_dirs = fetch_jira_issues(args, global_args, &datastore).await?;
-    input_roots.extend(jira_dirs);
-
-    // Fetch Confluence pages if requested
-    let confluence_dirs = fetch_confluence_pages(args, global_args, &datastore).await?;
-    input_roots.extend(confluence_dirs);
-
-    // Fetch Slack messages if requested
-    let slack_dirs = fetch_slack_messages(args, global_args, &datastore).await?;
-    input_roots.extend(slack_dirs);
-
-    // Save Docker images if specified
-    if !args.input_specifier_args.docker_image.is_empty() {
-        let clone_root = {
-            let ds = datastore.lock().unwrap();
-            ds.clone_root()
-        };
-        let docker_dirs = save_docker_images(
-            &args.input_specifier_args.docker_image,
-            &clone_root,
-            progress_enabled,
-        )
-        .await?;
-        for (dir, img) in docker_dirs {
-            {
-                let mut ds = datastore.lock().unwrap();
-                ds.register_docker_image(dir.clone(), img);
-            }
-            input_roots.push(dir);
-        }
-    }
-
+    // ── Phase 4: Scan configuration ─────────────────────────────────────
     let shared_profiler = Arc::new(ConcurrentRuleProfiler::new());
     let enable_profiling = args.rule_stats;
     let matcher_stats = Arc::new(Mutex::new(MatcherStats::default()));
@@ -246,10 +145,256 @@ pub async fn run_async_scan(
             .unwrap_or_else(|| std::path::PathBuf::from("baseline-file.yaml")),
     );
 
-    let mut skip_aws_accounts = args.skip_aws_account.clone();
+    let skip_aws_accounts = load_skip_aws_accounts(args)?;
+    crate::validation::set_skip_aws_account_ids(skip_aws_accounts);
 
     let mut access_map_collector =
         if args.access_map { Some(AccessMapCollector::default()) } else { None };
+
+    let repo_roots = expand_repo_roots(&input_roots)?;
+    let git_repo_count =
+        repo_roots.iter().filter(|p| p.join(".git").is_dir()).count() + repo_urls.len();
+    let use_parallel_repo_scan = git_repo_count > 10;
+
+    let validation_rate_limiter =
+        ValidationRateLimiter::from_cli(args.validation_rps, &args.validation_rps_rule)?
+            .map(Arc::new);
+
+    let validation_deps: Option<ValidationDeps> = if !args.no_validate {
+        info!("Starting secret validation phase...");
+        Some(Arc::new((
+            register_all(liquid::ParserBuilder::with_stdlib()).build()?,
+            crate::validation::ValidationClients::new(global_args.tls_mode)?,
+            Arc::new(SkipMap::new()),
+            validation_rate_limiter.clone(),
+        )))
+    } else {
+        None
+    };
+
+    // ── Phase 5: Scanning ───────────────────────────────────────────────
+    if !use_parallel_repo_scan {
+        run_sequential_scan(
+            args,
+            global_args,
+            &datastore,
+            rules_db,
+            &mut input_roots,
+            repo_rx,
+            repo_clone_handle,
+            &shared_profiler,
+            enable_profiling,
+            &matcher_stats,
+            &baseline_path,
+            &validation_deps,
+            &mut access_map_collector,
+            progress_enabled,
+            start_time,
+            scan_started_at,
+            update_status,
+        )
+        .await?;
+        return Ok(());
+    }
+
+    run_parallel_scan(
+        args,
+        global_args,
+        &datastore,
+        rules_db,
+        &repo_roots,
+        repo_rx,
+        repo_clone_handle,
+        &shared_profiler,
+        enable_profiling,
+        &matcher_stats,
+        &baseline_path,
+        &validation_deps,
+        &mut access_map_collector,
+        progress_enabled,
+        start_time,
+        scan_started_at,
+        update_status,
+    )
+    .await
+}
+
+// =================================================================================================
+// Phase helpers
+// =================================================================================================
+
+/// Validates that all provided input paths exist.
+fn validate_inputs(args: &scan::ScanArgs) -> Result<()> {
+    for path in &args.input_specifier_args.path_inputs {
+        if !path.exists() {
+            error!("Specified input path does not exist: {}", path.display());
+            bail!("Invalid input: Path does not exist - {}", path.display());
+        }
+    }
+    Ok(())
+}
+
+/// Registers user-provided allow-list patterns (skip-regex and skip-word).
+fn register_safe_list_patterns(args: &scan::ScanArgs) -> Result<()> {
+    for pattern in &args.skip_regex {
+        safe_list::add_user_regex(pattern)
+            .map_err(|e| anyhow::anyhow!("Invalid skip-regex '{pattern}': {e}"))?;
+    }
+    for word in &args.skip_word {
+        safe_list::add_user_skipword(word);
+    }
+    Ok(())
+}
+
+/// Enumerates repositories from all configured platforms, adds wiki URLs, and deduplicates.
+async fn enumerate_all_repos(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+) -> Result<Vec<crate::git_url::GitUrl>> {
+    let mut repo_urls = enumerate_github_repos(args, global_args).await?;
+    let gitlab_repo_urls = enumerate_gitlab_repos(args, global_args).await?;
+    let gitea_repo_urls = enumerate_gitea_repos(args, global_args).await?;
+    let huggingface_repo_urls = enumerate_huggingface_repos(args, global_args).await?;
+    let bitbucket_repo_urls = enumerate_bitbucket_repos(args, global_args).await?;
+    let azure_repo_urls = enumerate_azure_repos(args, global_args).await?;
+
+    repo_urls.extend(gitlab_repo_urls);
+    repo_urls.extend(gitea_repo_urls);
+    repo_urls.extend(huggingface_repo_urls);
+    repo_urls.extend(bitbucket_repo_urls);
+    repo_urls.extend(azure_repo_urls);
+
+    // Add wiki repositories for each URL when requested
+    if args.input_specifier_args.repo_artifacts {
+        let mut wiki_urls = Vec::new();
+        for url in &repo_urls {
+            if let Some(w) = github::wiki_url(url) {
+                wiki_urls.push(w);
+            }
+            if let Some(w) = gitlab::wiki_url(url) {
+                wiki_urls.push(w);
+            }
+            if let Some(w) = gitea::wiki_url(url) {
+                wiki_urls.push(w);
+            }
+            if let Some(w) = bitbucket::wiki_url(url) {
+                wiki_urls.push(w);
+            }
+            if let Some(w) = azure::wiki_url(url) {
+                wiki_urls.push(w);
+            }
+        }
+        repo_urls.extend(wiki_urls);
+    }
+
+    repo_urls.sort();
+    repo_urls.dedup();
+
+    Ok(repo_urls)
+}
+
+/// Spawns a background thread to clone/update git repositories, streaming results via a channel.
+fn start_repo_cloning(
+    repo_urls: &[crate::git_url::GitUrl],
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<FindingsStore>>,
+    repo_tx: crossbeam_channel::Sender<PathBuf>,
+    _progress_enabled: bool,
+) -> Option<std::thread::JoinHandle<()>> {
+    if repo_urls.is_empty() {
+        drop(repo_tx);
+        return None;
+    }
+
+    let clone_args = args.clone();
+    let clone_globals = global_args.clone();
+    let clone_repo_urls = repo_urls.to_vec();
+    let clone_datastore = Arc::clone(datastore);
+    let clone_repo_tx = repo_tx.clone();
+
+    let handle = std::thread::spawn(move || {
+        if let Err(e) = clone_or_update_git_repos_streaming(
+            &clone_args,
+            &clone_globals,
+            &clone_repo_urls,
+            &clone_datastore,
+            |path| {
+                let _ = clone_repo_tx.send(path);
+            },
+        ) {
+            error!("Failed to fetch one or more Git repositories: {e}");
+        }
+    });
+    drop(repo_tx);
+    Some(handle)
+}
+
+/// Fetches artifacts from various platforms (issues, wikis, Jira, Confluence, Slack, Docker).
+async fn fetch_all_artifacts(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    repo_urls: &[crate::git_url::GitUrl],
+    datastore: &Arc<Mutex<FindingsStore>>,
+    input_roots: &mut Vec<PathBuf>,
+    progress_enabled: bool,
+) -> Result<()> {
+    let bitbucket_auth = bitbucket::AuthConfig::from_env();
+    let bitbucket_host =
+        args.input_specifier_args.bitbucket_api_url.host_str().map(|s| s.to_string());
+
+    if args.input_specifier_args.repo_artifacts {
+        let repo_artifact_dirs = fetch_git_host_artifacts(
+            repo_urls,
+            &args.input_specifier_args.bitbucket_api_url,
+            &bitbucket_auth,
+            bitbucket_host.clone(),
+            global_args,
+            datastore,
+        )
+        .await?;
+        input_roots.extend(repo_artifact_dirs);
+    }
+
+    // Fetch Jira issues if requested
+    let jira_dirs = fetch_jira_issues(args, global_args, datastore).await?;
+    input_roots.extend(jira_dirs);
+
+    // Fetch Confluence pages if requested
+    let confluence_dirs = fetch_confluence_pages(args, global_args, datastore).await?;
+    input_roots.extend(confluence_dirs);
+
+    // Fetch Slack messages if requested
+    let slack_dirs = fetch_slack_messages(args, global_args, datastore).await?;
+    input_roots.extend(slack_dirs);
+
+    // Save Docker images if specified
+    if !args.input_specifier_args.docker_image.is_empty() {
+        let clone_root = {
+            let ds = datastore.lock().unwrap();
+            ds.clone_root()
+        };
+        let docker_dirs = save_docker_images(
+            &args.input_specifier_args.docker_image,
+            &clone_root,
+            progress_enabled,
+        )
+        .await?;
+        for (dir, img) in docker_dirs {
+            {
+                let mut ds = datastore.lock().unwrap();
+                ds.register_docker_image(dir.clone(), img);
+            }
+            input_roots.push(dir);
+        }
+    }
+
+    Ok(())
+}
+
+/// Loads AWS account IDs to skip from CLI args and optional file.
+fn load_skip_aws_accounts(args: &scan::ScanArgs) -> Result<Vec<String>> {
+    let mut skip_aws_accounts = args.skip_aws_account.clone();
 
     if let Some(path) = args.skip_aws_account_file.as_ref() {
         let contents = fs::read_to_string(path).with_context(|| {
@@ -267,183 +412,214 @@ pub async fn run_async_scan(
         }
     }
 
-    crate::validation::set_skip_aws_account_ids(skip_aws_accounts);
+    Ok(skip_aws_accounts)
+}
 
-    let repo_roots = expand_repo_roots(&input_roots)?;
-    let git_repo_count =
-        repo_roots.iter().filter(|p| p.join(".git").is_dir()).count() + repo_urls.len();
-    let use_parallel_repo_scan = git_repo_count > 10;
-
-    let validation_rate_limiter =
-        ValidationRateLimiter::from_cli(args.validation_rps, &args.validation_rps_rule)?
-            .map(Arc::new);
-
-    let validation_deps = if !args.no_validate {
-        info!("Starting secret validation phase...");
-        Some(Arc::new((
-            register_all(liquid::ParserBuilder::with_stdlib()).build()?,
-            crate::validation::ValidationClients::new(global_args.tls_mode)?,
-            Arc::new(SkipMap::new()),
-            validation_rate_limiter.clone(),
-        )))
-    } else {
-        None
-    };
-
-    if !use_parallel_repo_scan {
-        let mut streamed_roots = Vec::new();
-        if !input_roots.is_empty() {
-            let _inputs = enumerate_filesystem_inputs(
-                args,
-                datastore.clone(),
-                &input_roots,
-                progress_enabled,
-                rules_db,
-                enable_profiling,
-                Arc::clone(&shared_profiler),
-                matcher_stats.as_ref(),
-            )?;
-        }
-
-        for repo_root in repo_rx.clone().iter() {
-            enumerate_filesystem_inputs(
-                args,
-                datastore.clone(),
-                &[repo_root.clone()],
-                progress_enabled,
-                rules_db,
-                enable_profiling,
-                Arc::clone(&shared_profiler),
-                matcher_stats.as_ref(),
-            )?;
-            streamed_roots.push(repo_root);
-        }
-        input_roots.extend(streamed_roots);
-
-        if let Some(handle) = repo_clone_handle {
-            let _ = handle.join();
-        }
-
-        if !args.no_dedup {
-            let reporter = crate::reporter::DetailsReporter {
-                datastore: Arc::clone(&datastore),
-                styles: Styles::new(global_args.use_color(std::io::stdout())),
-                only_valid: args.only_valid,
-            };
-
-            let all_matches = reporter.get_unfiltered_matches(Some(false))?;
-            let deduped_matches = reporter.deduplicate_matches(all_matches, args.no_dedup);
-
-            let deduped_arcs: Vec<Arc<FindingsStoreMessage>> = deduped_matches
-                .into_iter()
-                .map(|rm| Arc::new((Arc::new(rm.origin), Arc::new(rm.blob_metadata), rm.m)))
-                .collect();
-            let mut ds = datastore.lock().unwrap();
-            ds.replace_matches(deduped_arcs);
-        }
-
-        if args.baseline_file.is_some() || args.manage_baseline {
-            let mut ds = datastore.lock().unwrap();
-            crate::baseline::apply_baseline(
-                &mut ds,
-                baseline_path.as_ref(),
-                args.manage_baseline,
-                &input_roots,
-            )?;
-        }
-
-        if let Some(validation) = &validation_deps {
-            let (parser, clients, cache, rate_limiter) =
-                (&validation.0, &validation.1, &validation.2, &validation.3);
-            run_secret_validation(
-                Arc::clone(&datastore),
-                parser,
-                clients,
-                cache,
-                args.num_jobs,
-                None,
-                access_map_collector.clone(),
-                rate_limiter.clone(),
-                Duration::from_secs(args.validation_timeout),
-                args.validation_retries,
-            )
-            .await?;
-        }
-
-        if let Some(collector) = access_map_collector.take() {
-            finalize_access_map(&datastore, collector, args).await?;
-        }
-
-        crate::reporter::run(global_args, Arc::clone(&datastore), args)
-            .context("Failed to run report command")?;
-        print_scan_summary(
-            start_time,
-            scan_started_at,
-            &datastore,
-            global_args,
-            args,
-            rules_db,
-            matcher_stats.as_ref(),
-            if enable_profiling { Some(shared_profiler.as_ref()) } else { None },
-            update_status,
-            None,
-            None,
-        );
-        maybe_hint_access_map(&datastore, args);
+/// Deduplicates matches in the datastore starting from `start_index`.
+fn deduplicate_new_matches(
+    store: &Arc<Mutex<FindingsStore>>,
+    global_args: &global::GlobalArgs,
+    args: &scan::ScanArgs,
+    start_index: usize,
+) -> Result<()> {
+    if args.no_dedup {
         return Ok(());
     }
 
-    let deduplicate_new_matches =
-        |store: &Arc<Mutex<FindingsStore>>, start_index: usize| -> Result<()> {
-            if args.no_dedup {
-                return Ok(());
-            }
+    let reporter = crate::reporter::DetailsReporter {
+        datastore: Arc::clone(store),
+        styles: Styles::new(global_args.use_color(std::io::stdout())),
+        only_valid: args.only_valid,
+    };
 
-            let reporter = crate::reporter::DetailsReporter {
-                datastore: Arc::clone(store),
-                styles: Styles::new(global_args.use_color(std::io::stdout())),
-                only_valid: args.only_valid,
-            };
+    let all_matches = reporter.get_unfiltered_matches(Some(false))?;
+    if start_index >= all_matches.len() {
+        return Ok(());
+    }
 
-            let all_matches = reporter.get_unfiltered_matches(Some(false))?;
-            if start_index >= all_matches.len() {
-                return Ok(());
-            }
+    let slice = if start_index == 0 { all_matches } else { all_matches[start_index..].to_vec() };
+    let deduped_matches = reporter.deduplicate_matches(slice, args.no_dedup);
 
-            let deduped_matches =
-                reporter.deduplicate_matches(all_matches[start_index..].to_vec(), args.no_dedup);
+    let deduped_arcs: Vec<Arc<FindingsStoreMessage>> = deduped_matches
+        .into_iter()
+        .map(|rm| Arc::new((Arc::new(rm.origin), Arc::new(rm.blob_metadata), rm.m)))
+        .collect();
 
-            let deduped_arcs: Vec<Arc<FindingsStoreMessage>> = deduped_matches
-                .into_iter()
-                .map(|rm| Arc::new((Arc::new(rm.origin), Arc::new(rm.blob_metadata), rm.m)))
-                .collect();
+    let mut ds = store.lock().unwrap();
+    if start_index == 0 {
+        ds.replace_matches(deduped_arcs);
+    } else {
+        let mut preserved = ds.get_matches()[..start_index].to_vec();
+        preserved.extend(deduped_arcs);
+        ds.replace_matches(preserved);
+    }
+    Ok(())
+}
 
-            let mut ds = store.lock().unwrap();
-            let mut preserved = ds.get_matches()[..start_index].to_vec();
-            preserved.extend(deduped_arcs);
-            ds.replace_matches(preserved);
-            Ok(())
-        };
-
-    deduplicate_new_matches(&datastore, 0)?;
-
+/// Applies baseline filtering if configured.
+fn apply_baseline_if_configured(
+    args: &scan::ScanArgs,
+    datastore: &Arc<Mutex<FindingsStore>>,
+    baseline_path: &std::path::Path,
+    roots: &[PathBuf],
+) -> Result<()> {
     if args.baseline_file.is_some() || args.manage_baseline {
         let mut ds = datastore.lock().unwrap();
-        crate::baseline::apply_baseline(
-            &mut ds,
-            baseline_path.as_ref(),
-            args.manage_baseline,
-            &repo_roots,
+        crate::baseline::apply_baseline(&mut ds, baseline_path, args.manage_baseline, roots)?;
+    }
+    Ok(())
+}
+
+/// Runs the validation phase on matches in the datastore.
+#[allow(clippy::too_many_arguments)]
+async fn run_validation_phase(
+    datastore: &Arc<Mutex<FindingsStore>>,
+    validation_deps: &Option<ValidationDeps>,
+    args: &scan::ScanArgs,
+    match_range: Option<std::ops::Range<usize>>,
+    access_map_collector: Option<AccessMapCollector>,
+) -> Result<()> {
+    if let Some(validation) = validation_deps {
+        let (parser, clients, cache, rate_limiter) =
+            (&validation.0, &validation.1, &validation.2, &validation.3);
+        run_secret_validation(
+            Arc::clone(datastore),
+            parser,
+            clients,
+            cache,
+            args.num_jobs,
+            match_range,
+            access_map_collector,
+            rate_limiter.clone(),
+            Duration::from_secs(args.validation_timeout),
+            args.validation_retries,
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+// =================================================================================================
+// Sequential scan path
+// =================================================================================================
+
+#[allow(clippy::too_many_arguments)]
+async fn run_sequential_scan(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<FindingsStore>>,
+    rules_db: &RulesDatabase,
+    input_roots: &mut Vec<PathBuf>,
+    repo_rx: crossbeam_channel::Receiver<PathBuf>,
+    repo_clone_handle: Option<std::thread::JoinHandle<()>>,
+    shared_profiler: &Arc<ConcurrentRuleProfiler>,
+    enable_profiling: bool,
+    matcher_stats: &Arc<Mutex<MatcherStats>>,
+    baseline_path: &Arc<PathBuf>,
+    validation_deps: &Option<ValidationDeps>,
+    access_map_collector: &mut Option<AccessMapCollector>,
+    progress_enabled: bool,
+    start_time: Instant,
+    scan_started_at: chrono::DateTime<chrono::Local>,
+    update_status: &crate::update::UpdateStatus,
+) -> Result<()> {
+    let mut streamed_roots = Vec::new();
+    if !input_roots.is_empty() {
+        let _inputs = enumerate_filesystem_inputs(
+            args,
+            datastore.clone(),
+            input_roots,
+            progress_enabled,
+            rules_db,
+            enable_profiling,
+            Arc::clone(shared_profiler),
+            matcher_stats.as_ref(),
         )?;
     }
 
-    if let Some(validation) = &validation_deps {
+    for repo_root in repo_rx.iter() {
+        enumerate_filesystem_inputs(
+            args,
+            datastore.clone(),
+            &[repo_root.clone()],
+            progress_enabled,
+            rules_db,
+            enable_profiling,
+            Arc::clone(shared_profiler),
+            matcher_stats.as_ref(),
+        )?;
+        streamed_roots.push(repo_root);
+    }
+    input_roots.extend(streamed_roots);
+
+    if let Some(handle) = repo_clone_handle {
+        let _ = handle.join();
+    }
+
+    deduplicate_new_matches(datastore, global_args, args, 0)?;
+    apply_baseline_if_configured(args, datastore, baseline_path.as_ref(), input_roots)?;
+
+    run_validation_phase(datastore, validation_deps, args, None, access_map_collector.clone())
+        .await?;
+
+    if let Some(collector) = access_map_collector.take() {
+        finalize_access_map(datastore, collector, args).await?;
+    }
+
+    crate::reporter::run(global_args, Arc::clone(datastore), args)
+        .context("Failed to run report command")?;
+    print_scan_summary(
+        start_time,
+        scan_started_at,
+        datastore,
+        global_args,
+        args,
+        rules_db,
+        matcher_stats.as_ref(),
+        if enable_profiling { Some(shared_profiler.as_ref()) } else { None },
+        update_status,
+        None,
+        None,
+    );
+    maybe_hint_access_map(datastore, args);
+    Ok(())
+}
+
+// =================================================================================================
+// Parallel scan path
+// =================================================================================================
+
+#[allow(clippy::too_many_arguments)]
+async fn run_parallel_scan(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<FindingsStore>>,
+    rules_db: &RulesDatabase,
+    repo_roots: &[PathBuf],
+    repo_rx: crossbeam_channel::Receiver<PathBuf>,
+    repo_clone_handle: Option<std::thread::JoinHandle<()>>,
+    shared_profiler: &Arc<ConcurrentRuleProfiler>,
+    enable_profiling: bool,
+    matcher_stats: &Arc<Mutex<MatcherStats>>,
+    baseline_path: &Arc<PathBuf>,
+    validation_deps: &Option<ValidationDeps>,
+    access_map_collector: &mut Option<AccessMapCollector>,
+    progress_enabled: bool,
+    start_time: Instant,
+    scan_started_at: chrono::DateTime<chrono::Local>,
+    update_status: &crate::update::UpdateStatus,
+) -> Result<()> {
+    deduplicate_new_matches(datastore, global_args, args, 0)?;
+    apply_baseline_if_configured(args, datastore, baseline_path.as_ref(), repo_roots)?;
+
+    // Validate initial (non-repo) matches
+    if let Some(validation) = validation_deps {
         let (parser, clients, cache, rate_limiter) =
             (&validation.0, &validation.1, &validation.2, &validation.3);
         let initial_match_count = { datastore.lock().unwrap().get_matches().len() };
         if initial_match_count > 0 {
             run_secret_validation(
-                Arc::clone(&datastore),
+                Arc::clone(datastore),
                 parser,
                 clients,
                 cache,
@@ -458,6 +634,7 @@ pub async fn run_async_scan(
         }
     }
 
+    // Parallel per-repo scanning
     let repo_concurrency = std::cmp::max(1, args.num_jobs);
     let rt_handle = Handle::current();
 
@@ -476,16 +653,16 @@ pub async fn run_async_scan(
             let spawn_repo_scan = |root: PathBuf| {
                 let repo_rules = repo_rules.clone();
                 let base_clone_root = base_clone_root.clone();
-                let baseline_path = Arc::clone(&baseline_path);
-                let shared_profiler = Arc::clone(&shared_profiler);
+                let baseline_path = Arc::clone(baseline_path);
+                let shared_profiler = Arc::clone(shared_profiler);
                 let args = args.clone();
                 let root = root.clone();
                 let validation_deps = validation_deps.clone();
-                let matcher_stats = Arc::clone(&matcher_stats);
+                let matcher_stats = Arc::clone(matcher_stats);
                 let rt_handle = rt_handle.clone();
                 let ran_repo_scan = Arc::clone(&ran_repo_scan);
                 let repo_errors = Arc::clone(&repo_errors);
-                let datastore = Arc::clone(&datastore);
+                let datastore = Arc::clone(datastore);
                 let access_map = access_map_collector.clone();
 
                 scope.spawn(move |_| {
@@ -509,7 +686,9 @@ pub async fn run_async_scan(
                             Arc::clone(&shared_profiler),
                             &repo_matcher_stats,
                         )
-                        .and_then(|_| deduplicate_new_matches(&repo_datastore, 0))?;
+                        .and_then(|_| {
+                            deduplicate_new_matches(&repo_datastore, global_args, &args, 0)
+                        })?;
 
                         if args.baseline_file.is_some() || args.manage_baseline {
                             let mut ds = repo_datastore.lock().unwrap();
@@ -568,11 +747,11 @@ pub async fn run_async_scan(
                 });
             };
 
-            for root in repo_roots.clone() {
+            for root in repo_roots.iter().cloned() {
                 spawn_repo_scan(root);
             }
 
-            for root in repo_rx.clone().iter() {
+            for root in repo_rx.iter() {
                 spawn_repo_scan(root);
             }
         });
@@ -586,51 +765,27 @@ pub async fn run_async_scan(
     }
 
     if output_to_file && ran_repo_scan.load(Ordering::Relaxed) {
-        crate::reporter::run(global_args, Arc::clone(&datastore), args)
+        crate::reporter::run(global_args, Arc::clone(datastore), args)
             .context("Failed to run report command")?;
     }
 
     if !ran_repo_scan.load(Ordering::Relaxed) {
-        deduplicate_new_matches(&datastore, 0)?;
+        deduplicate_new_matches(datastore, global_args, args, 0)?;
+        apply_baseline_if_configured(args, datastore, baseline_path.as_ref(), repo_roots)?;
 
-        if args.baseline_file.is_some() || args.manage_baseline {
-            let mut ds = datastore.lock().unwrap();
-            crate::baseline::apply_baseline(
-                &mut ds,
-                baseline_path.as_ref(),
-                args.manage_baseline,
-                &repo_roots,
-            )?;
-        }
-
-        if let Some(validation) = &validation_deps {
-            let (parser, clients, cache, rate_limiter) =
-                (&validation.0, &validation.1, &validation.2, &validation.3);
-            run_secret_validation(
-                Arc::clone(&datastore),
-                parser,
-                clients,
-                cache,
-                args.num_jobs,
-                None,
-                access_map_collector.clone(),
-                rate_limiter.clone(),
-                Duration::from_secs(args.validation_timeout),
-                args.validation_retries,
-            )
+        run_validation_phase(datastore, validation_deps, args, None, access_map_collector.clone())
             .await?;
-        }
 
         if let Some(collector) = access_map_collector.take() {
-            finalize_access_map(&datastore, collector, args).await?;
+            finalize_access_map(datastore, collector, args).await?;
         }
 
-        crate::reporter::run(global_args, Arc::clone(&datastore), args)
+        crate::reporter::run(global_args, Arc::clone(datastore), args)
             .context("Failed to run report command")?;
     }
 
     let aggregate_summary = if ran_repo_scan.load(Ordering::Relaxed) {
-        let totals = compute_scan_totals(&datastore, args, matcher_stats.as_ref());
+        let totals = compute_scan_totals(datastore, args, matcher_stats.as_ref());
         let mut sorted: Vec<_> = datastore.lock().unwrap().get_summary().into_iter().collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         Some((totals, sorted))
@@ -641,7 +796,7 @@ pub async fn run_async_scan(
     print_scan_summary(
         start_time,
         scan_started_at,
-        &datastore,
+        datastore,
         global_args,
         args,
         rules_db,
@@ -652,13 +807,17 @@ pub async fn run_async_scan(
         aggregate_summary,
     );
 
-    if let Some(collector) = access_map_collector {
-        finalize_access_map(&datastore, collector, args).await?;
+    if let Some(collector) = access_map_collector.take() {
+        finalize_access_map(datastore, collector, args).await?;
     } else {
-        maybe_hint_access_map(&datastore, args);
+        maybe_hint_access_map(datastore, args);
     }
     Ok(())
 }
+
+// =================================================================================================
+// Existing helper functions (unchanged)
+// =================================================================================================
 
 async fn finalize_access_map(
     datastore: &Arc<Mutex<FindingsStore>>,
@@ -780,8 +939,6 @@ pub fn create_datastore_channel(
 ) {
     const BATCH_SIZE: usize = 1024;
     let channel_size = std::cmp::max(num_jobs * BATCH_SIZE, 16 * BATCH_SIZE);
-    // const BATCH_SIZE: usize = 256;
-    // let channel_size = std::cmp::max(num_jobs * BATCH_SIZE, 4096);
     crossbeam_channel::bounded(channel_size)
 }
 
@@ -864,7 +1021,6 @@ pub fn load_and_record_rules(
 ) -> Result<RulesDatabase> {
     let init_progress =
         if use_progress { ProgressBar::new_spinner() } else { ProgressBar::hidden() };
-    // init_progress.set_message("Compiling rules...");
     let rules_db = {
         let loaded = RuleLoader::from_rule_specifiers(&args.rules)
             .load(args)
@@ -876,7 +1032,6 @@ pub fn load_and_record_rules(
             .cloned()
             .map(|mut rule| {
                 if let Some(min_entropy) = args.min_entropy {
-                    // rule.syntax.min_entropy = min_entropy;
                     let _ = rule.set_entropy(min_entropy);
                 }
                 rule

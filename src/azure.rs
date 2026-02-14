@@ -13,13 +13,12 @@ use std::{
 // let us opt into newer API versions as Microsoft rolls them out.
 
 use anyhow::{anyhow, Context, Result};
-use globset::{Glob, GlobSet, GlobSetBuilder};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use tracing::warn;
 use url::{form_urlencoded, Url};
 
-use crate::{findings_store, git_url::GitUrl};
+use crate::{findings_store, git_host, git_url::GitUrl};
 
 const API_VERSION: &str = "7.1-preview.1";
 
@@ -53,33 +52,6 @@ impl RepoSpecifiers {
     pub fn is_empty(&self) -> bool {
         self.organization.is_empty() && self.project.is_empty()
     }
-}
-
-#[derive(Debug)]
-struct ExcludeMatcher {
-    exact: HashSet<String>,
-    globs: Option<GlobSet>,
-}
-
-impl ExcludeMatcher {
-    fn matches(&self, name: &str) -> bool {
-        let candidate = name.to_lowercase();
-        if self.exact.contains(&candidate) {
-            return true;
-        }
-        if let Some(globs) = &self.globs {
-            return globs.is_match(&candidate);
-        }
-        false
-    }
-
-    fn is_empty(&self) -> bool {
-        self.exact.is_empty() && self.globs.is_none()
-    }
-}
-
-fn looks_like_glob(pattern: &str) -> bool {
-    pattern.contains('*') || pattern.contains('?') || pattern.contains('[')
 }
 
 fn encode_segment(segment: &str) -> String {
@@ -129,7 +101,7 @@ fn parse_repo_identifier_from_path(path: &str) -> Option<String> {
 
         let org = org.to_lowercase();
         let project_raw = project.to_string();
-        if looks_like_glob(&project_raw) {
+        if git_host::looks_like_glob(&project_raw) {
             let pattern = format!("{org}/{}/**", project_raw.to_lowercase());
             return Some(pattern);
         }
@@ -197,59 +169,16 @@ fn parse_excluded_repo(raw: &str) -> Option<String> {
     parse_repo_identifier_from_path(trimmed)
 }
 
-fn build_exclude_matcher(exclude_repos: &[String]) -> ExcludeMatcher {
-    let mut exact = HashSet::new();
-    let mut glob_builder = GlobSetBuilder::new();
-    let mut has_glob = false;
-
-    for raw in exclude_repos {
-        match parse_excluded_repo(raw) {
-            Some(name) => {
-                let normalized = name.to_lowercase();
-                if looks_like_glob(&normalized) {
-                    match Glob::new(&normalized) {
-                        Ok(glob) => {
-                            glob_builder.add(glob);
-                            has_glob = true;
-                        }
-                        Err(err) => {
-                            warn!("Ignoring invalid Azure exclusion pattern '{raw}': {err}");
-                            exact.insert(normalized);
-                        }
-                    }
-                } else {
-                    exact.insert(normalized);
-                }
-            }
-            None => {
-                warn!("Ignoring invalid Azure exclusion '{raw}' (expected organization/project[/repository])");
-            }
-        }
-    }
-
-    let globs = if has_glob {
-        match glob_builder.build() {
-            Ok(set) => Some(set),
-            Err(err) => {
-                warn!("Failed to build Azure exclusion patterns: {err}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    ExcludeMatcher { exact, globs }
+fn build_exclude_matcher(exclude_repos: &[String]) -> git_host::ExcludeMatcher {
+    git_host::build_exclude_matcher(
+        exclude_repos,
+        |raw| parse_excluded_repo(raw).map(|name| name.to_lowercase()),
+        "Azure",
+    )
 }
 
-fn should_exclude_repo(repo_url: &str, excludes: &ExcludeMatcher) -> bool {
-    if excludes.is_empty() {
-        return false;
-    }
-    if let Some(name) = parse_repo_identifier_from_url(repo_url) {
-        return excludes.matches(&name);
-    }
-    false
+fn should_exclude_repo(repo_url: &str, excludes: &git_host::ExcludeMatcher) -> bool {
+    git_host::should_exclude_repo(repo_url, excludes, parse_repo_identifier_from_url)
 }
 
 #[derive(Debug, Deserialize, Default)]

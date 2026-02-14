@@ -6,8 +6,8 @@ use std::{
     time::Duration,
 };
 
+use crate::git_host;
 use anyhow::{Context, Result};
-use globset::{Glob, GlobSet, GlobSetBuilder};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Url;
 use serde::Deserialize;
@@ -136,32 +136,6 @@ impl BitbucketKind {
     }
 }
 
-#[derive(Debug)]
-struct ExcludeMatcher {
-    exact: HashSet<String>,
-    globs: Option<GlobSet>,
-}
-
-impl ExcludeMatcher {
-    fn matches(&self, name: &str) -> bool {
-        if self.exact.contains(name) {
-            return true;
-        }
-        if let Some(globs) = &self.globs {
-            return globs.is_match(name);
-        }
-        false
-    }
-
-    fn is_empty(&self) -> bool {
-        self.exact.is_empty() && self.globs.is_none()
-    }
-}
-
-fn looks_like_glob(pattern: &str) -> bool {
-    pattern.contains('*') || pattern.contains('?') || pattern.contains('[')
-}
-
 fn normalize_repo_identifier(owner: &str, repo: &str) -> Option<String> {
     let owner = owner.trim().trim_matches('/');
     let repo = repo.trim().trim_matches('/');
@@ -207,58 +181,12 @@ fn parse_excluded_repo(raw: &str) -> Option<String> {
     parse_repo_name_from_path(trimmed)
 }
 
-fn build_exclude_matcher(exclude_repos: &[String]) -> ExcludeMatcher {
-    let mut exact = HashSet::new();
-    let mut glob_builder = GlobSetBuilder::new();
-    let mut has_glob = false;
-
-    for raw in exclude_repos {
-        match parse_excluded_repo(raw) {
-            Some(name) => {
-                if looks_like_glob(&name) {
-                    match Glob::new(&name) {
-                        Ok(glob) => {
-                            glob_builder.add(glob);
-                            has_glob = true;
-                        }
-                        Err(err) => {
-                            warn!("Ignoring invalid Bitbucket exclusion pattern '{raw}': {err}");
-                            exact.insert(name);
-                        }
-                    }
-                } else {
-                    exact.insert(name);
-                }
-            }
-            None => {
-                warn!("Ignoring invalid Bitbucket exclusion '{raw}' (expected owner/repo)");
-            }
-        }
-    }
-
-    let globs = if has_glob {
-        match glob_builder.build() {
-            Ok(set) => Some(set),
-            Err(err) => {
-                warn!("Failed to build Bitbucket exclusion patterns: {err}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    ExcludeMatcher { exact, globs }
+fn build_exclude_matcher(exclude_repos: &[String]) -> git_host::ExcludeMatcher {
+    git_host::build_exclude_matcher(exclude_repos, parse_excluded_repo, "Bitbucket")
 }
 
-fn should_exclude_repo(clone_url: &str, excludes: &ExcludeMatcher) -> bool {
-    if excludes.is_empty() {
-        return false;
-    }
-    if let Some(name) = parse_repo_name_from_url(clone_url) {
-        return excludes.matches(&name);
-    }
-    false
+fn should_exclude_repo(clone_url: &str, excludes: &git_host::ExcludeMatcher) -> bool {
+    git_host::should_exclude_repo(clone_url, excludes, parse_repo_name_from_url)
 }
 
 fn repo_clone_url_from_links(links: &[CloneLink]) -> Option<String> {
@@ -343,7 +271,7 @@ async fn fetch_cloud_repositories(
     owner: &str,
     auth: &AuthConfig,
     repo_filter: RepoType,
-    excludes: &ExcludeMatcher,
+    excludes: &git_host::ExcludeMatcher,
     results: &mut Vec<String>,
 ) -> Result<()> {
     let mut next = base
@@ -387,7 +315,7 @@ async fn fetch_server_repositories(
     path: &str,
     auth: &AuthConfig,
     repo_filter: RepoType,
-    excludes: &ExcludeMatcher,
+    excludes: &git_host::ExcludeMatcher,
     results: &mut Vec<String>,
 ) -> Result<()> {
     let mut start = 0u64;

@@ -16,7 +16,6 @@ use gitlab::{
     },
     Gitlab, GitlabBuilder,
 };
-use globset::{Glob, GlobSet, GlobSetBuilder};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -25,7 +24,7 @@ use tokio::task;
 use tracing::{info, warn};
 use url::{form_urlencoded, Url};
 
-use crate::{findings_store, git_url::GitUrl};
+use crate::{findings_store, git_host, git_url::GitUrl};
 use std::str::FromStr;
 
 #[derive(Deserialize)]
@@ -128,83 +127,12 @@ fn parse_excluded_project(raw: &str) -> Option<String> {
     parse_project_path(trimmed)
 }
 
-struct ExcludeMatcher {
-    exact: HashSet<String>,
-    globs: Option<GlobSet>,
+fn build_exclude_matcher(exclude_repos: &[String]) -> git_host::ExcludeMatcher {
+    git_host::build_exclude_matcher(exclude_repos, |raw| parse_excluded_project(raw), "GitLab")
 }
 
-impl ExcludeMatcher {
-    fn is_empty(&self) -> bool {
-        self.exact.is_empty() && self.globs.is_none()
-    }
-
-    fn matches(&self, name: &str) -> bool {
-        if self.exact.contains(name) {
-            return true;
-        }
-        if let Some(globs) = &self.globs {
-            return globs.is_match(name);
-        }
-        false
-    }
-}
-
-fn looks_like_glob(pattern: &str) -> bool {
-    pattern.contains('*') || pattern.contains('?') || pattern.contains('[')
-}
-
-fn build_exclude_matcher(exclude_repos: &[String]) -> ExcludeMatcher {
-    let mut exact = HashSet::new();
-    let mut glob_builder = GlobSetBuilder::new();
-    let mut has_glob = false;
-
-    for raw in exclude_repos {
-        match parse_excluded_project(raw) {
-            Some(name) => {
-                if looks_like_glob(&name) {
-                    match Glob::new(&name) {
-                        Ok(glob) => {
-                            glob_builder.add(glob);
-                            has_glob = true;
-                        }
-                        Err(err) => {
-                            warn!("Ignoring invalid GitLab exclusion pattern '{raw}': {err}");
-                            exact.insert(name);
-                        }
-                    }
-                } else {
-                    exact.insert(name);
-                }
-            }
-            None => {
-                warn!("Ignoring invalid GitLab exclusion '{raw}' (expected group/project)");
-            }
-        }
-    }
-
-    let globs = if has_glob {
-        match glob_builder.build() {
-            Ok(set) => Some(set),
-            Err(err) => {
-                warn!("Failed to build GitLab exclusion patterns: {err}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    ExcludeMatcher { exact, globs }
-}
-
-fn should_exclude_repo(clone_url: &str, excludes: &ExcludeMatcher) -> bool {
-    if excludes.is_empty() {
-        return false;
-    }
-    if let Some(name) = parse_project_path_from_url(clone_url) {
-        return excludes.matches(&name);
-    }
-    false
+fn should_exclude_repo(clone_url: &str, excludes: &git_host::ExcludeMatcher) -> bool {
+    git_host::should_exclude_repo(clone_url, excludes, parse_project_path_from_url)
 }
 
 fn create_gitlab_client(gitlab_url: &Url, ignore_certs: bool) -> Result<Gitlab> {
