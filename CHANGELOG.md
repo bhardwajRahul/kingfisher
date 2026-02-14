@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.83.0]
+- Architecture: split `matcher.rs` (1742 lines) into a `src/matcher/` module directory with focused sub-modules (`base64_decode`, `captures`, `conversion`, `dedup`, `filter`, `fingerprint`). Decomposed `filter_match` into smaller validation helpers.
+- Architecture: refactored `scanner/runner.rs` god function (~600 lines) into phase-based helpers (`enumerate_all_repos`, `fetch_all_artifacts`, `run_sequential_scan`, `run_parallel_scan`, etc.) with a `ValidationDeps` type alias.
+- Architecture: consolidated duplicated matching primitives (base64 detection, dedup, fingerprinting, secret capture selection) into `kingfisher-scanner::primitives` as the single source of truth; both the scanner crate and binary now share one implementation.
+- Architecture: introduced `TokenAccessMapper` trait for access map providers, implemented for GitHub, GitLab, Slack, HuggingFace, Gitea, and Bitbucket.
+- Architecture: moved `content_type` module to `kingfisher-core` crate where it logically belongs (zero binary-crate dependencies).
+- Library crates: added an external-consumer integration test (`tests/library_crates_external_project.rs`) and fixed `kingfisher-scanner` manifest wiring by making `serde` a required dependency, ensuring `kingfisher-core`/`kingfisher-rules`/`kingfisher-scanner` compile and run from a non-kingfisher Rust project.
 - Improved tree-sitter parsing + structured secret detection in source files. A Vectorscan pre-filter over the combined tree-sitter output avoids the O(results × rules) regex cost.
 - Access Map: added Hugging Face, Gitea, Bitbucket, PostgreSQL, and MongoDB providers. All perform read-only enumeration with severity classification.
 - Access Map: Hugging Face, Bitbucket, Postgres, and MongoDB credentials from scans are now auto-collected when using `--access-map`.

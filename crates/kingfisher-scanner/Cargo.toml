@@ -76,7 +76,6 @@ validation-jwt = [
     "dep:chrono",
     "dep:ipnet",
     "dep:jsonwebtoken",
-    "dep:serde",
     "dep:tokio",
 ]
 
@@ -115,7 +114,7 @@ anyhow.workspace = true
 thiserror.workspace = true
 
 # Serialization
-serde = { workspace = true, optional = true }
+serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true
 

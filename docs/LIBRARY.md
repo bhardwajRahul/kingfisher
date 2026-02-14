@@ -59,9 +59,11 @@ fn main() -> anyhow::Result<()> {
     let findings = scanner.scan_file("path/to/file.txt")?;
     
     for finding in findings {
-        println!("Found {} at line {}", 
-            finding.rule_name, 
-            finding.location.start_line);
+        println!(
+            "Found {} at line {}",
+            finding.rule_name,
+            finding.location.line
+        );
     }
     
     Ok(())
@@ -376,18 +378,20 @@ use kingfisher_scanner::Finding;
 for finding in findings {
     println!("Rule: {} ({})", finding.rule_name, finding.rule_id);
     println!("Secret: {}", finding.secret);
-    println!("Location: line {} col {} - line {} col {}",
-        finding.location.start_line,
-        finding.location.start_column,
+    println!(
+        "Location: line {} col {} - line {} col {}",
+        finding.location.line,
+        finding.location.column,
         finding.location.end_line,
-        finding.location.end_column);
+        finding.location.end_column
+    );
     println!("Entropy: {:.2}", finding.entropy);
     println!("Confidence: {:?}", finding.confidence);
     println!("Fingerprint: {}", finding.fingerprint);
     
     // Named captures from the regex
-    for capture in &finding.captures {
-        println!("  {}: {}", capture.name, capture.value);
+    for (name, value) in &finding.captures {
+        println!("  {}: {}", name, value);
     }
 }
 ```
