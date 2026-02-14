@@ -559,6 +559,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
 |----------|-------------|
 | [INSTALLATION.md](docs/INSTALLATION.md) | Complete installation guide including pre-commit hooks setup for git, pre-commit framework, and Husky |
 | [INTEGRATIONS.md](docs/INTEGRATIONS.md) | Platform-specific scanning guide (GitHub, GitLab, AWS S3, Docker, Jira, Confluence, Slack, etc.) |
+| [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (GitHub/GitLab/Slack/AWS/GCP/Azure Storage/Postgres/MongoDB) |
 | [ADVANCED.md](docs/ADVANCED.md) | Advanced features: baselines, confidence levels, validation tuning, CI scanning, and more |
 | [RULES.md](docs/RULES.md) | Writing custom detection rules, pattern requirements, and checksum intelligence |
 | [BASELINE.md](docs/BASELINE.md) | Baseline management for tracking known secrets and detecting new ones |

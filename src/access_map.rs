@@ -7,9 +7,14 @@ use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
 mod aws;
 mod azure;
 mod azure_devops;
+mod bitbucket;
 mod gcp;
+mod gitea;
 mod github;
 mod gitlab;
+mod huggingface;
+pub(crate) mod mongodb;
+pub(crate) mod postgres;
 mod report;
 mod slack;
 
@@ -22,6 +27,11 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Github => github::map_access(&args).await?,
         AccessMapProvider::Gitlab => gitlab::map_access(&args).await?,
         AccessMapProvider::Slack => slack::map_access(&args).await?,
+        AccessMapProvider::Postgres => postgres::map_access(&args).await?,
+        AccessMapProvider::Mongodb => mongodb::map_access(&args).await?,
+        AccessMapProvider::Huggingface => huggingface::map_access(&args).await?,
+        AccessMapProvider::Gitea => gitea::map_access(&args).await?,
+        AccessMapProvider::Bitbucket => bitbucket::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -60,6 +70,16 @@ pub enum AccessMapRequest {
     Gitlab { token: String, fingerprint: String },
     /// A Slack token.
     Slack { token: String, fingerprint: String },
+    /// A Postgres connection URI.
+    Postgres { uri: String, fingerprint: String },
+    /// A MongoDB connection URI.
+    MongoDB { uri: String, fingerprint: String },
+    /// A Hugging Face token.
+    HuggingFace { token: String, fingerprint: String },
+    /// A Gitea token.
+    Gitea { token: String, fingerprint: String },
+    /// A Bitbucket token.
+    Bitbucket { token: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -240,6 +260,36 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
                 slack::map_access_from_token(&token)
                     .await
                     .unwrap_or_else(|err| build_failed_result("slack", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Postgres { uri, fingerprint } => (
+                postgres::map_access_from_uri(&uri)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("postgres", "uri", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::MongoDB { uri, fingerprint } => (
+                mongodb::map_access_from_uri(&uri)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("mongodb", "uri", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::HuggingFace { token, fingerprint } => (
+                huggingface::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("huggingface", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Gitea { token, fingerprint } => (
+                gitea::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("gitea", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Bitbucket { token, fingerprint } => (
+                bitbucket::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("bitbucket", "token", err)),
                 fingerprint,
             ),
         };

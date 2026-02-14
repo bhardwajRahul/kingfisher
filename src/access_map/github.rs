@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client, Url};
 use serde::Deserialize;
@@ -12,10 +14,27 @@ use super::{
 
 const DEFAULT_GITHUB_API: &str = "https://api.github.com";
 
+/// Known GitHub App user-level permissions (as opposed to repository-level).
+const USER_LEVEL_PERMISSIONS: &[&str] = &[
+    "blocking",
+    "codespace_user_secrets",
+    "email",
+    "followers",
+    "git_ssh_keys",
+    "gpg_keys",
+    "interaction_limits",
+    "plan",
+    "profile",
+    "ssh_signing_keys",
+    "starring",
+    "watching",
+];
+
 #[derive(Deserialize)]
 struct GitHubUser {
     login: String,
-    _id: u64,
+    #[allow(dead_code)]
+    id: u64,
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
@@ -56,6 +75,38 @@ struct GitHubRepoPermissions {
     admin: bool,
     push: bool,
     pull: bool,
+}
+
+/// Response from `GET /user/installations`.
+#[derive(Deserialize)]
+struct GitHubInstallationsResponse {
+    installations: Vec<GitHubInstallation>,
+}
+
+/// A single GitHub App installation.
+#[derive(Deserialize)]
+struct GitHubInstallation {
+    id: u64,
+    #[serde(default)]
+    app_slug: Option<String>,
+    #[serde(default)]
+    permissions: BTreeMap<String, String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    repository_selection: Option<String>,
+    #[serde(default)]
+    account: Option<GitHubInstallationAccount>,
+}
+
+#[derive(Deserialize)]
+struct GitHubInstallationAccount {
+    login: String,
+}
+
+/// Response from `GET /user/installations/{id}/repositories`.
+#[derive(Deserialize)]
+struct GitHubInstallationReposResponse {
+    repositories: Vec<GitHubRepo>,
 }
 
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {
@@ -121,10 +172,97 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         account_id: None,
     };
 
-    let repos = list_accessible_repos(&client, &api_url, token).await?;
+    let is_app_token = token.starts_with("ghu_") || token.starts_with("ghs_");
+
     let mut risk_notes = Vec::new();
     let mut resources = Vec::new();
     let mut permissions = PermissionSummary::default();
+    let mut roles = Vec::new();
+
+    // For GitHub App tokens (ghu_/ghs_), enumerate installation permissions
+    // and repos through the installations API for richer access mapping.
+    let repos = if is_app_token {
+        let installations =
+            list_user_installations(&client, &api_url, token).await.unwrap_or_else(|err| {
+                warn!("GitHub access-map: installation lookup failed: {err}");
+                Vec::new()
+            });
+
+        let mut all_repos = Vec::new();
+        for installation in &installations {
+            let (repo_perms, user_perms) =
+                categorize_installation_permissions(&installation.permissions);
+
+            let install_label = installation
+                .account
+                .as_ref()
+                .map(|a| a.login.clone())
+                .or_else(|| installation.app_slug.clone())
+                .unwrap_or_else(|| format!("installation-{}", installation.id));
+
+            // Record repository-level permissions as a role binding.
+            if !repo_perms.is_empty() {
+                let perm_strings: Vec<String> = repo_perms
+                    .iter()
+                    .map(|(name, level)| format!("{}:{}", name, permission_to_label(level)))
+                    .collect();
+
+                roles.push(RoleBinding {
+                    name: format!("installation_repo_permissions:{install_label}"),
+                    source: "github_app".into(),
+                    permissions: perm_strings.clone(),
+                });
+
+                // Classify installation-level permissions by risk.
+                for (_, level) in &repo_perms {
+                    match level.as_str() {
+                        "admin" => permissions.admin.push(format!("app:{install_label}:admin")),
+                        "write" => permissions.risky.push(format!("app:{install_label}:write")),
+                        _ => permissions.read_only.push(format!("app:{install_label}:read")),
+                    }
+                }
+            }
+
+            // Record user-level permissions as a separate role binding.
+            if !user_perms.is_empty() {
+                let perm_strings: Vec<String> = user_perms
+                    .iter()
+                    .map(|(name, level)| format!("{}:{}", name, permission_to_label(level)))
+                    .collect();
+
+                roles.push(RoleBinding {
+                    name: format!("installation_user_permissions:{install_label}"),
+                    source: "github_app".into(),
+                    permissions: perm_strings,
+                });
+            }
+
+            // Enumerate repos through the installation.
+            let install_repos = list_installation_repos(&client, &api_url, token, installation.id)
+                .await
+                .unwrap_or_else(|err| {
+                    warn!(
+                        "GitHub access-map: repo enumeration for installation {} failed: {err}",
+                        installation.id
+                    );
+                    Vec::new()
+                });
+            all_repos.extend(install_repos);
+        }
+
+        // Deduplicate repos by full_name.
+        let mut seen = BTreeSet::new();
+        all_repos.retain(|repo| seen.insert(repo.full_name.clone()));
+
+        // If no installations returned data, fall back to /user/repos.
+        if all_repos.is_empty() {
+            list_accessible_repos(&client, &api_url, token).await?
+        } else {
+            all_repos
+        }
+    } else {
+        list_accessible_repos(&client, &api_url, token).await?
+    };
 
     let org_scopes = org_scopes(&oauth_scopes);
     let org_memberships =
@@ -219,7 +357,6 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
 
     let severity = derive_severity(&repos);
 
-    let mut roles = Vec::new();
     if !oauth_scopes.is_empty() {
         roles.push(RoleBinding {
             name: "token_scopes".into(),
@@ -409,6 +546,130 @@ fn org_scopes(scopes: &[String]) -> Vec<String> {
     result.sort();
     result.dedup();
     result
+}
+
+/// List GitHub App installations accessible to a user-to-server token.
+async fn list_user_installations(
+    client: &Client,
+    api_url: &Url,
+    token: &str,
+) -> Result<Vec<GitHubInstallation>> {
+    let mut installations = Vec::new();
+    let mut page = 1u32;
+    let per_page = 100u32;
+
+    loop {
+        let mut url = api_url.join("user/installations")?;
+        url.query_pairs_mut()
+            .append_pair("per_page", &per_page.to_string())
+            .append_pair("page", &page.to_string());
+
+        let resp = client
+            .get(url)
+            .header(header::AUTHORIZATION, format!("token {token}"))
+            .header(header::ACCEPT, "application/vnd.github+json")
+            .send()
+            .await
+            .context("GitHub access-map: failed to list installations")?;
+
+        if !resp.status().is_success() {
+            warn!("GitHub access-map: installation enumeration failed with HTTP {}", resp.status());
+            break;
+        }
+
+        let body: GitHubInstallationsResponse =
+            resp.json().await.context("GitHub access-map: invalid installations JSON")?;
+        let count = body.installations.len();
+        installations.extend(body.installations);
+
+        if count < per_page as usize {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok(installations)
+}
+
+/// List repos accessible through a specific installation.
+async fn list_installation_repos(
+    client: &Client,
+    api_url: &Url,
+    token: &str,
+    installation_id: u64,
+) -> Result<Vec<GitHubRepo>> {
+    let mut repos = Vec::new();
+    let mut page = 1u32;
+    let per_page = 100u32;
+
+    loop {
+        let mut url =
+            api_url.join(&format!("user/installations/{installation_id}/repositories"))?;
+        url.query_pairs_mut()
+            .append_pair("per_page", &per_page.to_string())
+            .append_pair("page", &page.to_string());
+
+        let resp = client
+            .get(url)
+            .header(header::AUTHORIZATION, format!("token {token}"))
+            .header(header::ACCEPT, "application/vnd.github+json")
+            .send()
+            .await
+            .context("GitHub access-map: failed to list installation repositories")?;
+
+        if !resp.status().is_success() {
+            warn!(
+                "GitHub access-map: installation repo enumeration failed with HTTP {}",
+                resp.status()
+            );
+            break;
+        }
+
+        let body: GitHubInstallationReposResponse =
+            resp.json().await.context("GitHub access-map: invalid installation repos JSON")?;
+        let count = body.repositories.len();
+        repos.extend(body.repositories);
+
+        if count < per_page as usize {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok(repos)
+}
+
+/// Categorize installation permissions into repository-level and user-level.
+///
+/// Returns `(repo_permissions, user_permissions)` where each is a sorted vec
+/// of `(permission_name, access_level)`.
+fn categorize_installation_permissions(
+    perms: &BTreeMap<String, String>,
+) -> (Vec<(String, String)>, Vec<(String, String)>) {
+    let mut repo_perms = Vec::new();
+    let mut user_perms = Vec::new();
+
+    for (name, level) in perms {
+        if USER_LEVEL_PERMISSIONS.contains(&name.as_str()) {
+            user_perms.push((name.clone(), level.clone()));
+        } else {
+            repo_perms.push((name.clone(), level.clone()));
+        }
+    }
+
+    repo_perms.sort();
+    user_perms.sort();
+    (repo_perms, user_perms)
+}
+
+/// Convert a GitHub permission level to a display label.
+fn permission_to_label(level: &str) -> &str {
+    match level {
+        "admin" => "ADMIN",
+        "write" => "READ_WRITE",
+        "read" => "READ_ONLY",
+        _ => level,
+    }
 }
 
 fn severity_to_str(severity: Severity) -> &'static str {

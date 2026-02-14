@@ -100,6 +100,43 @@ impl AccessMapCollector {
             .or_insert_with(|| AccessMapRequest::Slack { token: token.to_string(), fingerprint });
     }
 
+    pub fn record_postgres(&self, uri: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("postgres|{uri}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Postgres { uri: uri.to_string(), fingerprint });
+    }
+
+    pub fn record_mongodb(&self, uri: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("mongodb|{uri}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::MongoDB { uri: uri.to_string(), fingerprint });
+    }
+
+    pub fn record_huggingface(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("huggingface|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::HuggingFace {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_gitea(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("gitea|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Gitea { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_bitbucket(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("bitbucket|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Bitbucket {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -655,6 +692,20 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                 collector.record_azure(&creds_json, containers_hint, fp.clone());
             }
         }
+        Some(Validation::Postgres) => {
+            if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                if !value.is_empty() {
+                    collector.record_postgres(value, fp.clone());
+                }
+            }
+        }
+        Some(Validation::MongoDB) => {
+            if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                if !value.is_empty() {
+                    collector.record_mongodb(value, fp.clone());
+                }
+            }
+        }
         _ => {
             if om.rule.id().starts_with("kingfisher.github.") {
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
@@ -691,7 +742,28 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
             if om.rule.id().starts_with("kingfisher.slack.") {
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
                     if !value.is_empty() {
-                        collector.record_slack(value, fp);
+                        collector.record_slack(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.huggingface.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_huggingface(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.gitea.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_gitea(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.bitbucket.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_bitbucket(value, fp);
                     }
                 }
             }

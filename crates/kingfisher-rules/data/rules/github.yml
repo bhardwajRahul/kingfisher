@@ -171,6 +171,21 @@ rules:
               words:
                 - '"login"'
                 - '"id"'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/credentials/revoke
+          headers:
+            Accept: application/vnd.github+json
+            X-GitHub-Api-Version: 2022-11-28
+            Content-Type: application/json
+          body: '{"credentials":["{{ TOKEN }}"]}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [202]
   - name: GitHub App Server-to-Server Token
     id: kingfisher.github.5
     pattern: |

@@ -19,7 +19,7 @@ publish = false
 
 [package]
 name = "kingfisher"
-version = "1.82.0"
+version = "1.83.0"
 description = "MongoDB's blazingly fast and accurate secret scanning and validation tool"
 edition.workspace = true
 rust-version.workspace = true

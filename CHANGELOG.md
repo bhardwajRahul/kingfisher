@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.83.0]
+- Access Map: added Hugging Face, Gitea, Bitbucket, PostgreSQL, and MongoDB providers. All perform read-only enumeration with severity classification.
+- Access Map: Hugging Face, Bitbucket, Postgres, and MongoDB credentials from scans are now auto-collected when using `--access-map`.
+- Access Map CLI: added providers `huggingface`/`hf`, `gitea`, `bitbucket`, `postgres`, `mongodb`/`mongo`.
+- Added `kingfisher.gitea.1` rule for Gitea access tokens with validation; self-revocation not supported (API requires Basic Auth).
+- Added revocation for GitHub App User-to-Server tokens (`ghu_`, `kingfisher.github.4`).
+- Fixed GitHub Access Map failing for all token types due to `GitHubUser` struct field mismatch (`_id` vs API `"id"`).
+
 ## [v1.82.0]
 - Added Vercel credential rules for new token formats introduced February 2026: `vcp_` (personal access), `vci_` (integration), `vca_` (app access), `vcr_` (app refresh), `vck_` (AI Gateway API key). All use CRC32/Base62 checksum validation. Legacy 24-char format retained as `kingfisher.vercel.1`.
 - Added revocation support for Vercel app tokens (`vca_`, `vcr_`) via `https://api.vercel.com/login/oauth/token/revoke`. Requires `VERCEL_APP_CLIENT_ID` (or `NEXT_PUBLIC_VERCEL_APP_CLIENT_ID`) and `VERCEL_APP_CLIENT_SECRET`.
