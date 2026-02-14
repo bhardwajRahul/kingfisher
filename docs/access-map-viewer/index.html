@@ -293,48 +293,62 @@
 
     /* Access Map */
     .am-container {
-      display: grid;
-      grid-template-columns: 2fr 1fr; /* tree 2/3, detail 1/3 */
-      height: 600px;
+      padding: 16px 20px;
       background: var(--surface);
     }
 
-    .am-sidebar {
-      border-right: 1px solid var(--border);
-      background: var(--surface-muted);
-      overflow-y: auto;
-      padding: 16px;
-    }
-
-    .am-main {
-      padding: 24px;
-      overflow-y: auto;
-      background: var(--surface);
-    }
-
-    .am-search {
-      position: sticky;
-      top: 0;
-      background: var(--surface-muted);
-      padding-bottom: 10px;
-      margin-bottom: 8px;
+    .am-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
-      z-index: 5;
+      margin-bottom: 16px;
     }
 
-    .am-search input {
-      width: 100%;
+    .am-toolbar input {
+      flex: 1;
+      min-width: 200px;
       padding: 8px 12px;
       border-radius: 6px;
       border: 1px solid var(--border);
       font-size: 13px;
-      background: var(--surface);
+      background: var(--surface-muted);
       color: var(--text-main);
     }
 
-    .am-search input:focus {
+    .am-toolbar input:focus {
       outline: none;
       border-color: var(--brand);
+    }
+
+    .am-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .am-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .am-stat-value {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-main);
+    }
+
+    .am-stat-label {
+      color: var(--text-muted);
     }
 
     .am-empty-hint {
@@ -346,94 +360,196 @@
       margin: 12px 20px 0;
     }
 
-    /* Tree */
-    .tree-node {
-      position: relative;
-      margin-left: 20px;
-      padding-left: 12px;
-      border-left: 1px solid var(--border);
-    }
-
-    .tree-node:last-child {
-      border-left: none;
-    }
-
-    .tree-node::before {
-      content: "";
-      position: absolute;
-      top: 14px;
-      left: 0;
-      width: 12px;
-      height: 1px;
-      background: var(--border);
-    }
-
-    .node-content {
+    /* Identity cards */
+    .am-card-list {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      user-select: none;
-      font-size: 13px;
-    }
-
-    .node-content:hover {
-      background: var(--hover);
-    }
-
-    .node-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      display: grid;
-      place-items: center;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .icon-identity { background: #e0e7ff; color: #3730a3; }
-    .icon-resource { background: #ffe4e6; color: #9f1239; }
-    .icon-permission { background: #dcfce7; color: #166534; }
-    .icon-group { background: #fef3c7; color: #92400e; }
-
-    .tree-children {
-      padding-top: 4px;
-      padding-left: 8px;
-      display: none;
-    }
-
-    .tree-children.open {
-      display: block;
-    }
-
-    /* Access detail */
-    .am-card-header {
-      padding-bottom: 16px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .am-card-title {
-      font-size: 18px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 12px;
     }
 
-    .detail-icon-lg {
-      width: 40px;
-      height: 40px;
+    .id-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .id-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .id-card__header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .id-card__header:hover {
+      background: var(--surface-muted);
+    }
+
+    .id-card__avatar {
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       display: grid;
       place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
       background: var(--surface-muted);
       border: 1px solid var(--border);
-      font-size: 20px;
     }
 
+    .id-card__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .id-card__name {
+      font-weight: 700;
+      font-size: 14px;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .id-card__meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .id-card__meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .id-card__perms-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .id-card__toggle {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .id-card__body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 16px;
+      background: var(--surface-muted);
+    }
+
+    .id-card__body.open {
+      display: block;
+    }
+
+    .id-card__section {
+      margin-bottom: 14px;
+    }
+
+    .id-card__section:last-child {
+      margin-bottom: 0;
+    }
+
+    .id-card__section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+
+    .resource-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      font-size: 12px;
+    }
+
+    .resource-chip__name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      word-break: break-all;
+      color: var(--text-main);
+    }
+
+    .resource-chip__name a {
+      font-size: 10px;
+      color: var(--brand);
+      margin-left: 4px;
+    }
+
+    .resource-chip__perms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px 16px;
+    }
+
+    .token-field {
+      font-size: 12px;
+    }
+
+    .token-field strong {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .id-card__footer {
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .id-card__footer code {
+      background: var(--surface-muted);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* keep badge styles for card headers */
     .am-card-meta {
       display: flex;
       gap: 8px;
@@ -1244,115 +1360,21 @@
               <div class="panel__header">
                 <div class="panel__title">
                   <h3>Access Map</h3>
-                  <p>Identity hierarchy: Identity &gt; Resources &gt; Resource &gt; Permissions</p>
+                  <p>Credentials and what they can reach</p>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
-                  <button class="btn" id="copy-access-map" type="button">Copy Access Map</button>
-                  <button class="btn" id="am-toggle" type="button">Collapse</button>
+                  <button class="btn" id="copy-access-map" type="button">Copy JSON</button>
                 </div>
               </div>
-              <div id="am-empty-notice" class="am-empty-hint hidden">No Access Map entries in this report.</div>
+              <div id="am-empty-notice" class="am-empty-hint hidden">No Access Map entries in this report. Run a scan with <code>--access-map</code> to map credential blast radius.</div>
               <div class="am-container" id="am-container">
-                <div class="am-sidebar">
-                  <div class="am-search">
-                    <input id="tree-search" type="text" placeholder="Filter identities or resources…">
-                  </div>
-                  <div id="am-tree-root" style="padding-top:8px;">
-                    <div style="color:var(--text-muted); font-size:13px; text-align:center; margin-top:32px;">
-                      No access map data found in report.
-                    </div>
-                  </div>
+                <div id="am-stats-bar" class="am-stats hidden"></div>
+                <div class="am-toolbar">
+                  <input id="tree-search" type="text" placeholder="Filter by identity, resource, or permission…">
                 </div>
-                <div class="am-main">
-                  <div id="am-empty-state" style="display:grid; place-items:center; height:100%; color:var(--text-muted);">
-                    Select an item in the tree to view details.
-                  </div>
-                  <div id="am-detail-view" class="hidden">
-                    <div class="am-card-header">
-                      <div class="am-card-title">
-                        <div id="am-detail-icon" class="detail-icon-lg">👤</div>
-                        <div>
-                          <div id="am-detail-name">Identity</div>
-                          <div class="am-card-meta" id="am-detail-meta"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="detail-grid">
-                      <div class="detail-field">
-                        <label>Type</label>
-                        <div id="am-detail-type">Identity</div>
-                      </div>
-                      <div class="detail-field">
-                        <label>Cloud Provider</label>
-                        <div id="am-detail-cloud">-</div>
-                      </div>
-                    </div>
-                    <div id="am-token-container" class="hidden">
-                      <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Token Details</h4>
-                      <div class="detail-grid">
-                        <div class="detail-field">
-                          <label>Token Name</label>
-                          <div id="am-token-name">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Username</label>
-                          <div id="am-token-username">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Token Type</label>
-                          <div id="am-token-type">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Account Type</label>
-                          <div id="am-token-account-type">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>User ID</label>
-                          <div id="am-token-user">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Company</label>
-                          <div id="am-token-company">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Created At</label>
-                          <div id="am-token-created">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Location</label>
-                          <div id="am-token-location">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Last Used</label>
-                          <div id="am-token-last-used">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Email</label>
-                          <div id="am-token-email">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Expires At</label>
-                          <div id="am-token-expires">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Profile URL</label>
-                          <div id="am-token-url">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Instance Version</label>
-                          <div id="am-token-version">-</div>
-                        </div>
-                        <div class="detail-field">
-                          <label>Enterprise</label>
-                          <div id="am-token-enterprise">-</div>
-                        </div>
-                      </div>
-                      <div id="am-token-scopes" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-                    </div>
-                    <div id="am-perms-container" class="hidden">
-                      <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Permissions</h4>
-                      <div id="am-perms-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-                    </div>
+                <div id="am-card-list" class="am-card-list">
+                  <div style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">
+                    No access map data found in report.
                   </div>
                 </div>
               </div>
@@ -1561,7 +1583,7 @@
 
     const treeSearch = document.getElementById("tree-search");
     const amContainer = document.getElementById("am-container");
-    const amToggle = document.getElementById("am-toggle");
+    const amToggle = document.getElementById("am-toggle"); // may be null now
     const copyAccessMapButton = document.getElementById("copy-access-map");
     const amEmptyNotice = document.getElementById("am-empty-notice");
     const themeToggle = document.getElementById("theme-toggle");
@@ -1659,10 +1681,12 @@
       renderAccessMapTree(e.target.value || "");
     });
 
-    amToggle.addEventListener("click", () => {
-      const willCollapse = !amContainer.classList.contains("hidden");
-      setAccessMapCollapsed(willCollapse);
-    });
+    if (amToggle) {
+      amToggle.addEventListener("click", () => {
+        const willCollapse = !amContainer.classList.contains("hidden");
+        setAccessMapCollapsed(willCollapse);
+      });
+    }
 
     downloadJsonBtn.addEventListener("click", downloadFindingsJson);
     downloadCsvBtn.addEventListener("click", downloadFindingsCsv);
@@ -1901,11 +1925,11 @@
       rowsSelect.value = "10";
       treeSearch.value = "";
 
-      document.getElementById("am-empty-state").classList.remove("hidden");
-      document.getElementById("am-detail-view").classList.add("hidden");
       setAccessMapCollapsed(true, { auto: true });
       if (amToggle) amToggle.disabled = true;
       if (amEmptyNotice) amEmptyNotice.classList.add("hidden");
+      const amStatsBar = document.getElementById("am-stats-bar");
+      if (amStatsBar) amStatsBar.classList.add("hidden");
 
       renderAccessMapTree();
       renderFindingsTable();
@@ -3666,83 +3690,333 @@
     }
 
     function renderAccessMapTree(filter = "") {
-      const root = document.getElementById("am-tree-root");
-      root.innerHTML = "";
+      const list = document.getElementById("am-card-list");
+      list.innerHTML = "";
       const filterLower = (filter || "").toLowerCase();
 
       filteredAccessMapView = buildRenderableAccessMap(filterLower);
       const hasAccess = Array.isArray(accessMap) && accessMap.length > 0;
       syncAccessMapUi(hasAccess);
+      renderAccessMapStats();
 
       if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
-        root.innerHTML =
-          '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">No access map data available</div>';
+        list.innerHTML =
+          '<div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No access map data available</div>';
         return;
       }
 
+      const frag = document.createDocumentFragment();
       filteredAccessMapView.forEach((entry) => {
-        const identity = entry.identity;
-        const account = formatIdentityLabel(identity);
-        const identityNameMatches = entry.identityNameMatches;
-        const idNode = createTreeNode(account, "identity", true, identity.provider);
-        idNode.container.style.borderLeft = "none";
-        idNode.container.style.marginLeft = "0";
-        idNode.header.addEventListener("click", (e) => {
-          e.stopPropagation();
-          showAccessDetail("identity", identity);
-          toggleNode(idNode.childrenContainer, idNode.toggleIcon);
-        });
-        root.appendChild(idNode.container);
+        frag.appendChild(buildIdentityCard(entry));
+      });
+      list.appendChild(frag);
+    }
 
-        const resGroup = createTreeNode("Resources", "group", true);
-        resGroup.header.addEventListener("click", (e) => {
-          e.stopPropagation();
-          toggleNode(resGroup.childrenContainer, resGroup.toggleIcon);
-        });
-        idNode.childrenContainer.appendChild(resGroup.container);
+    function renderAccessMapStats() {
+      const bar = document.getElementById("am-stats-bar");
+      if (!bar) return;
+      if (!accessMap || accessMap.length === 0) {
+        bar.classList.add("hidden");
+        return;
+      }
 
-        entry.groups.forEach((group) => {
-          const resourcesToShow = Array.isArray(group.resources) ? group.resources : [];
-          const perms = Array.isArray(group.permissions) ? group.permissions : [];
-
-          if (resourcesToShow && resourcesToShow.length > 0) {
-            resourcesToShow.forEach((resName) => {
-              const resNode = createTreeNode(String(resName), "resource", false);
-              resNode.header.addEventListener("click", (e) => {
-                e.stopPropagation();
-                showAccessDetail("resource", {
-                  name: resName,
-                  provider: identity.provider,
-                  permissions: perms,
-                });
-                toggleNode(resNode.childrenContainer, resNode.toggleIcon);
-              });
-              resGroup.childrenContainer.appendChild(resNode.container);
-
-              if (perms.length > 0) {
-                perms.forEach((perm) => {
-                  const permNode = createLeafNode(String(perm), "permission");
-                  permNode.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    showAccessDetail("permission", { name: perm });
-                  });
-                  resNode.childrenContainer.appendChild(permNode);
-                });
-              } else {
-                const empty = createLeafNode("No specific permissions listed", "group");
-                resNode.childrenContainer.appendChild(empty);
-              }
-            });
-          } else if (perms.length > 0 && (!filterLower || identityNameMatches)) {
-            const wildNode = createTreeNode("Project-wide / Unscoped", "resource", false);
-            resGroup.childrenContainer.appendChild(wildNode.container);
-            perms.forEach((perm) => {
-              const pNode = createLeafNode(String(perm), "permission");
-              wildNode.childrenContainer.appendChild(pNode);
-            });
-          }
+      let totalRes = 0;
+      const permSet = new Set();
+      const providerSet = new Set();
+      accessMap.forEach((entry) => {
+        providerSet.add((entry.provider || "unknown").toUpperCase());
+        (entry.groups || []).forEach((g) => {
+          totalRes += (g.resources || []).length;
+          (g.permissions || []).forEach((p) => permSet.add(p));
         });
       });
+
+      bar.classList.remove("hidden");
+      bar.innerHTML = `
+        <div class="am-stat"><span class="am-stat-value">${accessMap.length}</span><span class="am-stat-label">Identities</span></div>
+        <div class="am-stat"><span class="am-stat-value">${totalRes}</span><span class="am-stat-label">Resources</span></div>
+        <div class="am-stat"><span class="am-stat-value">${permSet.size}</span><span class="am-stat-label">Unique Permissions</span></div>
+        <div class="am-stat">${[...providerSet].map((p) => '<span class="badge ' + providerBadgeClass(p) + '">' + escapeHtml(p) + '</span>').join(" ")}</div>
+      `;
+    }
+
+    function buildIdentityCard(entry) {
+      const identity = entry.identity;
+      const groups = entry.groups;
+      const provider = (identity.provider || "unknown");
+      const account = identity.account || "(unknown identity)";
+      const fingerprint = identity.fingerprint || "";
+
+      // Count resources and collect all permissions
+      let resCount = 0;
+      const allPerms = new Set();
+      groups.forEach((g) => {
+        resCount += (g.resources || []).length;
+        (g.permissions || []).forEach((p) => allPerms.add(p));
+      });
+      const permArr = [...allPerms];
+
+      // Card container
+      const card = document.createElement("div");
+      card.className = "id-card";
+
+      // Header (always visible)
+      const header = document.createElement("div");
+      header.className = "id-card__header";
+
+      const avatar = document.createElement("div");
+      avatar.className = "id-card__avatar";
+      avatar.textContent = "👤";
+
+      const info = document.createElement("div");
+      info.className = "id-card__info";
+
+      const nameRow = document.createElement("div");
+      nameRow.className = "id-card__name";
+      nameRow.textContent = account + " ";
+      const provBadge = document.createElement("span");
+      provBadge.className = "badge " + providerBadgeClass(provider);
+      provBadge.textContent = provider.toUpperCase();
+      nameRow.appendChild(provBadge);
+      info.appendChild(nameRow);
+
+      // Meta row
+      const meta = document.createElement("div");
+      meta.className = "id-card__meta";
+      meta.innerHTML = `
+        <span class="id-card__meta-item">📦 <strong>${resCount}</strong> resource${resCount !== 1 ? "s" : ""}</span>
+        <span class="id-card__meta-item">🔑 <strong>${permArr.length}</strong> permission${permArr.length !== 1 ? "s" : ""}</span>
+      `;
+
+      // Token summary in meta
+      if (identity.token_details) {
+        const td = identity.token_details;
+        const parts = [];
+        if (td.username) parts.push(td.username);
+        if (td.token_type) parts.push(td.token_type);
+        if (parts.length) {
+          const tokenSpan = document.createElement("span");
+          tokenSpan.className = "id-card__meta-item";
+          tokenSpan.textContent = "🏷️ " + parts.join(" · ");
+          meta.appendChild(tokenSpan);
+        }
+      }
+      info.appendChild(meta);
+
+      // Permission preview (top 6)
+      if (permArr.length > 0) {
+        const preview = document.createElement("div");
+        preview.className = "id-card__perms-preview";
+        const limit = 6;
+        permArr.slice(0, limit).forEach((p) => {
+          const tag = document.createElement("span");
+          tag.className = "badge badge-perm";
+          tag.style.fontSize = "11px";
+          tag.textContent = p;
+          preview.appendChild(tag);
+        });
+        if (permArr.length > limit) {
+          const more = document.createElement("span");
+          more.className = "badge";
+          more.style.fontSize = "11px";
+          more.style.background = "var(--surface-muted)";
+          more.style.color = "var(--text-muted)";
+          more.textContent = "+" + (permArr.length - limit) + " more";
+          preview.appendChild(more);
+        }
+        info.appendChild(preview);
+      }
+
+      const toggle = document.createElement("div");
+      toggle.className = "id-card__toggle";
+      toggle.textContent = "▶";
+
+      header.appendChild(avatar);
+      header.appendChild(info);
+      header.appendChild(toggle);
+
+      // Body (expandable)
+      const body = document.createElement("div");
+      body.className = "id-card__body";
+
+      // Resources section
+      const resSection = document.createElement("div");
+      resSection.className = "id-card__section";
+      const resTitle = document.createElement("div");
+      resTitle.className = "id-card__section-title";
+      resTitle.textContent = "Resources (" + resCount + ")";
+      resSection.appendChild(resTitle);
+
+      const resGrid = document.createElement("div");
+      resGrid.className = "resource-grid";
+
+      groups.forEach((group) => {
+        const resources = group.resources || [];
+        const perms = group.permissions || [];
+
+        if (resources.length === 0 && perms.length > 0) {
+          const chip = document.createElement("div");
+          chip.className = "resource-chip";
+          const chipName = document.createElement("div");
+          chipName.className = "resource-chip__name";
+          chipName.textContent = "Project-wide / Unscoped";
+          chip.appendChild(chipName);
+          const chipPerms = document.createElement("div");
+          chipPerms.className = "resource-chip__perms";
+          perms.forEach((p) => {
+            const tag = document.createElement("span");
+            tag.className = "badge badge-perm";
+            tag.style.fontSize = "10px";
+            tag.textContent = p;
+            chipPerms.appendChild(tag);
+          });
+          chip.appendChild(chipPerms);
+          resGrid.appendChild(chip);
+        }
+
+        resources.forEach((resName) => {
+          const chip = document.createElement("div");
+          chip.className = "resource-chip";
+          const chipName = document.createElement("div");
+          chipName.className = "resource-chip__name";
+          chipName.textContent = String(resName);
+
+          // Console link
+          const { resourceType, resourceName } = extractResourceParts(String(resName));
+          const consoleLink = buildResourceConsoleLink(provider, resourceType, resourceName);
+          if (consoleLink) {
+            const a = document.createElement("a");
+            a.href = consoleLink;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = "open in console ↗";
+            chipName.appendChild(a);
+          }
+          chip.appendChild(chipName);
+
+          if (perms.length > 0) {
+            const chipPerms = document.createElement("div");
+            chipPerms.className = "resource-chip__perms";
+            perms.forEach((p) => {
+              const tag = document.createElement("span");
+              tag.className = "badge badge-perm";
+              tag.style.fontSize = "10px";
+              tag.textContent = p;
+              chipPerms.appendChild(tag);
+            });
+            chip.appendChild(chipPerms);
+          }
+          resGrid.appendChild(chip);
+        });
+      });
+      resSection.appendChild(resGrid);
+      body.appendChild(resSection);
+
+      // Token details section
+      if (identity.token_details) {
+        const tokenSection = document.createElement("div");
+        tokenSection.className = "id-card__section";
+        const tokenTitle = document.createElement("div");
+        tokenTitle.className = "id-card__section-title";
+        tokenTitle.textContent = "Token Details";
+        tokenSection.appendChild(tokenTitle);
+
+        const tokenGrid = document.createElement("div");
+        tokenGrid.className = "token-grid";
+        const td = identity.token_details;
+        const fields = [
+          ["Name", td.name], ["Username", td.username], ["Token Type", td.token_type],
+          ["Account Type", td.account_type], ["User ID", td.user_id], ["Email", td.email],
+          ["Company", td.company], ["Created", td.created_at], ["Expires", td.expires_at],
+          ["Last Used", td.last_used_at], ["Location", td.location],
+        ];
+        if (identity.provider_metadata) {
+          if (identity.provider_metadata.version) fields.push(["Version", identity.provider_metadata.version]);
+          if (typeof identity.provider_metadata.enterprise === "boolean") fields.push(["Enterprise", identity.provider_metadata.enterprise ? "Yes" : "No"]);
+        }
+        fields.forEach(([label, value]) => {
+          if (!value) return;
+          const field = document.createElement("div");
+          field.className = "token-field";
+          field.innerHTML = `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}`;
+          tokenGrid.appendChild(field);
+        });
+        tokenSection.appendChild(tokenGrid);
+
+        // Scopes
+        if (Array.isArray(td.scopes) && td.scopes.length) {
+          const scopeDiv = document.createElement("div");
+          scopeDiv.style.marginTop = "8px";
+          scopeDiv.style.display = "flex";
+          scopeDiv.style.flexWrap = "wrap";
+          scopeDiv.style.gap = "4px";
+          td.scopes.forEach((scope) => {
+            const tag = document.createElement("span");
+            tag.className = "badge badge-perm";
+            tag.style.fontSize = "11px";
+            tag.textContent = scope;
+            scopeDiv.appendChild(tag);
+          });
+          tokenSection.appendChild(scopeDiv);
+        }
+
+        // Profile URL
+        if (td.url) {
+          const urlDiv = document.createElement("div");
+          urlDiv.style.marginTop = "6px";
+          urlDiv.style.fontSize = "12px";
+          const a = document.createElement("a");
+          a.href = td.url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = td.url;
+          a.style.color = "var(--brand)";
+          urlDiv.appendChild(a);
+          tokenSection.appendChild(urlDiv);
+        }
+
+        body.appendChild(tokenSection);
+      }
+
+      card.appendChild(header);
+      card.appendChild(body);
+
+      // Footer with fingerprint
+      if (fingerprint) {
+        const footer = document.createElement("div");
+        footer.className = "id-card__footer";
+        footer.innerHTML = `Fingerprint: <code>${escapeHtml(fingerprint.substring(0, 20))}…</code>`;
+        const goBtn = document.createElement("button");
+        goBtn.className = "badge";
+        goBtn.textContent = "Go to finding";
+        goBtn.style.cursor = "pointer";
+        goBtn.style.marginLeft = "auto";
+        goBtn.style.background = "var(--brand-soft)";
+        goBtn.style.borderColor = "var(--brand)";
+        goBtn.style.color = "var(--brand-dark)";
+        goBtn.onclick = (e) => {
+          e.stopPropagation();
+          const si = document.getElementById("search-input");
+          if (si) {
+            setActiveView("view-findings");
+            si.value = fingerprint;
+            currentFilter = fingerprint;
+            currentPage = 1;
+            renderFindingsTable();
+          }
+        };
+        footer.appendChild(goBtn);
+        card.appendChild(footer);
+      }
+
+      // Toggle expand/collapse
+      header.addEventListener("click", () => {
+        const isOpen = body.classList.contains("open");
+        body.classList.toggle("open");
+        toggle.textContent = isOpen ? "▶" : "▼";
+      });
+
+      return card;
     }
 
     function buildRenderableAccessMap(filterLower) {
@@ -3756,6 +4030,7 @@
         const fingerprint = (identity.fingerprint || "").toLowerCase();
         const identityNameMatches = Boolean(filterLower) && (account.toLowerCase().includes(filterLower) || fingerprint.includes(filterLower));
         let anyResourceMatches = false;
+        let anyPermMatches = false;
 
         const preparedGroups = groups.map((group) => {
           const resources = Array.isArray(group.resources) ? group.resources : [];
@@ -3769,14 +4044,20 @@
             return matches;
           });
 
+          if (filterLower && !identityNameMatches) {
+            perms.forEach((p) => {
+              if (String(p).toLowerCase().includes(filterLower)) anyPermMatches = true;
+            });
+          }
+
           return { resources, filteredResources, permissions: perms };
         });
 
-        const hasMatch = !filterLower || identityNameMatches || anyResourceMatches;
+        const hasMatch = !filterLower || identityNameMatches || anyResourceMatches || anyPermMatches;
         if (!hasMatch) return;
 
         const viewGroups = preparedGroups.map((group) => ({
-          resources: !filterLower || identityNameMatches ? group.resources : group.filteredResources,
+          resources: !filterLower || identityNameMatches || anyPermMatches ? group.resources : group.filteredResources,
           permissions: group.permissions,
         }));
 
@@ -3818,82 +4099,6 @@
       }
     }
 
-    function createTreeNode(label, type, isOpen, provider) {
-      const container = document.createElement("div");
-      container.className = "tree-node";
-
-      const header = document.createElement("div");
-      header.className = "node-content";
-
-      const toggle = document.createElement("span");
-      toggle.style.fontSize = "10px";
-      toggle.style.color = "#9ca3af";
-      toggle.style.width = "12px";
-      toggle.textContent = isOpen ? "▼" : "▶";
-
-      const icon = document.createElement("span");
-      icon.className = "node-icon icon-" + type;
-      if (type === "identity") icon.textContent = "👤";
-      else if (type === "resource") icon.textContent = "📦";
-      else if (type === "group") icon.textContent = "🗂️";
-
-      const text = document.createElement("span");
-      text.textContent = label;
-      text.style.whiteSpace = "nowrap";
-      text.style.overflow = "hidden";
-      text.style.textOverflow = "ellipsis";
-
-      header.appendChild(toggle);
-      header.appendChild(icon);
-      header.appendChild(text);
-      if (type === "identity" && provider) {
-        addBadge(header, provider.toUpperCase(), providerBadgeClass(provider));
-      }
-
-      const children = document.createElement("div");
-      children.className = "tree-children";
-      if (isOpen) {
-        children.classList.add("open");
-        children.style.display = "block";
-      }
-
-      container.appendChild(header);
-      container.appendChild(children);
-
-      return { container, header, childrenContainer: children, toggleIcon: toggle };
-    }
-
-    function createLeafNode(label, type) {
-      const div = document.createElement("div");
-      div.className = "node-content";
-      div.style.marginLeft = "20px";
-      div.style.fontSize = "13px";
-
-      const icon = document.createElement("span");
-      icon.className = "node-icon icon-" + type;
-      if (type === "permission") icon.textContent = "🔑";
-      else if (type === "group") icon.textContent = "…";
-
-      const text = document.createElement("span");
-      text.textContent = label;
-
-      div.appendChild(icon);
-      div.appendChild(text);
-      return div;
-    }
-
-    function toggleNode(container, icon) {
-      if (container.style.display === "none" || !container.classList.contains("open")) {
-        container.classList.add("open");
-        container.style.display = "block";
-        icon.textContent = "▼";
-      } else {
-        container.classList.remove("open");
-        container.style.display = "none";
-        icon.textContent = "▶";
-      }
-    }
-
     function addBadge(container, text, cls) {
       const span = document.createElement("span");
       span.className = "badge " + cls;
@@ -3915,22 +4120,6 @@
       const base = identity && identity.account ? identity.account : "unknown-identity";
       const provider = identity && identity.provider ? identity.provider.toUpperCase() : null;
       return provider ? `[${provider}] ${base}` : base;
-    }
-
-    function setDetailName(text, link) {
-      const nameEl = document.getElementById("am-detail-name");
-      nameEl.innerHTML = "";
-
-      if (link) {
-        const anchor = document.createElement("a");
-        anchor.href = link;
-        anchor.target = "_blank";
-        anchor.rel = "noopener noreferrer";
-        anchor.textContent = text;
-        nameEl.appendChild(anchor);
-      } else {
-        nameEl.textContent = text;
-      }
     }
 
     function extractResourceParts(label) {
@@ -3965,45 +4154,33 @@
         const match = resource.match(/^arn:aws:iam::\d+:([^/]+)\/(.+)$/);
         const kind = match ? match[1] : null;
         const res = match ? match[2] : null;
-        if (kind === "role") {
-          return `https://console.aws.amazon.com/iam/home?#/roles/${encodeURIComponent(res)}`;
-        }
-        if (kind === "user") {
-          return `https://console.aws.amazon.com/iam/home?#/users/${encodeURIComponent(res)}`;
-        }
+        if (kind === "role") return `https://console.aws.amazon.com/iam/home?#/roles/${encodeURIComponent(res)}`;
+        if (kind === "user") return `https://console.aws.amazon.com/iam/home?#/users/${encodeURIComponent(res)}`;
         return null;
       }
 
       if (service === "lambda") {
         const match = resourcePart.match(/^function[:\/](.+)$/);
         if (match && match[1]) {
-          const fnName = match[1];
           const regionQuery = region ? `?region=${encodeURIComponent(region)}` : "";
-          return `https://console.aws.amazon.com/lambda/home${regionQuery}#/functions/${encodeURIComponent(fnName)}`;
+          return `https://console.aws.amazon.com/lambda/home${regionQuery}#/functions/${encodeURIComponent(match[1])}`;
         }
         return null;
       }
 
       if (service === "ec2") {
         const match = resourcePart.match(/^instance\/(.+)$/);
-        if (match && match[1]) {
-          const instanceId = match[1];
-          return `https://console.aws.amazon.com/ec2/v2/home?#InstanceDetails:instanceId=${encodeURIComponent(instanceId)}`;
-        }
+        if (match && match[1]) return `https://console.aws.amazon.com/ec2/v2/home?#InstanceDetails:instanceId=${encodeURIComponent(match[1])}`;
         return null;
       }
 
       if (service === "kms") {
         const match = resourcePart.match(/^(?:key|alias)\/(.+)$/);
-        if (match && match[1]) {
-          return `https://console.aws.amazon.com/kms/home?#/kms/keys/${encodeURIComponent(match[1])}`;
-        }
+        if (match && match[1]) return `https://console.aws.amazon.com/kms/home?#/kms/keys/${encodeURIComponent(match[1])}`;
         return null;
       }
 
-      if (service === "secretsmanager") {
-        return `https://console.aws.amazon.com/secretsmanager/home?#/secret?name=${encodeURIComponent(resource)}`;
-      }
+      if (service === "secretsmanager") return `https://console.aws.amazon.com/secretsmanager/home?#/secret?name=${encodeURIComponent(resource)}`;
 
       if (service === "dynamodb") {
         const match = resourcePart.match(/^(?:table\/(.+)|table:(.+))/);
@@ -4026,192 +4203,22 @@
 
       if (resource.includes("/buckets/")) {
         const bucketMatch = resource.match(/\/buckets\/([^/]+)/);
-        const bucket = bucketMatch ? bucketMatch[1] : null;
-        if (bucket && project) {
-          return `https://console.cloud.google.com/storage/browser/${encodeURIComponent(bucket)}?project=${encodeURIComponent(project)}`;
-        }
+        if (bucketMatch && bucketMatch[1] && project) return `https://console.cloud.google.com/storage/browser/${encodeURIComponent(bucketMatch[1])}?project=${encodeURIComponent(project)}`;
       }
-
       if (resource.includes("/datasets/")) {
         const datasetMatch = resource.match(/\/datasets\/([^/]+)/);
-        const dataset = datasetMatch ? datasetMatch[1] : null;
-        if (dataset && project) {
-          return `https://console.cloud.google.com/bigquery?project=${encodeURIComponent(project)}&p=${encodeURIComponent(project)}&d=${encodeURIComponent(dataset)}&page=dataset`;
-        }
+        if (datasetMatch && datasetMatch[1] && project) return `https://console.cloud.google.com/bigquery?project=${encodeURIComponent(project)}&p=${encodeURIComponent(project)}&d=${encodeURIComponent(datasetMatch[1])}&page=dataset`;
       }
-
       if (resource.includes("/secrets/")) {
         const secretMatch = resource.match(/\/secrets\/([^/:]+)/);
-        const secret = secretMatch ? secretMatch[1] : null;
-        if (secret && project) {
-          return `https://console.cloud.google.com/security/secret-manager/secret/${encodeURIComponent(secret)}/versions?project=${encodeURIComponent(project)}`;
-        }
+        if (secretMatch && secretMatch[1] && project) return `https://console.cloud.google.com/security/secret-manager/secret/${encodeURIComponent(secretMatch[1])}/versions?project=${encodeURIComponent(project)}`;
       }
-
       if (resource.includes("/functions/")) {
         const fnMatch = resource.match(/\/locations\/([^/]+)\/functions\/([^/]+)/);
-        if (fnMatch && project) {
-          const region = fnMatch[1];
-          const fnName = fnMatch[2];
-          return `https://console.cloud.google.com/functions/details/${encodeURIComponent(region)}/${encodeURIComponent(fnName)}?project=${encodeURIComponent(project)}`;
-        }
+        if (fnMatch && project) return `https://console.cloud.google.com/functions/details/${encodeURIComponent(fnMatch[1])}/${encodeURIComponent(fnMatch[2])}?project=${encodeURIComponent(project)}`;
       }
-
-      if (project) {
-        return `https://console.cloud.google.com/home/dashboard?project=${encodeURIComponent(project)}`;
-      }
-
+      if (project) return `https://console.cloud.google.com/home/dashboard?project=${encodeURIComponent(project)}`;
       return null;
-    }
-
-    function showAccessDetail(type, data) {
-      document.getElementById("am-empty-state").classList.add("hidden");
-      const view = document.getElementById("am-detail-view");
-      view.classList.remove("hidden");
-
-      const icon = document.getElementById("am-detail-icon");
-      const meta = document.getElementById("am-detail-meta");
-      const typeField = document.getElementById("am-detail-type");
-      const cloudField = document.getElementById("am-detail-cloud");
-      const permsContainer = document.getElementById("am-perms-container");
-      const permsList = document.getElementById("am-perms-list");
-      const tokenContainer = document.getElementById("am-token-container");
-      const tokenName = document.getElementById("am-token-name");
-      const tokenUsername = document.getElementById("am-token-username");
-      const tokenType = document.getElementById("am-token-type");
-      const tokenAccountType = document.getElementById("am-token-account-type");
-      const tokenUser = document.getElementById("am-token-user");
-      const tokenCompany = document.getElementById("am-token-company");
-      const tokenCreated = document.getElementById("am-token-created");
-      const tokenLocation = document.getElementById("am-token-location");
-      const tokenLastUsed = document.getElementById("am-token-last-used");
-      const tokenEmail = document.getElementById("am-token-email");
-      const tokenExpires = document.getElementById("am-token-expires");
-      const tokenUrl = document.getElementById("am-token-url");
-      const tokenVersion = document.getElementById("am-token-version");
-      const tokenEnterprise = document.getElementById("am-token-enterprise");
-      const tokenScopes = document.getElementById("am-token-scopes");
-
-      meta.innerHTML = "";
-      permsList.innerHTML = "";
-      permsContainer.classList.add("hidden");
-      tokenScopes.innerHTML = "";
-      tokenContainer.classList.add("hidden");
-
-      let detailName = "";
-      let detailLink = null;
-
-      if (type === "identity") {
-        icon.textContent = "👤";
-        icon.className = "detail-icon-lg";
-        detailName = data.account || "(unknown identity)";
-        typeField.textContent = "Identity";
-        const provider = (data.provider || "unknown").toUpperCase();
-        cloudField.textContent = provider;
-        if (data.provider) {
-          addBadge(meta, provider, providerBadgeClass(data.provider));
-        }
-        if (data.fingerprint) {
-          const fpDiv = document.createElement("div");
-          fpDiv.style.width = "100%";
-          fpDiv.style.marginTop = "6px";
-          fpDiv.style.fontSize = "11px";
-          fpDiv.style.color = "var(--text-muted)";
-          fpDiv.textContent = "Fingerprint: " + data.fingerprint;
-          meta.appendChild(fpDiv);
-
-          const btn = document.createElement("button");
-          btn.className = "badge";
-          btn.textContent = "Go to finding";
-          btn.style.marginTop = "6px";
-          btn.style.cursor = "pointer";
-          btn.style.background = "var(--brand-soft)";
-          btn.style.borderColor = "var(--brand)";
-          btn.style.color = "var(--brand-dark)";
-          btn.onclick = () => {
-             const searchInput = document.getElementById("search-input");
-             if (searchInput) {
-                 setActiveView("view-findings");
-                 searchInput.value = data.fingerprint;
-                 currentFilter = data.fingerprint;
-                 currentPage = 1;
-                 renderFindingsTable();
-                 setTimeout(() => {
-                     const tableContainer = document.querySelector('.table-container');
-                     if (tableContainer) {
-                         tableContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
-                     }
-                 }, 50);
-             }
-          };
-          meta.appendChild(btn);
-        }
-        if (data.token_details) {
-          const details = data.token_details;
-          tokenName.textContent = details.name || "-";
-          tokenUsername.textContent = details.username || "-";
-          tokenType.textContent = details.token_type || "-";
-          tokenAccountType.textContent = details.account_type || "-";
-          tokenUser.textContent = details.user_id || "-";
-          tokenCompany.textContent = details.company || "-";
-          tokenCreated.textContent = details.created_at || "-";
-          tokenLocation.textContent = details.location || "-";
-          tokenLastUsed.textContent = details.last_used_at || "-";
-          tokenEmail.textContent = details.email || "-";
-          tokenExpires.textContent = details.expires_at || "-";
-          if (details.url) {
-            tokenUrl.innerHTML = "";
-            const urlLink = document.createElement("a");
-            urlLink.href = details.url;
-            urlLink.target = "_blank";
-            urlLink.rel = "noreferrer noopener";
-            urlLink.textContent = details.url;
-            tokenUrl.appendChild(urlLink);
-          } else {
-            tokenUrl.textContent = "-";
-          }
-          tokenVersion.textContent =
-            (data.provider_metadata && data.provider_metadata.version) || "-";
-          tokenEnterprise.textContent =
-            data.provider_metadata && typeof data.provider_metadata.enterprise === "boolean"
-              ? data.provider_metadata.enterprise
-                ? "true"
-                : "false"
-              : "-";
-          if (Array.isArray(details.scopes)) {
-            details.scopes.forEach((scope) => addBadge(tokenScopes, scope, "badge-perm"));
-          }
-          tokenContainer.classList.remove("hidden");
-        }
-      } else if (type === "resource") {
-        icon.textContent = "📦";
-        icon.className = "detail-icon-lg";
-        const resourceLabel = data.name || "(resource)";
-        const { resourceType, resourceName } = extractResourceParts(resourceLabel);
-        detailName = resourceLabel;
-        detailLink = buildResourceConsoleLink(data.provider, resourceType, resourceName);
-        typeField.textContent = "Resource";
-        const provider = (data.provider || "unknown").toUpperCase();
-        cloudField.textContent = provider;
-        if (data.provider) {
-          addBadge(meta, provider, providerBadgeClass(data.provider));
-        }
-
-        if (Array.isArray(data.permissions) && data.permissions.length) {
-          permsContainer.classList.remove("hidden");
-          data.permissions.forEach((p) => {
-            addBadge(permsList, p, "badge-perm");
-          });
-        }
-      } else if (type === "permission") {
-        icon.textContent = "🔑";
-        icon.className = "detail-icon-lg";
-        detailName = data.name || "(permission)";
-        typeField.textContent = "Permission string";
-        cloudField.textContent = "-";
-      }
-
-      setDetailName(detailName, detailLink);
     }
   </script>
 </body>
