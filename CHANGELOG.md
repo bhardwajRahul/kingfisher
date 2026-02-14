@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 - Access Map: Hugging Face, Bitbucket, Postgres, and MongoDB credentials from scans are now auto-collected when using `--access-map`.
 - Access Map CLI: added providers `huggingface`/`hf`, `gitea`, `bitbucket`, `postgres`, `mongodb`/`mongo`.
 - Added `kingfisher.gitea.1` rule for Gitea access tokens with validation; self-revocation not supported (API requires Basic Auth).
-- Added revocation for GitHub App User-to-Server tokens (`ghu_`, `kingfisher.github.4`).
+- Added revocation for GitHub App Server-to-Server tokens (`ghs_`, `kingfisher.github.5`) via `DELETE /installation/token`. Note: `ghu_` (user-to-server) tokens cannot be self-revoked; they require the GitHub App's client credentials or manual revocation via GitHub Settings.
 - Fixed GitHub Access Map failing for all token types due to `GitHubUser` struct field mismatch (`_id` vs API `"id"`).
 
 ## [v1.82.0]
