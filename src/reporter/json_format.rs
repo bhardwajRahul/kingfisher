@@ -279,6 +279,7 @@ mod tests {
             datastore: Arc::new(Mutex::new(datastore)),
             styles: Styles::new(false),
             only_valid: false,
+            audit_context: None,
         }
     }
 

@@ -52,12 +52,23 @@
 //! - **validation-all**: Enable all validation features
 
 mod finding;
+#[doc(hidden)]
 pub mod primitives;
 mod scanner;
 mod scanner_pool;
 
 // Validation module (feature-gated)
-#[cfg(any(feature = "validation", feature = "validation-http", feature = "validation-aws"))]
+#[cfg(any(
+    feature = "validation",
+    feature = "validation-http",
+    feature = "validation-aws",
+    feature = "validation-azure",
+    feature = "validation-coinbase",
+    feature = "validation-gcp",
+    feature = "validation-jwt",
+    feature = "validation-database",
+    feature = "validation-all",
+))]
 pub mod validation;
 
 pub use finding::{intern, Finding, FindingLocation, SerializableCapture, SerializableCaptures};

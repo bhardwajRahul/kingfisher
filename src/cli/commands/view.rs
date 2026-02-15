@@ -1,5 +1,6 @@
 use std::{
     net::SocketAddr,
+    net::TcpListener as StdTcpListener,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -42,6 +43,17 @@ pub struct ViewArgs {
 #[derive(Clone)]
 struct AppState {
     report: Option<Vec<u8>>,
+}
+
+pub fn ensure_port_available(port: u16) -> Result<()> {
+    StdTcpListener::bind(("127.0.0.1", port)).map_err(|err| match err.kind() {
+        std::io::ErrorKind::AddrInUse => anyhow!(
+            "Port {} is already in use. Re-run with --port <PORT> to choose a different port.",
+            port
+        ),
+        _ => err.into(),
+    })?;
+    Ok(())
 }
 
 /// Run the `kingfisher view` subcommand.

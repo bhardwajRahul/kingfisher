@@ -3,8 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.83.0]
-- Architecture: split `matcher.rs` (1742 lines) into a `src/matcher/` module directory with focused sub-modules (`base64_decode`, `captures`, `conversion`, `dedup`, `filter`, `fingerprint`). Decomposed `filter_match` into smaller validation helpers.
-- Architecture: refactored `scanner/runner.rs` god function (~600 lines) into phase-based helpers (`enumerate_all_repos`, `fetch_all_artifacts`, `run_sequential_scan`, `run_parallel_scan`, etc.) with a `ValidationDeps` type alias.
+- Kingfisher can now generate an auditor-friendly HTML report: `--format html --output kingfisher-audit.html`
+- Architecture: split `matcher.rs` into a `src/matcher/` module directory with focused sub-modules (`base64_decode`, `captures`, `conversion`, `dedup`, `filter`, `fingerprint`). Decomposed `filter_match` into smaller validation helpers.
+- Architecture: refactored `scanner/runner.rs` god function into phase-based helpers (`enumerate_all_repos`, `fetch_all_artifacts`, `run_sequential_scan`, `run_parallel_scan`, etc.) with a `ValidationDeps` type alias.
 - Architecture: consolidated duplicated matching primitives (base64 detection, dedup, fingerprinting, secret capture selection) into `kingfisher-scanner::primitives` as the single source of truth; both the scanner crate and binary now share one implementation.
 - Architecture: introduced `TokenAccessMapper` trait for access map providers, implemented for GitHub, GitLab, Slack, HuggingFace, Gitea, and Bitbucket.
 - Architecture: moved `content_type` module to `kingfisher-core` crate where it logically belongs (zero binary-crate dependencies).

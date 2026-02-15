@@ -283,8 +283,7 @@ impl Scanner {
     /// Call this to clear the seen blobs cache if you want to rescan
     /// previously scanned content.
     pub fn reset_dedup(&self) {
-        // Note: BlobIdMap doesn't have a clear method, so this creates a new scanner
-        // In a real implementation, you'd want to add a clear method or use a different approach
+        self.seen_blobs.clear();
     }
 
     fn redact(&self, bytes: &[u8]) -> String {

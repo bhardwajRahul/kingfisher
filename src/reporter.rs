@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
+use chrono::{Local, Utc};
 use http::StatusCode;
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use schemars::JsonSchema;
@@ -25,6 +26,7 @@ use crate::{
     validation_body::{self, ValidationResponseBody},
 };
 mod bson_format;
+mod html_format;
 mod json_format;
 mod pretty_format;
 mod sarif_format;
@@ -136,6 +138,75 @@ fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeS
     }
 
     vars
+}
+
+fn is_sensitive_arg_key(key: &str) -> bool {
+    let normalized = key.trim_start_matches('-').to_ascii_lowercase();
+    let exact = [
+        "arg",
+        "var",
+        "token",
+        "secret",
+        "password",
+        "pass",
+        "key",
+        "api-key",
+        "apikey",
+        "auth",
+        "oauth-token",
+        "pat",
+        "credential",
+        "credentials",
+    ];
+    if exact.iter().any(|candidate| *candidate == normalized) {
+        return true;
+    }
+
+    let contains = ["token", "secret", "password", "apikey", "api-key", "auth", "credential"];
+    contains.iter().any(|candidate| normalized.contains(candidate))
+}
+
+fn sanitize_command_line_args(args: &[String]) -> Vec<String> {
+    let mut sanitized = Vec::with_capacity(args.len());
+    let mut redact_next = false;
+
+    for arg in args {
+        if redact_next {
+            sanitized.push("***REDACTED***".to_string());
+            redact_next = false;
+            continue;
+        }
+
+        let Some(stripped) = arg.strip_prefix('-') else {
+            sanitized.push(arg.clone());
+            continue;
+        };
+
+        if stripped.is_empty() {
+            sanitized.push(arg.clone());
+            continue;
+        }
+
+        let key_value_split = arg.split_once('=');
+        if let Some((key, _)) = key_value_split {
+            if is_sensitive_arg_key(key) {
+                sanitized.push(format!("{key}=***REDACTED***"));
+            } else {
+                sanitized.push(arg.clone());
+            }
+            continue;
+        }
+
+        if is_sensitive_arg_key(arg) {
+            sanitized.push(arg.clone());
+            redact_next = true;
+            continue;
+        }
+
+        sanitized.push(arg.clone());
+    }
+
+    sanitized
 }
 
 fn required_vars_for_revocation(revocation: &Revocation) -> BTreeSet<String> {
@@ -469,6 +540,7 @@ pub fn run(
     global_args: &GlobalArgs,
     ds: Arc<Mutex<findings_store::FindingsStore>>,
     args: &cli::commands::scan::ScanArgs,
+    audit_context: Option<ScanAuditContext>,
 ) -> Result<()> {
     global_args.use_color(std::io::stdout());
     let stdout_is_tty = std::io::stdout().is_terminal();
@@ -477,7 +549,8 @@ pub fn run(
 
     let ds_clone = Arc::clone(&ds);
     // Initialize the reporter
-    let reporter = DetailsReporter { datastore: ds_clone, styles, only_valid: args.only_valid };
+    let reporter =
+        DetailsReporter { datastore: ds_clone, styles, only_valid: args.only_valid, audit_context };
     let writer = args.output_args.get_writer()?;
     // Generate and write the report in the specified format
     reporter.report(args.output_args.format, writer, args)
@@ -486,6 +559,22 @@ pub struct DetailsReporter {
     pub datastore: Arc<Mutex<findings_store::FindingsStore>>,
     pub styles: Styles,
     pub only_valid: bool,
+    pub audit_context: Option<ScanAuditContext>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ScanAuditContext {
+    pub scan_timestamp: Option<String>,
+    pub scan_duration_seconds: Option<f64>,
+    pub rules_applied: Option<usize>,
+    pub successful_validations: Option<usize>,
+    pub failed_validations: Option<usize>,
+    pub skipped_validations: Option<usize>,
+    pub blobs_scanned: Option<u64>,
+    pub bytes_scanned: Option<u64>,
+    pub running_version: Option<String>,
+    pub latest_version: Option<String>,
+    pub update_check_status: Option<String>,
 }
 
 impl DetailsReporter {
@@ -1028,8 +1117,85 @@ impl DetailsReporter {
     ) -> Result<ReportEnvelope> {
         let findings = self.build_finding_records(args)?;
         let access_map = self.build_access_map_records(args);
+        let metadata = self.build_report_metadata(args, &findings, access_map.as_ref());
 
-        Ok(ReportEnvelope { findings, access_map })
+        Ok(ReportEnvelope { findings, access_map, metadata: Some(metadata) })
+    }
+
+    fn build_report_metadata(
+        &self,
+        args: &cli::commands::scan::ScanArgs,
+        findings: &[FindingReporterRecord],
+        access_map: Option<&Vec<AccessMapEntry>>,
+    ) -> ScanReportMetadata {
+        let mut active_findings = 0usize;
+        let mut inactive_findings = 0usize;
+        let mut unknown_validation_findings = 0usize;
+
+        for record in findings {
+            let status = record.finding.validation.status.to_ascii_lowercase();
+            if status.contains("inactive") {
+                inactive_findings += 1;
+            } else if status.contains("active") {
+                active_findings += 1;
+            } else {
+                unknown_validation_findings += 1;
+            }
+        }
+
+        let command_line_args: Vec<String> = std::env::args().collect();
+        let sanitized_command_line_args = sanitize_command_line_args(&command_line_args);
+        let scan_timestamp = self.audit_context.as_ref().and_then(|ctx| ctx.scan_timestamp.clone());
+        let generated_at = generated_at_for_scan_timezone(scan_timestamp.as_deref());
+        let scan_timestamp = scan_timestamp.unwrap_or_else(|| generated_at.clone());
+
+        ScanReportMetadata {
+            generated_at: generated_at.clone(),
+            scan_timestamp,
+            target: derive_scan_target(args),
+            command_line_args: sanitized_command_line_args,
+            kingfisher_version: self
+                .audit_context
+                .as_ref()
+                .and_then(|ctx| ctx.running_version.clone())
+                .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string()),
+            latest_version_available: self
+                .audit_context
+                .as_ref()
+                .and_then(|ctx| ctx.latest_version.clone()),
+            update_check_status: self
+                .audit_context
+                .as_ref()
+                .and_then(|ctx| ctx.update_check_status.clone()),
+            summary: ScanReportSummary {
+                findings: findings.len(),
+                active_findings,
+                inactive_findings,
+                unknown_validation_findings,
+                access_map_identities: access_map.map_or(0, Vec::len),
+                rules_applied: self.audit_context.as_ref().and_then(|ctx| ctx.rules_applied),
+                confidence_level: args.confidence.to_string(),
+                custom_rules_used: !args.rules.rules_path.is_empty() || !args.rules.load_builtins,
+                successful_validations: self
+                    .audit_context
+                    .as_ref()
+                    .and_then(|ctx| ctx.successful_validations),
+                failed_validations: self
+                    .audit_context
+                    .as_ref()
+                    .and_then(|ctx| ctx.failed_validations),
+                skipped_validations: self
+                    .audit_context
+                    .as_ref()
+                    .and_then(|ctx| ctx.skipped_validations),
+                blobs_scanned: self.audit_context.as_ref().and_then(|ctx| ctx.blobs_scanned),
+                bytes_scanned: self.audit_context.as_ref().and_then(|ctx| ctx.bytes_scanned),
+                scan_duration_seconds: self
+                    .audit_context
+                    .as_ref()
+                    .and_then(|ctx| ctx.scan_duration_seconds),
+            },
+        }
     }
 
     fn build_access_map_records(
@@ -1183,8 +1349,56 @@ impl Reportable for DetailsReporter {
             ReportOutputFormat::Jsonl => self.jsonl_format(writer, args),
             ReportOutputFormat::Bson => self.bson_format(writer, args),
             ReportOutputFormat::Sarif => self.sarif_format(writer, args.no_dedup, args),
+            ReportOutputFormat::Html => self.html_format(writer, args),
         }
     }
+}
+
+fn generated_at_for_scan_timezone(scan_timestamp: Option<&str>) -> String {
+    if let Some(scan_timestamp) = scan_timestamp {
+        if let Ok(scan_dt) = chrono::DateTime::parse_from_rfc3339(scan_timestamp) {
+            return Utc::now().with_timezone(scan_dt.offset()).to_rfc3339();
+        }
+    }
+    Local::now().to_rfc3339()
+}
+
+fn derive_scan_target(args: &cli::commands::scan::ScanArgs) -> Option<String> {
+    let mut targets = Vec::new();
+    let input_args = &args.input_specifier_args;
+
+    for path in &input_args.path_inputs {
+        targets.push(path.display().to_string());
+    }
+    for git in &input_args.git_url {
+        targets.push(git.to_string());
+    }
+    if let Some(bucket) = &input_args.s3_bucket {
+        targets.push(format!("s3://{bucket}"));
+    }
+    if let Some(bucket) = &input_args.gcs_bucket {
+        targets.push(format!("gcs://{bucket}"));
+    }
+    for image in &input_args.docker_image {
+        targets.push(format!("docker://{image}"));
+    }
+    if input_args.jira_url.is_some() {
+        targets.push("jira".to_string());
+    }
+    if input_args.confluence_url.is_some() {
+        targets.push("confluence".to_string());
+    }
+    if input_args.slack_query.is_some() {
+        targets.push("slack".to_string());
+    }
+
+    if targets.is_empty() {
+        return None;
+    }
+    if targets.len() == 1 {
+        return targets.pop();
+    }
+    Some(format!("{} targets", targets.len()))
 }
 
 /// A match produced by one of kingfisher's rules.
@@ -1256,6 +1470,48 @@ pub struct ReportEnvelope {
     pub findings: Vec<FindingReporterRecord>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_map: Option<Vec<AccessMapEntry>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<ScanReportMetadata>,
+}
+
+#[derive(Serialize, JsonSchema, Clone, Debug)]
+pub struct ScanReportMetadata {
+    pub generated_at: String,
+    pub scan_timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    pub command_line_args: Vec<String>,
+    pub kingfisher_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_version_available: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_check_status: Option<String>,
+    pub summary: ScanReportSummary,
+}
+
+#[derive(Serialize, JsonSchema, Clone, Debug)]
+pub struct ScanReportSummary {
+    pub findings: usize,
+    pub active_findings: usize,
+    pub inactive_findings: usize,
+    pub unknown_validation_findings: usize,
+    pub access_map_identities: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rules_applied: Option<usize>,
+    pub confidence_level: String,
+    pub custom_rules_used: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub successful_validations: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failed_validations: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skipped_validations: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blobs_scanned: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bytes_scanned: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scan_duration_seconds: Option<f64>,
 }
 
 #[derive(Serialize, JsonSchema, Clone, Debug)]
@@ -1580,7 +1836,12 @@ mod tests {
         let temp = tempdir().unwrap();
         let datastore =
             Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
-        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+        let reporter = DetailsReporter {
+            datastore,
+            styles: Styles::new(false),
+            only_valid: false,
+            audit_context: None,
+        };
 
         let (report_match, _) = sample_report_match(validation_body, StatusCode::OK.as_u16(), true);
         let mut scan_args = sample_scan_args();
@@ -1595,7 +1856,12 @@ mod tests {
         let temp = tempdir().unwrap();
         let datastore =
             Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
-        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+        let reporter = DetailsReporter {
+            datastore,
+            styles: Styles::new(false),
+            only_valid: false,
+            audit_context: None,
+        };
 
         let (report_match, blob_path) =
             sample_report_match("Bad credentials", StatusCode::UNAUTHORIZED.as_u16(), false);
@@ -1620,7 +1886,12 @@ mod tests {
         let temp = tempdir().unwrap();
         let datastore =
             Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
-        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+        let reporter = DetailsReporter {
+            datastore,
+            styles: Styles::new(false),
+            only_valid: false,
+            audit_context: None,
+        };
 
         let (report_match, _) = sample_report_match(
             "(skip list entry) AWS validation not attempted for account 111122223333.",
@@ -1659,6 +1930,56 @@ mod tests {
         assert!(response.ends_with("..."));
         assert_eq!(response.chars().count(), 515);
         assert!(response.chars().take(512).all(|ch| ch == 'é'));
+    }
+
+    #[test]
+    fn sanitize_command_line_args_redacts_secret_values() {
+        let input = vec![
+            "kingfisher".to_string(),
+            "scan".to_string(),
+            "--token".to_string(),
+            "abcd".to_string(),
+            "--output=report.html".to_string(),
+            "--arg=TOP_SECRET".to_string(),
+            "--var".to_string(),
+            "TOKEN=inline".to_string(),
+            "--path".to_string(),
+            "./repo".to_string(),
+        ];
+        let sanitized = sanitize_command_line_args(&input);
+
+        assert_eq!(sanitized[2], "--token");
+        assert_eq!(sanitized[3], "***REDACTED***");
+        assert_eq!(sanitized[4], "--output=report.html");
+        assert_eq!(sanitized[5], "--arg=***REDACTED***");
+        assert_eq!(sanitized[6], "--var");
+        assert_eq!(sanitized[7], "***REDACTED***");
+    }
+
+    #[test]
+    fn report_envelope_contains_audit_metadata() {
+        let temp = tempdir().unwrap();
+        let datastore =
+            Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
+        let reporter = DetailsReporter {
+            datastore,
+            styles: Styles::new(false),
+            only_valid: false,
+            audit_context: None,
+        };
+
+        let mut args = sample_scan_args();
+        args.input_specifier_args.path_inputs.push(PathBuf::from("/tmp/project"));
+
+        let envelope = reporter.build_report_envelope(&args).expect("build envelope");
+        let metadata = envelope.metadata.expect("metadata should be present");
+
+        assert_eq!(metadata.summary.findings, 0);
+        assert_eq!(metadata.summary.active_findings, 0);
+        assert_eq!(metadata.summary.inactive_findings, 0);
+        assert_eq!(metadata.summary.access_map_identities, 0);
+        assert_eq!(metadata.target.as_deref(), Some("/tmp/project"));
+        assert_eq!(metadata.kingfisher_version, env!("CARGO_PKG_VERSION"));
     }
 
     use super::build_git_urls;

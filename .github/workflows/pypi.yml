@@ -1,8 +1,9 @@
 name: pypi-wheels
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Publish Docker image"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -13,21 +14,25 @@ on:
 jobs:
   build-wheels:
     name: Build PyPI wheels
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success' ||
+      github.run_attempt > 1
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Determine version/tag
         id: version
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
-            TAG="${{ github.event.release.tag_name }}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${{ github.event.inputs.tag }}" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${{ github.event.inputs.tag }}" ]]; then
             TAG="${{ github.event.inputs.tag }}"
           else
             VERSION=$(grep -m1 '^version\s*=' Cargo.toml | cut -d '"' -f2)

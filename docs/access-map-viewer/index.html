@@ -1759,11 +1759,11 @@
       if (!amContainer) return;
       if (collapsed) {
         amContainer.classList.add("hidden");
-        amToggle.textContent = "Expand";
+        if (amToggle) amToggle.textContent = "Expand";
         autoCollapsedAccessMap = auto;
       } else {
         amContainer.classList.remove("hidden");
-        amToggle.textContent = "Collapse";
+        if (amToggle) amToggle.textContent = "Collapse";
         autoCollapsedAccessMap = false;
       }
     }
@@ -2027,10 +2027,22 @@
 
       // Try to extract metadata from the raw report data
       const data = rawData;
-      scanMetadata.timestamp = data.timestamp || data.scan_timestamp || data.generated_at || new Date().toLocaleString();
+      const reportMeta = data.metadata && typeof data.metadata === "object" ? data.metadata : {};
+      scanMetadata.timestamp =
+        reportMeta.scan_timestamp ||
+        reportMeta.generated_at ||
+        data.timestamp ||
+        data.scan_timestamp ||
+        data.generated_at ||
+        new Date().toLocaleString();
 
       // Target info
-      scanMetadata.target = data.target || data.scan_target || data.repository || data.repo ||
+      scanMetadata.target =
+        reportMeta.target ||
+        data.target ||
+        data.scan_target ||
+        data.repository ||
+        data.repo ||
         (data.stats && data.stats.target) ||
         (data.summary && data.summary.target) || "";
 
@@ -2043,8 +2055,45 @@
       }
 
       // Version
-      scanMetadata.version = data.version || data.kingfisher_version ||
+      scanMetadata.version =
+        reportMeta.kingfisher_version ||
+        data.version ||
+        data.kingfisher_version ||
         (data.kingfisher && data.kingfisher.version) || "";
+      scanMetadata.latestVersion =
+        reportMeta.latest_version_available ||
+        (data.kingfisher && data.kingfisher.latest_version) || "";
+      scanMetadata.updateCheckStatus =
+        reportMeta.update_check_status ||
+        (data.kingfisher && data.kingfisher.update_check_status) || "";
+
+      // Sanitized command-line arguments (when present)
+      const cliArgs = reportMeta.command_line_args;
+      if (Array.isArray(cliArgs) && cliArgs.length > 0) {
+        scanMetadata.commandLineArgs = cliArgs.map((arg) => String(arg));
+      }
+
+      const reportSummary = reportMeta.summary && typeof reportMeta.summary === "object"
+        ? reportMeta.summary
+        : null;
+      if (reportSummary) {
+        scanMetadata.summary = {
+          findings: Number(reportSummary.findings || 0),
+          active: Number(reportSummary.active_findings || 0),
+          inactive: Number(reportSummary.inactive_findings || 0),
+          unknown: Number(reportSummary.unknown_validation_findings || 0),
+          identities: Number(reportSummary.access_map_identities || 0),
+          rulesApplied: Number(reportSummary.rules_applied || 0),
+          confidenceLevel: reportSummary.confidence_level ? String(reportSummary.confidence_level) : "",
+          customRulesUsed: Boolean(reportSummary.custom_rules_used),
+          successfulValidations: Number(reportSummary.successful_validations || 0),
+          failedValidations: Number(reportSummary.failed_validations || 0),
+          skippedValidations: Number(reportSummary.skipped_validations || 0),
+          blobsScanned: Number(reportSummary.blobs_scanned || 0),
+          bytesScanned: Number(reportSummary.bytes_scanned || 0),
+          scanDurationSeconds: Number(reportSummary.scan_duration_seconds || 0),
+        };
+      }
 
       // Bytes scanned
       const bytes = data.bytes_scanned ||
@@ -2593,8 +2642,40 @@
       if (scanMetadata.target) metaLines.push(`<strong>Target:</strong> ${escapeHtml(scanMetadata.target)}`);
       if (scanMetadata.duration) metaLines.push(`<strong>Duration:</strong> ${escapeHtml(scanMetadata.duration)}`);
       if (scanMetadata.version) metaLines.push(`<strong>Version:</strong> ${escapeHtml(scanMetadata.version)}`);
+      if (scanMetadata.latestVersion) metaLines.push(`<strong>Latest:</strong> ${escapeHtml(scanMetadata.latestVersion)}`);
+      if (scanMetadata.updateCheckStatus) metaLines.push(`<strong>Update Check:</strong> ${escapeHtml(scanMetadata.updateCheckStatus)}`);
+      if (scanMetadata.summary && scanMetadata.summary.rulesApplied > 0) {
+        metaLines.push(`<strong>Rules Applied:</strong> ${scanMetadata.summary.rulesApplied}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.confidenceLevel) {
+        metaLines.push(`<strong>Confidence:</strong> ${escapeHtml(scanMetadata.summary.confidenceLevel)}`);
+      }
+      if (scanMetadata.summary) {
+        metaLines.push(`<strong>Custom Rules:</strong> ${scanMetadata.summary.customRulesUsed ? "Yes" : "No"}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.successfulValidations) {
+        metaLines.push(`<strong>Successful Validations:</strong> ${scanMetadata.summary.successfulValidations}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.failedValidations) {
+        metaLines.push(`<strong>Failed Validations:</strong> ${scanMetadata.summary.failedValidations}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.skippedValidations) {
+        metaLines.push(`<strong>Skipped Validations:</strong> ${scanMetadata.summary.skippedValidations}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.blobsScanned) {
+        metaLines.push(`<strong>Blobs Scanned:</strong> ${scanMetadata.summary.blobsScanned}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.bytesScanned) {
+        metaLines.push(`<strong>Bytes Scanned:</strong> ${escapeHtml(formatBytes(scanMetadata.summary.bytesScanned))}`);
+      }
+      if (scanMetadata.summary && scanMetadata.summary.scanDurationSeconds) {
+        metaLines.push(`<strong>Scan Duration:</strong> ${escapeHtml(scanMetadata.summary.scanDurationSeconds.toFixed(3) + "s")}`);
+      }
+      const cliArgsHtml = scanMetadata.commandLineArgs && scanMetadata.commandLineArgs.length
+        ? `<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px;">Sanitized command-line arguments</div><pre style="margin:0;padding:10px 12px;background:#0f172a;color:#e2e8f0;border-radius:8px;white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.5;">${escapeHtml(scanMetadata.commandLineArgs.join(" "))}</pre></div>`
+        : "";
       const metaHtml = metaLines.length
-        ? `<div style="display:flex;flex-wrap:wrap;gap:16px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:12px;margin-bottom:16px;">${metaLines.join('<span style="color:#cbd5e1;">|</span>')}</div>`
+        ? `<div style="display:flex;flex-wrap:wrap;gap:16px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:12px;margin-bottom:16px;">${metaLines.join('<span style="color:#cbd5e1;">|</span>')}</div>${cliArgsHtml}`
         : "";
 
       // Executive summary

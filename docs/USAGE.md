@@ -72,6 +72,14 @@ kingfisher scan . --format json | tee kingfisher.json
 kingfisher scan /path/to/repo --format sarif --output findings.sarif
 ```
 
+### Generate an auditor-friendly HTML report
+
+```bash
+kingfisher scan /path/to/repo --format html --output kingfisher-audit.html
+```
+
+The HTML audit report is standalone and includes scan metadata designed for evidence workflows, including scan timestamp, sanitized CLI arguments, version, and finding summary counts.
+
 ### Access map outputs and viewer
 
 **Stop Guessing, Start Mapping: Understand Your True Blast Radius**

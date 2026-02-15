@@ -410,6 +410,15 @@ impl<V> BlobIdMap<V> {
     pub fn is_empty(&self) -> bool {
         self.maps.iter().all(|m| m.lock().is_empty())
     }
+
+    /// Removes all entries from the map.
+    ///
+    /// Note: This locks each shard in sequence.
+    pub fn clear(&self) {
+        for map in &self.maps {
+            map.lock().clear();
+        }
+    }
 }
 
 impl<V: Copy> BlobIdMap<V> {

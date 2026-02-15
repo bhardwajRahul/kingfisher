@@ -114,6 +114,7 @@ fn reporter_deduplicates_across_git_commits() -> Result<()> {
         datastore: Arc::new(Mutex::new(FindingsStore::new(PathBuf::from("/tmp")))),
         styles: Styles::new(false),
         only_valid: false,
+        audit_context: None,
     };
 
     let matches = vec![
@@ -172,6 +173,7 @@ fn dedup_preserves_distinct_rules_with_same_fingerprint() -> Result<()> {
         datastore: Arc::new(Mutex::new(FindingsStore::new(PathBuf::from("/tmp")))),
         styles: Styles::new(false),
         only_valid: false,
+        audit_context: None,
     };
 
     let matches = vec![

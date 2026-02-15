@@ -29,6 +29,7 @@ static GLOBAL: System = System;
 use std::{
     io::{IsTerminal, Read, Write},
     sync::{Arc, Mutex},
+    time::Instant,
 };
 
 use anyhow::{Context, Result};
@@ -51,7 +52,7 @@ use kingfisher::{
     direct_revoke, direct_validate, findings_store,
     findings_store::FindingsStore,
     gitea, github, huggingface,
-    reporter::{styles::Styles, DetailsReporter},
+    reporter::{styles::Styles, DetailsReporter, ScanAuditContext},
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
@@ -237,6 +238,11 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
             match command {
                 Command::Scan(scan_command) => match scan_command.into_operation()? {
                     ScanOperation::Scan(mut scan_args) => {
+                        if scan_args.view_report {
+                            view::ensure_port_available(view::DEFAULT_PORT)?;
+                        }
+                        let view_scan_started_at = chrono::Local::now();
+                        let view_scan_start_time = Instant::now();
                         let temp_dir =
                             TempDir::new().context("Failed to create temporary directory")?;
                         let temp_dir_path = temp_dir.path().to_path_buf();
@@ -287,10 +293,28 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         let exit_code = determine_exit_code(&datastore);
 
                         if scan_args.view_report {
+                            let audit_context = ScanAuditContext {
+                                scan_timestamp: Some(view_scan_started_at.to_rfc3339()),
+                                scan_duration_seconds: Some(
+                                    view_scan_start_time.elapsed().as_secs_f64(),
+                                ),
+                                rules_applied: Some(rules_db.num_rules()),
+                                successful_validations: None,
+                                failed_validations: None,
+                                skipped_validations: None,
+                                blobs_scanned: None,
+                                bytes_scanned: None,
+                                running_version: Some(update_status.running_version.clone()),
+                                latest_version: update_status.latest_version.clone(),
+                                update_check_status: Some(
+                                    update_status.check_status.as_str().to_string(),
+                                ),
+                            };
                             let reporter = DetailsReporter {
                                 datastore: Arc::clone(&datastore),
                                 styles: Styles::new(global_args.use_color(std::io::stdout())),
                                 only_valid: scan_args.only_valid,
+                                audit_context: Some(audit_context),
                             };
                             let envelope = reporter.build_report_envelope(&scan_args)?;
                             let report_bytes = serde_json::to_vec_pretty(&envelope)?;

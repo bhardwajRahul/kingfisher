@@ -52,6 +52,9 @@ pub enum ReportOutputFormat {
 
     /// SARIF format (experimental)
     Sarif,
+
+    /// Standalone HTML audit report
+    Html,
 }
 
 // -----------------------------------------------------------------------------

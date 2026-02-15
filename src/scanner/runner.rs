@@ -430,6 +430,7 @@ fn deduplicate_new_matches(
         datastore: Arc::clone(store),
         styles: Styles::new(global_args.use_color(std::io::stdout())),
         only_valid: args.only_valid,
+        audit_context: None,
     };
 
     let all_matches = reporter.get_unfiltered_matches(Some(false))?;
@@ -454,6 +455,31 @@ fn deduplicate_new_matches(
         ds.replace_matches(preserved);
     }
     Ok(())
+}
+
+fn build_scan_audit_context(
+    args: &scan::ScanArgs,
+    rules_db: &RulesDatabase,
+    matcher_stats: &Arc<Mutex<MatcherStats>>,
+    datastore: &Arc<Mutex<FindingsStore>>,
+    start_time: Instant,
+    scan_started_at: chrono::DateTime<chrono::Local>,
+    update_status: &crate::update::UpdateStatus,
+) -> crate::reporter::ScanAuditContext {
+    let totals = compute_scan_totals(datastore, args, matcher_stats.as_ref());
+    crate::reporter::ScanAuditContext {
+        scan_timestamp: Some(scan_started_at.to_rfc3339()),
+        scan_duration_seconds: Some(start_time.elapsed().as_secs_f64()),
+        rules_applied: Some(rules_db.num_rules()),
+        successful_validations: Some(totals.successful_validations),
+        failed_validations: Some(totals.failed_validations),
+        skipped_validations: Some(totals.skipped_validations),
+        blobs_scanned: Some(totals.blobs_scanned),
+        bytes_scanned: Some(totals.bytes_scanned),
+        running_version: Some(update_status.running_version.clone()),
+        latest_version: update_status.latest_version.clone(),
+        update_check_status: Some(update_status.check_status.as_str().to_string()),
+    }
 }
 
 /// Applies baseline filtering if configured.
@@ -566,7 +592,16 @@ async fn run_sequential_scan(
         finalize_access_map(datastore, collector, args).await?;
     }
 
-    crate::reporter::run(global_args, Arc::clone(datastore), args)
+    let audit_context = build_scan_audit_context(
+        args,
+        rules_db,
+        matcher_stats,
+        datastore,
+        start_time,
+        scan_started_at,
+        update_status,
+    );
+    crate::reporter::run(global_args, Arc::clone(datastore), args, Some(audit_context))
         .context("Failed to run report command")?;
     print_scan_summary(
         start_time,
@@ -727,8 +762,13 @@ async fn run_parallel_scan(
                         }
 
                         if !output_to_file {
-                            crate::reporter::run(global_args, Arc::clone(&repo_datastore), &args)
-                                .context("Failed to run report command")?;
+                            crate::reporter::run(
+                                global_args,
+                                Arc::clone(&repo_datastore),
+                                &args,
+                                None,
+                            )
+                            .context("Failed to run report command")?;
                         }
 
                         {
@@ -765,7 +805,16 @@ async fn run_parallel_scan(
     }
 
     if output_to_file && ran_repo_scan.load(Ordering::Relaxed) {
-        crate::reporter::run(global_args, Arc::clone(datastore), args)
+        let audit_context = build_scan_audit_context(
+            args,
+            rules_db,
+            matcher_stats,
+            datastore,
+            start_time,
+            scan_started_at,
+            update_status,
+        );
+        crate::reporter::run(global_args, Arc::clone(datastore), args, Some(audit_context))
             .context("Failed to run report command")?;
     }
 
@@ -780,7 +829,16 @@ async fn run_parallel_scan(
             finalize_access_map(datastore, collector, args).await?;
         }
 
-        crate::reporter::run(global_args, Arc::clone(datastore), args)
+        let audit_context = build_scan_audit_context(
+            args,
+            rules_db,
+            matcher_stats,
+            datastore,
+            start_time,
+            scan_started_at,
+            update_status,
+        );
+        crate::reporter::run(global_args, Arc::clone(datastore), args, Some(audit_context))
             .context("Failed to run report command")?;
     }
 
