@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      
+
       # Free up disk space on Ubuntu runners
       - name: Free Disk Space
         run: |
@@ -107,13 +107,13 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
           df -h
-      
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           profile: minimal
           override: true
-      
+
       - uses: swatinem/rust-cache@v2
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
@@ -302,7 +302,6 @@ jobs:
           }
 
           Get-ChildItem $env:VCPKG_DOWNLOADS
-
 
       - uses: swatinem/rust-cache@v2
         with:
