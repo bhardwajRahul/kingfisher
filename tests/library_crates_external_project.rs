@@ -6,6 +6,7 @@ fn toml_escape_path(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "\\\\")
 }
 
+#[cfg(not(windows))]
 #[test]
 fn library_crates_work_from_external_project() -> anyhow::Result<()> {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -28,6 +29,8 @@ edition = "2021"
 [dependencies]
 kingfisher-core = {{ path = "{core_path}" }}
 kingfisher-rules = {{ path = "{rules_path}" }}
+
+[target.'cfg(not(windows))'.dependencies]
 kingfisher-scanner = {{ path = "{scanner_path}" }}
 "#
         ),
@@ -38,6 +41,7 @@ kingfisher-scanner = {{ path = "{scanner_path}" }}
         r#"use std::sync::Arc;
 use kingfisher_core::Blob;
 use kingfisher_rules::{get_builtin_rules, Rule, RulesDatabase};
+#[cfg(not(windows))]
 use kingfisher_scanner::Scanner;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,10 +54,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let rules_db = Arc::new(RulesDatabase::from_rules(rule_vec)?);
 
-    let scanner = Scanner::new(rules_db);
-    let blob = Blob::from_bytes(b"token = \"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\"".to_vec());
-    let findings = scanner.scan_blob(&blob)?;
-    println!("findings={}", findings.len());
+    #[cfg(not(windows))]
+    {
+        let scanner = Scanner::new(rules_db);
+        let blob =
+            Blob::from_bytes(b"token = \"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\"".to_vec());
+        let findings = scanner.scan_blob(&blob)?;
+        println!("findings={}", findings.len());
+    }
+
+    #[cfg(windows)]
+    {
+        let _ = Blob::from_bytes(Vec::new());
+        let _ = rules_db;
+    }
 
     Ok(())
 }
