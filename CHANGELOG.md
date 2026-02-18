@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.84.0]
+- Added/updated `pipedrive` and `amplitude` rules
+
 ## [v1.83.0]
 - Kingfisher can now generate an auditor-friendly HTML report: `--format html --output kingfisher-audit.html`
 - Architecture: split `matcher.rs` into a `src/matcher/` module directory with focused sub-modules (`base64_decode`, `captures`, `conversion`, `dedup`, `filter`, `fingerprint`). Decomposed `filter_match` into smaller validation helpers.
