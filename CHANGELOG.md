@@ -8,6 +8,11 @@ All notable changes to this project will be documented in this file.
 - Access Map: added Harness provider. Uses `x-api-key` authentication to enumerate organizations/projects when permitted (best-effort).
 - Access Map CLI: added providers `buildkite`, `harness`.
 - Reports: omit `validate`/`revoke` command hints when required template vars are missing (prevents suggesting unrunnable commands, e.g. Harness `ACCOUNTIDENTIFIER`).
+- Access Map GCP: added resource enumeration for Cloud KMS key rings, Cloud Functions, Firestore databases, Cloud Spanner instances, and project service accounts.
+- Access Map GCP: populated `token_details` with service account metadata (display name, unique ID, disabled status).
+- Access Map GCP: fixed BigQuery and Secret Manager risk assessment to detect write permissions and `secretmanager.versions.access`.
+- Access Map GCP: added risk notes for KMS decrypt, Cloud Functions deploy, instance metadata injection, and secret value read access.
+- Access Map GCP: expanded `testIamPermissions` fallback with 11 additional permission candidates.
 
 ## [v1.83.0]
 - Kingfisher can now generate an auditor-friendly HTML report: `--format html --output kingfisher-audit.html`
