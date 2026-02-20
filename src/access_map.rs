@@ -4,19 +4,25 @@ use serde::Serialize;
 
 use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
 
+mod anthropic;
 mod aws;
 mod azure;
 mod azure_devops;
 mod bitbucket;
+mod buildkite;
 mod gcp;
 mod gitea;
 mod github;
 mod gitlab;
+mod harness;
 mod huggingface;
 pub(crate) mod mongodb;
+mod openai;
 pub(crate) mod postgres;
 mod report;
+mod salesforce;
 mod slack;
+mod weightsandbiases;
 
 /// Trait for access map providers that map a single token to an access profile.
 ///
@@ -48,6 +54,12 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Huggingface => huggingface::map_access(&args).await?,
         AccessMapProvider::Gitea => gitea::map_access(&args).await?,
         AccessMapProvider::Bitbucket => bitbucket::map_access(&args).await?,
+        AccessMapProvider::Buildkite => buildkite::map_access(&args).await?,
+        AccessMapProvider::Harness => harness::map_access(&args).await?,
+        AccessMapProvider::Openai => openai::map_access(&args).await?,
+        AccessMapProvider::Anthropic => anthropic::map_access(&args).await?,
+        AccessMapProvider::Salesforce => salesforce::map_access(&args).await?,
+        AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -96,6 +108,18 @@ pub enum AccessMapRequest {
     Gitea { token: String, fingerprint: String },
     /// A Bitbucket token.
     Bitbucket { token: String, fingerprint: String },
+    /// A Buildkite token.
+    Buildkite { token: String, fingerprint: String },
+    /// A Harness API token (x-api-key).
+    Harness { token: String, fingerprint: String },
+    /// An OpenAI API token.
+    OpenAI { token: String, fingerprint: String },
+    /// An Anthropic API token.
+    Anthropic { token: String, fingerprint: String },
+    /// A Salesforce access token plus instance domain.
+    Salesforce { token: String, instance: String, fingerprint: String },
+    /// A Weights & Biases API token.
+    WeightsAndBiases { token: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -290,6 +314,27 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
             AccessMapRequest::Bitbucket { token, fingerprint } => {
                 (map_token(&BitbucketMapper, &token).await, fingerprint)
             }
+            AccessMapRequest::Buildkite { token, fingerprint } => {
+                (map_token(&BuildkiteMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Harness { token, fingerprint } => {
+                (map_token(&HarnessMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::OpenAI { token, fingerprint } => {
+                (map_token(&OpenAiMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Anthropic { token, fingerprint } => {
+                (map_token(&AnthropicMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Salesforce { token, instance, fingerprint } => (
+                salesforce::map_access_from_token_and_instance(&token, &instance)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("salesforce", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::WeightsAndBiases { token, fingerprint } => {
+                (map_token(&WeightsAndBiasesMapper, &token).await, fingerprint)
+            }
         };
 
         mapped.fingerprint = Some(fp);
@@ -392,6 +437,71 @@ impl TokenAccessMapper for BitbucketMapper {
 
     async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
         bitbucket::map_access_from_token(token).await
+    }
+}
+
+/// Buildkite access mapper.
+pub struct BuildkiteMapper;
+
+impl TokenAccessMapper for BuildkiteMapper {
+    fn cloud_name(&self) -> &'static str {
+        "buildkite"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        buildkite::map_access_from_token(token).await
+    }
+}
+
+/// Harness access mapper.
+pub struct HarnessMapper;
+
+impl TokenAccessMapper for HarnessMapper {
+    fn cloud_name(&self) -> &'static str {
+        "harness"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        harness::map_access_from_token(token).await
+    }
+}
+
+/// OpenAI access mapper.
+pub struct OpenAiMapper;
+
+impl TokenAccessMapper for OpenAiMapper {
+    fn cloud_name(&self) -> &'static str {
+        "openai"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        openai::map_access_from_token(token).await
+    }
+}
+
+/// Anthropic access mapper.
+pub struct AnthropicMapper;
+
+impl TokenAccessMapper for AnthropicMapper {
+    fn cloud_name(&self) -> &'static str {
+        "anthropic"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        anthropic::map_access_from_token(token).await
+    }
+}
+
+/// Weights & Biases access mapper.
+pub struct WeightsAndBiasesMapper;
+
+impl TokenAccessMapper for WeightsAndBiasesMapper {
+    fn cloud_name(&self) -> &'static str {
+        "weightsandbiases"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        weightsandbiases::map_access_from_token(token).await
     }
 }
 

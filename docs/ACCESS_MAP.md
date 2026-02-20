@@ -218,8 +218,129 @@ kingfisher access-map bitbucket ./bitbucket.token --json-out bitbucket.access-ma
 - Access map uses `https://api.bitbucket.org/2.0` as the API base.
 - Workspace owners are classified as High severity.
 
+### Buildkite (`buildkite`)
+
+- **Credential**: a single Buildkite API token string (read from a file for `kingfisher access-map buildkite <FILE>`).
+- **Token types supported**: tokens accepted by Buildkite's REST API with `Authorization: Bearer <TOKEN>` (API access tokens, commonly `bkua_...`).
+
+Kingfisher queries `/v2/access-token` for token metadata and scopes, `/v2/user` for identity, `/v2/organizations` for organization memberships, and `/v2/organizations/{org}/pipelines` for pipeline enumeration. Token scopes and organization access are used to classify risk.
+
+#### Standalone example (Buildkite)
+
+```bash
+printf '%s' 'bkua_example...' > ./buildkite.token
+kingfisher access-map buildkite ./buildkite.token --json-out buildkite.access-map.json
+```
+
+#### Notes (Buildkite)
+
+- Access map uses `https://api.buildkite.com/v2` as the API base.
+- Tokens with `write_organizations` or `write_teams` scopes are classified as High severity.
+
+### Harness (`harness`)
+
+- **Credential**: a single Harness API key / personal access token (PAT) string (read from a file for `kingfisher access-map harness <FILE>`).
+- **Auth header**: Harness APIs authenticate via `x-api-key: <TOKEN>` (see the Harness API docs).
+
+Kingfisher performs best-effort, read-only enumeration:
+
+- Queries the API key aggregate endpoint for basic token metadata (when available).
+- Enumerates organizations via `GET https://app.harness.io/v1/orgs` and projects via `GET https://app.harness.io/v1/orgs/{org}/projects` when the key has permission.
+
+If organizations/projects are not enumerable (scope-limited keys), Kingfisher still produces an access-map record with a conservative severity and a note explaining the limitation.
+
+#### Standalone example (Harness)
+
+```bash
+printf '%s' 'pat.example...' > ./harness.token
+kingfisher access-map harness ./harness.token --json-out harness.access-map.json
+```
+
+#### Notes (Harness)
+
+- Access map uses `https://app.harness.io` as the API base.
+
+### OpenAI (`openai`)
+
+- **Credential**: a single OpenAI API key string (read from a file for `kingfisher access-map openai <FILE>`).
+- **Token types supported**: OpenAI keys accepted by `Authorization: Bearer <TOKEN>` (for example `sk-...`, `sk-proj-...`, `sk-svcacct-...`).
+
+Kingfisher performs read-only scope probing via:
+
+- `GET https://api.openai.com/v1/models` to verify Models API read access and infer organization ownership (it does not enumerate or emit individual model resources in the access map).
+- `GET https://api.openai.com/v1/me` for token identity metadata when available.
+- `GET https://api.openai.com/v1/organization/projects` for project visibility when the key has permission (best-effort).
+
+#### Standalone example (OpenAI)
+
+```bash
+printf '%s' 'sk-example...' > ./openai.token
+kingfisher access-map openai ./openai.token --json-out openai.access-map.json
+```
+
+#### Notes (OpenAI)
+
+- Access map uses `https://api.openai.com/v1` as the API base.
+
+### Salesforce (`salesforce`)
+
+- **Credential**: Salesforce access token plus instance domain.
+- **Supported standalone formats** for `kingfisher access-map salesforce <FILE>`:
+  - JSON:
+    - `token` (or `access_token`)
+    - `instance_url` (or `instance`), such as `https://mydomain.my.salesforce.com`
+  - Free-form text containing both:
+    - a Salesforce access token (`00...!...`)
+    - an instance host (`<instance>.my.salesforce.com`)
+
+Kingfisher performs read-only enumeration via:
+
+- `GET /services/data/v60.0/limits` to confirm API access and gather account-level API context.
+- `GET /services/oauth2/userinfo` for identity metadata when available.
+- `GET /services/data/v60.0/sobjects` for visible object metadata (best-effort).
+
+#### Standalone example (Salesforce)
+
+```bash
+cat > ./salesforce.json <<'EOF'
+{
+  "token": "00DE0X0A0M0PeLE!AQcAQH0dMHEXAMPLE...",
+  "instance_url": "https://mydomain.my.salesforce.com"
+}
+EOF
+
+kingfisher access-map salesforce ./salesforce.json --json-out salesforce.access-map.json
+```
+
+#### Notes (Salesforce)
+
+- Access map currently targets `https://<instance>.my.salesforce.com` and API version `v60.0`.
+
+### Weights & Biases (`weightsandbiases` / `wandb`)
+
+- **Credential**: a single Weights & Biases API key string (read from a file for `kingfisher access-map weightsandbiases <FILE>`).
+- **Token types supported**:
+  - Legacy 40-character hex API keys
+  - New v1 keys (`wandb_v1_...`)
+
+Kingfisher performs read-only identity resolution via:
+
+- `POST https://api.wandb.ai/graphql` with a GraphQL `viewer` query.
+
+#### Standalone example (Weights & Biases)
+
+```bash
+printf '%s' 'wandb_v1_example...' > ./wandb.token
+kingfisher access-map weightsandbiases ./wandb.token --json-out wandb.access-map.json
+```
+
+#### Notes (Weights & Biases)
+
+- Access map uses `https://api.wandb.ai/graphql` as the API endpoint.
+- W&B key introspection does not currently expose fine-grained scopes in this workflow, so risk is reported conservatively.
+
 ## Notes on access-map generation during `scan --access-map`
 
 - Access-map entries are only recorded for **validated** findings.
 - Some providers require extra context that Kingfisher infers from the finding context or validation response (for example, Azure DevOps organization name).
-- Validated Hugging Face, Gitea, and Bitbucket credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.
+- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, and Weights & Biases credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.

@@ -6,13 +6,15 @@ rules:
       \b
       (
         pat\.
-        [A-Z0-9]{22}
+        [A-Z0-9_-]{22}
         \.
         [0-9a-f]{24}
         \.
         [A-Z0-9]{20}
       )
       \b
+    pattern_requirements:
+      min_digits: 4
     min_entropy: 3.4
     confidence: medium
     examples:
@@ -25,13 +27,64 @@ rules:
       content:
         request:
           method: GET
-          url: https://app.harness.io/ng/api/apikey/aggregate
+          # Use an endpoint that does not require additional query params.
+          url: https://app.harness.io/v1/orgs?limit=1&page=1
           headers:
             Accept: application/json
             x-api-key: "{{ TOKEN }}"
           response_matcher:
-            # Valid token + authorized OR valid token but missing params/perms
+            - report_response: true
+            # 403 can still mean a live token with restricted scope.
             - type: StatusMatch
-              status: [200, 400, 403]
+              status: [200, 403]
+            - type: StatusMatch
+              status: [401]
               negative: true
             - type: JsonValid
+
+    # Self-revocation support (delete the backing API key).
+    #
+    # Harness exposes DELETE /ng/api/apikey/{identifier}, authenticated with x-api-key,
+    # and requires accountIdentifier/apiKeyType/parentIdentifier query parameters.
+    #
+    # Required runtime vars for revoke command:
+    #   - ACCOUNTIDENTIFIER: Harness account ID
+    #
+    # API key metadata is derived from token validation in step 1.
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: validate_token_and_extract_api_key
+            request:
+              method: POST
+              url: https://app.harness.io/ng/api/token/validate?accountIdentifier={{ ACCOUNTIDENTIFIER }}
+              headers:
+                Accept: application/json
+                x-api-key: "{{ TOKEN }}"
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              APIKEYIDENTIFIER:
+                type: JsonPath
+                path: "$.data.apiKeyIdentifier"
+              PARENTIDENTIFIER:
+                type: JsonPath
+                path: "$.data.parentIdentifier"
+              APIKEYTYPE:
+                type: JsonPath
+                path: "$.data.apiKeyType"
+
+          - name: delete_api_key
+            request:
+              method: DELETE
+              url: https://app.harness.io/ng/api/apikey/{{ APIKEYIDENTIFIER }}?accountIdentifier={{ ACCOUNTIDENTIFIER }}&apiKeyType={{ APIKEYTYPE }}&parentIdentifier={{ PARENTIDENTIFIER }}
+              headers:
+                Accept: application/json
+                x-api-key: "{{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200, 204]

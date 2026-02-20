@@ -2,10 +2,10 @@ rules:
   - name: Artifactory Access Token
     id: kingfisher.artifactory.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        AKC[A-Z0-9]{64,74}
+        AKC[A-Za-z0-9]{66,72}
       )
       \b
     pattern_requirements:
@@ -67,10 +67,10 @@ rules:
   - name: Artifactory Identity Reference Token
     id: kingfisher.artifactory.3
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        cmVmd[A-Z0-9]{59}
+        cmVmd[A-Za-z0-9]{59}
       )
       \b
     pattern_requirements:

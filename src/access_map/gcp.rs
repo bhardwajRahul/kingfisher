@@ -25,7 +25,7 @@ struct Ancestor {
 
 use super::{
     build_default_resource, build_recommendations, AccessMapResult, AccessSummary,
-    PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    AccessTokenDetails, PermissionSummary, ResourceExposure, RoleBinding, Severity,
 };
 
 pub async fn map_access(credential_path: Option<&Path>) -> Result<AccessMapResult> {
@@ -47,18 +47,17 @@ pub async fn map_access_from_json(data: &str) -> Result<AccessMapResult> {
     let mut project_id =
         if token_context.project_id.is_empty() { None } else { Some(token_context.project_id) };
 
-    if project_id.is_none() {
-        project_id = match fetch_service_account_project(&http_client, &access_token, &client_email)
-            .await
-        {
-            Ok(value) => value,
+    let sa_metadata =
+        match fetch_service_account_metadata(&http_client, &access_token, &client_email).await {
+            Ok(meta) => meta,
             Err(err) => {
-                verbose_warn!(
-                    "GCP access-map: failed to fetch service account metadata for project discovery: {err}"
-                );
-                None
+                verbose_warn!("GCP access-map: failed to fetch service account metadata: {err}");
+                ServiceAccountMetadata::default()
             }
         };
+
+    if project_id.is_none() {
+        project_id = sa_metadata.project_id.clone();
     }
 
     let mut roles = Vec::new();
@@ -178,7 +177,7 @@ pub async fn map_access_from_json(data: &str) -> Result<AccessMapResult> {
     }
 
     let identity = AccessSummary {
-        id: client_email,
+        id: client_email.clone(),
         access_type: "service_account".into(),
         project: project_id.clone(),
         tenant: None,
@@ -187,8 +186,20 @@ pub async fn map_access_from_json(data: &str) -> Result<AccessMapResult> {
 
     let mut risk_notes = derive_risk_notes(&roles, &permissions);
     risk_notes.extend(impersonation_notes);
+    if sa_metadata.is_disabled {
+        risk_notes.push("Service account is disabled but key is still valid".into());
+    }
 
     let recommendations = build_recommendations(severity);
+
+    let token_details = Some(AccessTokenDetails {
+        name: sa_metadata.display_name,
+        username: Some(client_email),
+        account_type: Some("service_account".into()),
+        token_type: Some("service_account_key".into()),
+        user_id: sa_metadata.unique_id,
+        ..Default::default()
+    });
 
     Ok(AccessMapResult {
         cloud: "gcp".into(),
@@ -199,7 +210,7 @@ pub async fn map_access_from_json(data: &str) -> Result<AccessMapResult> {
         severity,
         recommendations,
         risk_notes,
-        token_details: None,
+        token_details,
         provider_metadata: None,
         fingerprint: None,
     })
@@ -405,12 +416,19 @@ async fn fetch_ancestor_policy(
     ))
 }
 
-async fn fetch_service_account_project(
+#[derive(Debug, Clone, Default)]
+struct ServiceAccountMetadata {
+    project_id: Option<String>,
+    display_name: Option<String>,
+    unique_id: Option<String>,
+    is_disabled: bool,
+}
+
+async fn fetch_service_account_metadata(
     client: &Client,
     token: &str,
     client_email: &str,
-) -> Result<Option<String>> {
-    // Try to pull the service account resource; this works even when IAM policy access is blocked.
+) -> Result<ServiceAccountMetadata> {
     let encoded_email = utf8_percent_encode(client_email, NON_ALPHANUMERIC);
     let url = format!("https://iam.googleapis.com/v1/projects/-/serviceAccounts/{}", encoded_email);
 
@@ -420,12 +438,12 @@ async fn fetch_service_account_project(
 
     if let Some(disabled) = service_disabled_message(&body)? {
         verbose_warn!("GCP access-map: IAM API disabled when fetching metadata for {client_email}: {disabled}");
-        return Ok(None);
+        return Ok(ServiceAccountMetadata::default());
     }
 
     if status == StatusCode::FORBIDDEN {
         verbose_warn!("GCP access-map: service account metadata forbidden for {client_email}");
-        return Ok(None);
+        return Ok(ServiceAccountMetadata::default());
     }
 
     if !status.is_success() {
@@ -437,7 +455,12 @@ async fn fetch_service_account_project(
     }
 
     let json: Value = serde_json::from_slice(&body)?;
-    Ok(json.get("projectId").and_then(|p| p.as_str()).map(|s| s.to_string()))
+    Ok(ServiceAccountMetadata {
+        project_id: json.get("projectId").and_then(|p| p.as_str()).map(|s| s.to_string()),
+        display_name: json.get("displayName").and_then(|d| d.as_str()).map(|s| s.to_string()),
+        unique_id: json.get("uniqueId").and_then(|u| u.as_str()).map(|s| s.to_string()),
+        is_disabled: json.get("disabled").and_then(|d| d.as_bool()).unwrap_or(false),
+    })
 }
 
 fn extract_roles(policy: &Value, client_email: &str) -> Vec<String> {
@@ -606,6 +629,11 @@ async fn enumerate_resources(
     let mut add_cloud_run = false;
     let mut add_artifact_registry = false;
     let mut add_gke = false;
+    let mut add_cloud_kms = false;
+    let mut add_cloud_functions = false;
+    let mut add_service_accounts = false;
+    let mut add_firestore = false;
+    let mut add_spanner = false;
 
     for perm in permissions
         .risky
@@ -639,6 +667,25 @@ async fn enumerate_resources(
         }
         if perm.starts_with("container.clusters.list") {
             add_gke = true;
+        }
+        if perm.starts_with("cloudkms.cryptoKeys.list")
+            || perm.starts_with("cloudkms.keyRings.list")
+        {
+            add_cloud_kms = true;
+        }
+        if perm.starts_with("cloudfunctions.functions.list") {
+            add_cloud_functions = true;
+        }
+        if perm.starts_with("iam.serviceAccounts.list") {
+            add_service_accounts = true;
+        }
+        if perm.starts_with("datastore.databases.list")
+            || perm.starts_with("datastore.entities.list")
+        {
+            add_firestore = true;
+        }
+        if perm.starts_with("spanner.instances.list") {
+            add_spanner = true;
         }
     }
 
@@ -1001,6 +1048,14 @@ async fn enumerate_resources(
         } else if status.is_success() {
             let json: Value = serde_json::from_slice(&body)?;
             if let Some(items) = json.get("datasets").and_then(|i| i.as_array()) {
+                let writable = perm_set.iter().any(|p| {
+                    p.starts_with("bigquery.tables.update")
+                        || p.starts_with("bigquery.tables.delete")
+                        || p.starts_with("bigquery.jobs.create")
+                        || p.starts_with("bigquery.datasets.update")
+                        || p.starts_with("bigquery.datasets.delete")
+                });
+
                 for dataset in items {
                     if let Some(ds_id) = dataset
                         .get("datasetReference")
@@ -1012,10 +1067,14 @@ async fn enumerate_resources(
                             name: format!("projects/{project_id}/datasets/{ds_id}"),
                             permissions: matching_permissions(
                                 &perm_set,
-                                &["bigquery.datasets.", "bigquery.tables."],
+                                &["bigquery.datasets.", "bigquery.tables.", "bigquery.jobs."],
                             ),
-                            risk: "medium".into(),
-                            reason: "Service account can list BigQuery datasets".into(),
+                            risk: if writable { "high".into() } else { "medium".into() },
+                            reason: if writable {
+                                "Service account can modify BigQuery datasets or run jobs".into()
+                            } else {
+                                "Service account can list BigQuery datasets".into()
+                            },
                         });
                     }
                 }
@@ -1043,10 +1102,26 @@ async fn enumerate_resources(
         } else if status.is_success() {
             let json: Value = serde_json::from_slice(&body)?;
             if let Some(items) = json.get("secrets").and_then(|i| i.as_array()) {
-                let write_access =
-                    perm_set.iter().any(|p| p.contains("secretmanager.secrets.create"));
+                let can_access_values =
+                    perm_set.iter().any(|p| p.contains("secretmanager.versions.access"));
+                let can_write = perm_set.iter().any(|p| {
+                    p.contains("secretmanager.secrets.create")
+                        || p.contains("secretmanager.secrets.update")
+                        || p.contains("secretmanager.versions.add")
+                });
+                let high_risk = can_access_values || can_write;
+
                 for secret in items {
                     if let Some(name) = secret.get("name").and_then(|n| n.as_str()) {
+                        let reason = if can_access_values && can_write {
+                            "Service account can read and write secret values"
+                        } else if can_access_values {
+                            "Service account can read secret values"
+                        } else if can_write {
+                            "Service account can create or modify secrets"
+                        } else {
+                            "Service account can list secrets"
+                        };
                         resources.push(ResourceExposure {
                             resource_type: "secretmanager_secret".into(),
                             name: name.to_string(),
@@ -1054,8 +1129,8 @@ async fn enumerate_resources(
                                 &perm_set,
                                 &["secretmanager.secrets.", "secretmanager.versions."],
                             ),
-                            risk: if write_access { "high".into() } else { "medium".into() },
-                            reason: "Service account can list secrets".into(),
+                            risk: if high_risk { "high".into() } else { "medium".into() },
+                            reason: reason.into(),
                         });
                     }
                 }
@@ -1063,6 +1138,264 @@ async fn enumerate_resources(
         } else if status != StatusCode::FORBIDDEN {
             verbose_warn!(
                 "GCP access-map: Secret Manager enumeration failed: HTTP {} {}",
+                status,
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
+
+    if add_cloud_kms {
+        let url = format!(
+            "https://cloudkms.googleapis.com/v1/projects/{}/locations/-/keyRings",
+            project_id
+        );
+        let resp = client.get(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+        let body = resp.bytes().await?;
+
+        if let Some(disabled) = service_disabled_message(&body)? {
+            verbose_warn!(
+                "GCP access-map: Cloud KMS API disabled for project {project_id}: {disabled}"
+            );
+        } else if status.is_success() {
+            let json: Value = serde_json::from_slice(&body)?;
+            if let Some(key_rings) = json.get("keyRings").and_then(|k| k.as_array()) {
+                let can_decrypt = perm_set
+                    .iter()
+                    .any(|p| p.starts_with("cloudkms.cryptoKeyVersions.useToDecrypt"));
+                let can_encrypt = perm_set
+                    .iter()
+                    .any(|p| p.starts_with("cloudkms.cryptoKeyVersions.useToEncrypt"));
+                let writable = can_decrypt
+                    || perm_set.iter().any(|p| {
+                        p.starts_with("cloudkms.cryptoKeys.create")
+                            || p.starts_with("cloudkms.cryptoKeys.update")
+                    });
+
+                for kr in key_rings {
+                    if let Some(name) = kr.get("name").and_then(|n| n.as_str()) {
+                        let risk = if can_decrypt {
+                            "critical"
+                        } else if writable || can_encrypt {
+                            "high"
+                        } else {
+                            "medium"
+                        };
+                        let reason = if can_decrypt {
+                            "Service account can decrypt data using KMS keys in this key ring"
+                        } else if writable {
+                            "Service account can manage KMS keys in this key ring"
+                        } else {
+                            "Service account can list KMS key rings"
+                        };
+                        resources.push(ResourceExposure {
+                            resource_type: "kms_key_ring".into(),
+                            name: name.to_string(),
+                            permissions: matching_permissions(
+                                &perm_set,
+                                &[
+                                    "cloudkms.cryptoKeys.",
+                                    "cloudkms.keyRings.",
+                                    "cloudkms.cryptoKeyVersions.",
+                                ],
+                            ),
+                            risk: risk.into(),
+                            reason: reason.into(),
+                        });
+                    }
+                }
+            }
+        } else if status != StatusCode::FORBIDDEN {
+            verbose_warn!(
+                "GCP access-map: Cloud KMS enumeration failed: HTTP {} {}",
+                status,
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
+
+    if add_cloud_functions {
+        let url = format!(
+            "https://cloudfunctions.googleapis.com/v2/projects/{}/locations/-/functions",
+            project_id
+        );
+        let resp = client.get(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+        let body = resp.bytes().await?;
+
+        if let Some(disabled) = service_disabled_message(&body)? {
+            verbose_warn!(
+                "GCP access-map: Cloud Functions API disabled for project {project_id}: {disabled}"
+            );
+        } else if status.is_success() {
+            let json: Value = serde_json::from_slice(&body)?;
+            if let Some(items) = json.get("functions").and_then(|f| f.as_array()) {
+                let writable = perm_set.iter().any(|p| {
+                    p.starts_with("cloudfunctions.functions.create")
+                        || p.starts_with("cloudfunctions.functions.update")
+                        || p.starts_with("cloudfunctions.functions.delete")
+                });
+
+                for func in items {
+                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                        resources.push(ResourceExposure {
+                            resource_type: "cloud_function".into(),
+                            name: name.to_string(),
+                            permissions: matching_permissions(
+                                &perm_set,
+                                &["cloudfunctions.functions."],
+                            ),
+                            risk: if writable { "high".into() } else { "medium".into() },
+                            reason: if writable {
+                                "Service account can deploy or modify Cloud Functions (code execution)".into()
+                            } else {
+                                "Service account can list Cloud Functions".into()
+                            },
+                        });
+                    }
+                }
+            }
+        } else if status != StatusCode::FORBIDDEN {
+            verbose_warn!(
+                "GCP access-map: Cloud Functions enumeration failed: HTTP {} {}",
+                status,
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
+
+    if add_service_accounts {
+        let url = format!("https://iam.googleapis.com/v1/projects/{}/serviceAccounts", project_id);
+        let resp = client.get(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+        let body = resp.bytes().await?;
+
+        if let Some(disabled) = service_disabled_message(&body)? {
+            verbose_warn!("GCP access-map: IAM API disabled for project {project_id}: {disabled}");
+        } else if status.is_success() {
+            let json: Value = serde_json::from_slice(&body)?;
+            if let Some(accounts) = json.get("accounts").and_then(|a| a.as_array()) {
+                let can_impersonate = perm_set.iter().any(|p| {
+                    p.contains("serviceAccounts.actAs")
+                        || p.contains("serviceAccounts.getAccessToken")
+                });
+
+                for sa in accounts {
+                    if let Some(email) = sa.get("email").and_then(|e| e.as_str()) {
+                        resources.push(ResourceExposure {
+                            resource_type: "service_account".into(),
+                            name: format!("projects/{project_id}/serviceAccounts/{email}"),
+                            permissions: matching_permissions(
+                                &perm_set,
+                                &["iam.serviceAccounts.", "iam.serviceAccountKeys."],
+                            ),
+                            risk: if can_impersonate { "high".into() } else { "medium".into() },
+                            reason: if can_impersonate {
+                                "Service account visible and potentially impersonatable".into()
+                            } else {
+                                "Service account visible in the project".into()
+                            },
+                        });
+                    }
+                }
+            }
+        } else if status != StatusCode::FORBIDDEN {
+            verbose_warn!(
+                "GCP access-map: service account enumeration failed: HTTP {} {}",
+                status,
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
+
+    if add_firestore {
+        let url = format!("https://firestore.googleapis.com/v1/projects/{}/databases", project_id);
+        let resp = client.get(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+        let body = resp.bytes().await?;
+
+        if let Some(disabled) = service_disabled_message(&body)? {
+            verbose_warn!(
+                "GCP access-map: Firestore API disabled for project {project_id}: {disabled}"
+            );
+        } else if status.is_success() {
+            let json: Value = serde_json::from_slice(&body)?;
+            if let Some(databases) = json.get("databases").and_then(|d| d.as_array()) {
+                let writable = perm_set.iter().any(|p| {
+                    p.starts_with("datastore.entities.create")
+                        || p.starts_with("datastore.entities.update")
+                        || p.starts_with("datastore.entities.delete")
+                });
+
+                for db in databases {
+                    if let Some(name) = db.get("name").and_then(|n| n.as_str()) {
+                        resources.push(ResourceExposure {
+                            resource_type: "firestore_database".into(),
+                            name: name.to_string(),
+                            permissions: matching_permissions(
+                                &perm_set,
+                                &["datastore.databases.", "datastore.entities."],
+                            ),
+                            risk: if writable { "high".into() } else { "medium".into() },
+                            reason: if writable {
+                                "Service account can read and write Firestore data".into()
+                            } else {
+                                "Service account can list Firestore databases".into()
+                            },
+                        });
+                    }
+                }
+            }
+        } else if status != StatusCode::FORBIDDEN {
+            verbose_warn!(
+                "GCP access-map: Firestore enumeration failed: HTTP {} {}",
+                status,
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
+
+    if add_spanner {
+        let url = format!("https://spanner.googleapis.com/v1/projects/{}/instances", project_id);
+        let resp = client.get(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+        let body = resp.bytes().await?;
+
+        if let Some(disabled) = service_disabled_message(&body)? {
+            verbose_warn!(
+                "GCP access-map: Cloud Spanner API disabled for project {project_id}: {disabled}"
+            );
+        } else if status.is_success() {
+            let json: Value = serde_json::from_slice(&body)?;
+            if let Some(instances) = json.get("instances").and_then(|i| i.as_array()) {
+                let writable = perm_set.iter().any(|p| {
+                    p.starts_with("spanner.instances.update")
+                        || p.starts_with("spanner.instances.create")
+                        || p.starts_with("spanner.databases.write")
+                });
+
+                for instance in instances {
+                    if let Some(name) = instance.get("name").and_then(|n| n.as_str()) {
+                        resources.push(ResourceExposure {
+                            resource_type: "spanner_instance".into(),
+                            name: name.to_string(),
+                            permissions: matching_permissions(
+                                &perm_set,
+                                &["spanner.instances.", "spanner.databases."],
+                            ),
+                            risk: if writable { "high".into() } else { "medium".into() },
+                            reason: if writable {
+                                "Service account can manage Cloud Spanner instances".into()
+                            } else {
+                                "Service account can list Cloud Spanner instances".into()
+                            },
+                        });
+                    }
+                }
+            }
+        } else if status != StatusCode::FORBIDDEN {
+            verbose_warn!(
+                "GCP access-map: Cloud Spanner enumeration failed: HTTP {} {}",
                 status,
                 String::from_utf8_lossy(&body)
             );
@@ -1168,6 +1501,21 @@ fn derive_risk_notes(roles: &[RoleBinding], permissions: &PermissionSummary) -> 
     if perm_set.iter().any(|p| p.contains("secretmanager.secrets.addVersion")) {
         notes.push("Can write new versions into Secret Manager".into());
     }
+    if perm_set.iter().any(|p| p.contains("secretmanager.versions.access")) {
+        notes.push("Can read secret values from Secret Manager".into());
+    }
+    if perm_set.iter().any(|p| p.contains("cloudkms.cryptoKeyVersions.useToDecrypt")) {
+        notes.push("Can decrypt data using Cloud KMS".into());
+    }
+    if perm_set.iter().any(|p| {
+        p.starts_with("cloudfunctions.functions.create")
+            || p.starts_with("cloudfunctions.functions.update")
+    }) {
+        notes.push("Can deploy or modify Cloud Functions (code execution)".into());
+    }
+    if perm_set.iter().any(|p| p.contains("compute.instances.setMetadata")) {
+        notes.push("Can modify instance metadata (SSH key injection risk)".into());
+    }
 
     if roles.iter().any(|r| r.source.starts_with("org:")) {
         notes.push("Inherited organization-level roles detected".into());
@@ -1196,6 +1544,7 @@ async fn test_project_permissions(
         "resourcemanager.projects.testIamPermissions",
         "iam.serviceAccounts.actAs",
         "iam.serviceAccounts.get",
+        "iam.serviceAccounts.list",
         "iam.serviceAccounts.getAccessToken",
         "iam.serviceAccountKeys.list",
         "iam.serviceAccountTokenCreator",
@@ -1203,15 +1552,24 @@ async fn test_project_permissions(
         "storage.objects.list",
         "compute.instances.list",
         "compute.instances.create",
+        "compute.instances.setMetadata",
         "bigquery.datasets.get",
         "bigquery.tables.list",
+        "bigquery.jobs.create",
         "secretmanager.secrets.list",
+        "secretmanager.versions.access",
         "cloudsql.instances.list",
         "pubsub.topics.list",
         "pubsub.subscriptions.list",
         "run.services.list",
+        "cloudfunctions.functions.list",
+        "cloudfunctions.functions.create",
         "artifactregistry.repositories.list",
         "container.clusters.list",
+        "cloudkms.keyRings.list",
+        "cloudkms.cryptoKeyVersions.useToDecrypt",
+        "spanner.instances.list",
+        "datastore.databases.list",
     ];
 
     let url = format!(

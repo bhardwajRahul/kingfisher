@@ -299,6 +299,7 @@ fn build_revoke_command(
     akid_from_validation_body: Option<&str>,
 ) -> Option<String> {
     let required_vars = required_vars_for_revocation(revocation);
+
     let var_args = build_var_args(
         dependent_captures,
         akid_from_captures,
@@ -365,6 +366,7 @@ fn build_validate_command(
     use crate::rules::Validation;
 
     let required_vars = required_vars_for_validation(validation);
+
     let var_args = build_var_args(
         dependent_captures,
         akid_from_captures,
@@ -1005,11 +1007,23 @@ impl DetailsReporter {
             // Generate revoke command for active credentials with revocation support
             let revoke_cmd = if rm.validation_success {
                 if let Some(revocation) = &rm.m.rule.syntax().revocation {
+                    // Merge dependent captures with named regex captures so the generated command is runnable.
+                    // (Some rules capture required revocation parameters directly in the match.)
+                    let mut merged_vars = rm.m.dependent_captures.clone();
+                    for cap in rm.m.groups.captures.iter() {
+                        let Some(name) = cap.name else { continue };
+                        if name.eq_ignore_ascii_case("TOKEN") {
+                            continue;
+                        }
+                        merged_vars
+                            .entry(name.to_uppercase())
+                            .or_insert_with(|| cap.raw_value().to_string());
+                    }
                     build_revoke_command(
                         rm.m.rule.id(),
                         revocation,
                         &raw_snippet,
-                        &rm.m.dependent_captures,
+                        &merged_vars,
                         akid_from_captures.as_deref(),
                         akid_from_body.as_deref(),
                     )
@@ -1640,6 +1654,37 @@ mod tests {
         assert!(!vars.contains("APPEND"));
         assert!(!vars.contains("DEFAULT"));
         assert!(!vars.contains("B64ENC"));
+    }
+
+    #[test]
+    fn build_revoke_command_is_emitted_when_required_vars_missing() {
+        // Revocation template requires ACCOUNTIDENTIFIER, but the finding doesn't have it.
+        let revocation = Revocation::Http(crate::rules::HttpValidation {
+            request: crate::rules::HttpRequest {
+                method: "DELETE".to_string(),
+                url: "https://example.com/revoke?accountIdentifier={{ ACCOUNTIDENTIFIER }}&token={{ TOKEN }}"
+                    .to_string(),
+                headers: BTreeMap::new(),
+                body: None,
+                response_matcher: None,
+                multipart: None,
+                response_is_html: false,
+            },
+            multipart: None,
+        });
+
+        let cmd = build_revoke_command(
+            "kingfisher.example.1",
+            &revocation,
+            "secret",
+            &BTreeMap::new(),
+            None,
+            None,
+        );
+
+        let cmd = cmd.expect("command should still be emitted when vars are missing");
+        assert!(cmd.contains("kingfisher revoke --rule kingfisher.example.1"));
+        assert!(cmd.contains("'secret'"));
     }
 
     fn sample_scan_args() -> ScanArgs {

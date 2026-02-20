@@ -46,4 +46,5 @@ rules:
             - type: WordMatch
               words:
                 - '"type":"message"'
+                - 'credit balance is too low'
           url: https://api.anthropic.com/v1/messages

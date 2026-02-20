@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.84.0]
+- Added/updated `pipedrive` and `amplitude` rules
+- Access Map: added Buildkite provider. Enumerates token scopes, user identity, organizations, and pipelines with severity classification based on scope risk.
+- Access Map: added Harness provider. Uses `x-api-key` authentication to enumerate organizations/projects when permitted (best-effort).
+- Access Map: added OpenAI provider. Supports standalone `access-map openai` and automatic mapping for validated `kingfisher.openai.*` findings. Enumerates organizations (from `/v1/me`), projects, and API key permission scopes by probing endpoints for restricted key detection.
+- Access Map: added Anthropic provider. Supports standalone `access-map anthropic` and automatic mapping for validated `kingfisher.anthropic.*` findings.
+- Access Map: added Salesforce provider. Supports standalone `access-map salesforce` (token + instance) and automatic mapping for validated `kingfisher.salesforce.*` findings.
+- Added Weights & Biases support: new `kingfisher.wandb.2` rule for `wandb_v1_...` keys (legacy `kingfisher.wandb.1` retained), plus Access Map provider/CLI support (`weightsandbiases`, alias `wandb`).
+- Reports: always emit `validate`/`revoke` command hints when supported by a rule (no suppression for missing template vars).
+- Access Map GCP: added resource enumeration for Cloud KMS key rings, Cloud Functions, Firestore databases, Cloud Spanner instances, and project service accounts.
+- Access Map GCP: populated `token_details` with service account metadata (display name, unique ID, disabled status).
+- Access Map GCP: fixed BigQuery and Secret Manager risk assessment to detect write permissions and `secretmanager.versions.access`.
+- Access Map GCP: added risk notes for KMS decrypt, Cloud Functions deploy, instance metadata injection, and secret value read access.
+- Access Map GCP: expanded `testIamPermissions` fallback with 11 additional permission candidates.
+
 ## [v1.83.0]
 - Kingfisher can now generate an auditor-friendly HTML report: `--format html --output kingfisher-audit.html`
 - Architecture: split `matcher.rs` into a `src/matcher/` module directory with focused sub-modules (`base64_decode`, `captures`, `conversion`, `dedup`, `filter`, `fingerprint`). Decomposed `filter_match` into smaller validation helpers.

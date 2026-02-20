@@ -106,10 +106,9 @@ rules:
       (?xi)           
       \b
       (               
-        AIza          
-        [A-Za-z0-9_-]{35}
+        AIzaSy
+        [A-Za-z0-9_-]{33}
       )
-      \b
     pattern_requirements:
       min_digits: 2
       min_uppercase: 1
