@@ -20,9 +20,6 @@ rules:
     examples:
       - 'amplitude_api_key=8b6f8d6594749cb659b1be03e6a0a2e7'
       - 'AMPLITUDE_API_KEY=ef929907c3923e8f3da83c24f0255aa6'
-      - |
-        curl --location --request GET 'https://amplitude.com/api/2/export?start=20220101T00&end=20220127T00' \
-        --header 'Authorization: Basic YWhhbWwsdG9uQGFwaWdlZS5jb206bClwYXNzdzByZAo'
       - "AMPLITUDE_SECRET_KEY=8b6f8d6594749cb659b1be03e6a0a2e7"
     references:
       - https://amplitude.com/docs/apis/authentication

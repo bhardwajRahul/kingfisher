@@ -299,12 +299,10 @@ rules:
   - name: Salesforce Connected App Consumer Key (Prefixed)
     id: kingfisher.salesforce.7
     pattern: |
-      (?xi)(?s)
-        (?:salesforce|sforce|connected(?:_|[\s-])app|consumer(?:_|[\s-])key|client(?:_|[\s-])id)
-        (?:.|[\n\r]){0,128}?
+      (?x)(?s)
         \b
         (
-          3MVG9[A-Z0-9._~-]{20,180}
+          3MVG9[A-Za-z0-9._~-]{20,180}
         )
         \b
     pattern_requirements:
