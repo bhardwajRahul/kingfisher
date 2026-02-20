@@ -22,6 +22,7 @@ pub(crate) mod postgres;
 mod report;
 mod salesforce;
 mod slack;
+mod weightsandbiases;
 
 /// Trait for access map providers that map a single token to an access profile.
 ///
@@ -58,6 +59,7 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Openai => openai::map_access(&args).await?,
         AccessMapProvider::Anthropic => anthropic::map_access(&args).await?,
         AccessMapProvider::Salesforce => salesforce::map_access(&args).await?,
+        AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -116,6 +118,8 @@ pub enum AccessMapRequest {
     Anthropic { token: String, fingerprint: String },
     /// A Salesforce access token plus instance domain.
     Salesforce { token: String, instance: String, fingerprint: String },
+    /// A Weights & Biases API token.
+    WeightsAndBiases { token: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -328,6 +332,9 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
                     .unwrap_or_else(|err| build_failed_result("salesforce", "token", err)),
                 fingerprint,
             ),
+            AccessMapRequest::WeightsAndBiases { token, fingerprint } => {
+                (map_token(&WeightsAndBiasesMapper, &token).await, fingerprint)
+            }
         };
 
         mapped.fingerprint = Some(fp);
@@ -482,6 +489,19 @@ impl TokenAccessMapper for AnthropicMapper {
 
     async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
         anthropic::map_access_from_token(token).await
+    }
+}
+
+/// Weights & Biases access mapper.
+pub struct WeightsAndBiasesMapper;
+
+impl TokenAccessMapper for WeightsAndBiasesMapper {
+    fn cloud_name(&self) -> &'static str {
+        "weightsandbiases"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        weightsandbiases::map_access_from_token(token).await
     }
 }
 

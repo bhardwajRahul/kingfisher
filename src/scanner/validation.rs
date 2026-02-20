@@ -176,6 +176,14 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_weightsandbiases(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("weightsandbiases|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::WeightsAndBiases {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -848,6 +856,13 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
 
                 if !token.is_empty() && !instance.is_empty() {
                     collector.record_salesforce(&token, &instance, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.wandb.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_weightsandbiases(value, fp.clone());
+                    }
                 }
             }
         }

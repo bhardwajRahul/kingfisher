@@ -300,25 +300,6 @@ fn build_revoke_command(
 ) -> Option<String> {
     let required_vars = required_vars_for_revocation(revocation);
 
-    // Only generate a revoke command when the report can produce a *runnable* command line.
-    // If a revocation template references variables we can't populate from the finding data,
-    // omit the revoke command entirely (instead of suggesting a command that will fail at runtime).
-    let mut provided_vars: BTreeSet<String> = BTreeSet::new();
-    provided_vars.insert("TOKEN".to_string());
-    for (k, v) in dependent_captures {
-        if !v.trim().is_empty() {
-            provided_vars.insert(k.to_ascii_uppercase());
-        }
-    }
-    if let Some(akid) = akid_from_captures.or(akid_from_validation_body) {
-        if !akid.trim().is_empty() {
-            provided_vars.insert("AKID".to_string());
-        }
-    }
-    if required_vars.iter().any(|req| !provided_vars.contains(req)) {
-        return None;
-    }
-
     let var_args = build_var_args(
         dependent_captures,
         akid_from_captures,
@@ -385,23 +366,6 @@ fn build_validate_command(
     use crate::rules::Validation;
 
     let required_vars = required_vars_for_validation(validation);
-
-    // Same as revoke: only emit a validate command if it's runnable from the report output.
-    let mut provided_vars: BTreeSet<String> = BTreeSet::new();
-    provided_vars.insert("TOKEN".to_string());
-    for (k, v) in dependent_captures {
-        if !v.trim().is_empty() {
-            provided_vars.insert(k.to_ascii_uppercase());
-        }
-    }
-    if let Some(akid) = akid_from_captures.or(akid_from_validation_body) {
-        if !akid.trim().is_empty() {
-            provided_vars.insert("AKID".to_string());
-        }
-    }
-    if required_vars.iter().any(|req| !provided_vars.contains(req)) {
-        return None;
-    }
 
     let var_args = build_var_args(
         dependent_captures,
@@ -1693,7 +1657,7 @@ mod tests {
     }
 
     #[test]
-    fn build_revoke_command_is_omitted_when_required_vars_missing() {
+    fn build_revoke_command_is_emitted_when_required_vars_missing() {
         // Revocation template requires ACCOUNTIDENTIFIER, but the finding doesn't have it.
         let revocation = Revocation::Http(crate::rules::HttpValidation {
             request: crate::rules::HttpRequest {
@@ -1718,7 +1682,9 @@ mod tests {
             None,
         );
 
-        assert!(cmd.is_none(), "command should be omitted when vars missing, got: {cmd:?}");
+        let cmd = cmd.expect("command should still be emitted when vars are missing");
+        assert!(cmd.contains("kingfisher revoke --rule kingfisher.example.1"));
+        assert!(cmd.contains("'secret'"));
     }
 
     fn sample_scan_args() -> ScanArgs {

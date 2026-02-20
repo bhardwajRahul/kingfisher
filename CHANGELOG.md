@@ -9,8 +9,8 @@ All notable changes to this project will be documented in this file.
 - Access Map: added OpenAI provider. Supports standalone `access-map openai` and automatic mapping for validated `kingfisher.openai.*` findings. Enumerates organizations (from `/v1/me`), projects, and API key permission scopes by probing endpoints for restricted key detection.
 - Access Map: added Anthropic provider. Supports standalone `access-map anthropic` and automatic mapping for validated `kingfisher.anthropic.*` findings.
 - Access Map: added Salesforce provider. Supports standalone `access-map salesforce` (token + instance) and automatic mapping for validated `kingfisher.salesforce.*` findings.
-- Access Map CLI: added providers `buildkite`, `harness`, `openai`, `anthropic`, `salesforce`.
-- Reports: omit `validate`/`revoke` command hints when required template vars are missing (prevents suggesting unrunnable commands, e.g. Harness `ACCOUNTIDENTIFIER`).
+- Added Weights & Biases support: new `kingfisher.wandb.2` rule for `wandb_v1_...` keys (legacy `kingfisher.wandb.1` retained), plus Access Map provider/CLI support (`weightsandbiases`, alias `wandb`).
+- Reports: always emit `validate`/`revoke` command hints when supported by a rule (no suppression for missing template vars).
 - Access Map GCP: added resource enumeration for Cloud KMS key rings, Cloud Functions, Firestore databases, Cloud Spanner instances, and project service accounts.
 - Access Map GCP: populated `token_details` with service account metadata (display name, unique ID, disabled status).
 - Access Map GCP: fixed BigQuery and Secret Manager risk assessment to detect write permissions and `secretmanager.versions.access`.

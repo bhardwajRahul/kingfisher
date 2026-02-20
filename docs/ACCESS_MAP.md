@@ -316,8 +316,31 @@ kingfisher access-map salesforce ./salesforce.json --json-out salesforce.access-
 
 - Access map currently targets `https://<instance>.my.salesforce.com` and API version `v60.0`.
 
+### Weights & Biases (`weightsandbiases` / `wandb`)
+
+- **Credential**: a single Weights & Biases API key string (read from a file for `kingfisher access-map weightsandbiases <FILE>`).
+- **Token types supported**:
+  - Legacy 40-character hex API keys
+  - New v1 keys (`wandb_v1_...`)
+
+Kingfisher performs read-only identity resolution via:
+
+- `POST https://api.wandb.ai/graphql` with a GraphQL `viewer` query.
+
+#### Standalone example (Weights & Biases)
+
+```bash
+printf '%s' 'wandb_v1_example...' > ./wandb.token
+kingfisher access-map weightsandbiases ./wandb.token --json-out wandb.access-map.json
+```
+
+#### Notes (Weights & Biases)
+
+- Access map uses `https://api.wandb.ai/graphql` as the API endpoint.
+- W&B key introspection does not currently expose fine-grained scopes in this workflow, so risk is reported conservatively.
+
 ## Notes on access-map generation during `scan --access-map`
 
 - Access-map entries are only recorded for **validated** findings.
 - Some providers require extra context that Kingfisher infers from the finding context or validation response (for example, Azure DevOps organization name).
-- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, and Salesforce credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.
+- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, and Weights & Biases credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.
