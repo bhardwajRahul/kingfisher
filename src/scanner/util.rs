@@ -30,3 +30,25 @@ pub fn is_compressed_file(path: &Path) -> bool {
         false
     }
 }
+
+const SQLITE_EXTENSIONS: &[&str] = &["db", "sqlite", "sqlite3", "db3", "s3db", "sl3"];
+/// SQLite file header magic bytes. Useful for detecting extensionless SQLite
+/// files (e.g. Chrome `Cookies`, `History`, `Web Data`).
+#[allow(dead_code)]
+pub const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
+
+pub fn is_sqlite_file(path: &Path) -> bool {
+    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+        let ext_lower = ext.to_lowercase();
+        if SQLITE_EXTENSIONS.iter().any(|e| *e == ext_lower) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Check the first 16 bytes of `data` for the SQLite magic header.
+#[allow(dead_code)]
+pub fn has_sqlite_magic(data: &[u8]) -> bool {
+    data.len() >= SQLITE_MAGIC.len() && data[..SQLITE_MAGIC.len()] == *SQLITE_MAGIC
+}

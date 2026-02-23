@@ -48,7 +48,7 @@ http = "1.4"
 
 [package]
 name = "kingfisher"
-version = "1.84.0"
+version = "1.85.0"
 description = "MongoDB's blazingly fast and accurate secret scanning and validation tool"
 edition.workspace = true
 rust-version.workspace = true
@@ -198,6 +198,7 @@ zip = { version = "2.4.2", default-features = false, features = ["deflate", "def
 tar = "0.4.44"
 lzma-rs = "0.3.0"
 asar = "0.3.0"
+rusqlite = { version = "0.34", features = ["bundled"] }
 blake3 = "1.8.2"
 memchr = "2.7"
 memmap2 = "0.9.9"

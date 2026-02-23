@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.85.0]
+- SQLite database scanning: kingfisher now detects and extracts SQLite files (`.db`, `.sqlite`, `.sqlite3`, etc.), dumping each table as SQL text with named columns so secrets stored in database rows are scannable. Controlled by the existing `--extract-archives` flag.
 - Performance: pipelined ODB enumeration — scanning now begins while blob OIDs are still being discovered, overlapping I/O with pattern matching.
 - Performance: skip blobs smaller than 20 bytes during enumeration (too small to contain any secret).
 - Performance: preserve pack-ascending blob order in the metadata path for better I/O locality when Rayon splits work.

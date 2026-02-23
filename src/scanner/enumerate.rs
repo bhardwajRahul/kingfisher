@@ -39,9 +39,10 @@ use crate::{
     scanner::{
         processing::BlobProcessor,
         runner::{create_datastore_channel, spawn_datastore_writer_thread},
-        util::is_compressed_file,
+        util::{is_compressed_file, is_sqlite_file},
     },
     scanner_pool::ScannerPool,
+    sqlite::extract_sqlite_contents,
     DirectoryResult, EnumeratorConfig, EnumeratorFileResult, FileResult, FilesystemEnumerator,
     FoundInput, GitDiffConfig, GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator,
     PathBuf,
@@ -335,7 +336,32 @@ impl ParallelBlobIterator for FileResult {
         let extraction_enabled = self.extract_archives;
         let max_extraction_depth = self.extraction_depth;
 
-        if extraction_enabled && is_compressed_file(&self.path) {
+        if extraction_enabled && is_sqlite_file(&self.path) {
+            match extract_sqlite_contents(&self.path) {
+                Ok(tables) if tables.is_empty() => {
+                    debug!("No tables found in SQLite database: {}", self.path.display());
+                    Ok(None)
+                }
+                Ok(tables) => {
+                    let items = tables
+                        .into_iter()
+                        .map(|(logical_name, data)| {
+                            let full_path = self.path.join(logical_name);
+                            let origin = OriginSet::new(Origin::from_file(full_path), vec![]);
+                            (origin, Blob::from_bytes(data))
+                        })
+                        .collect();
+                    Ok(Some(FileResultIter {
+                        iter_kind: FileResultIterKind::Archive(items),
+                        _marker: PhantomData,
+                    }))
+                }
+                Err(e) => {
+                    debug!("Failed to extract SQLite database {}: {e:#}", self.path.display());
+                    Ok(None)
+                }
+            }
+        } else if extraction_enabled && is_compressed_file(&self.path) {
             match decompress_file_to_temp(&self.path) {
                 Ok((content, _temp_dir)) => match content {
                     // Single-file decompression fully in memory.

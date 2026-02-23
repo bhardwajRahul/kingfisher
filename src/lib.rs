@@ -51,6 +51,7 @@ pub mod scanner;
 pub mod scanner_pool;
 pub mod slack;
 pub mod snippet;
+pub mod sqlite;
 pub mod update;
 pub mod util;
 pub mod validation;
