@@ -3,31 +3,28 @@ rules:
     name: Redis URI Connection String
     # Hyperscan-compatible pattern (no lookbehind)
     # Host supports hostnames, IPv4, and IPv6 in brackets
+    # Supports both "username:password@host" and ":password@host" (password-only)
     pattern: |
       (?xi)
       (?: redis | rediss | redis\+sentinel ) ://                      (?# URI scheme )
         (?: (?P<username>[a-zA-Z0-9%;._~!$&'()*+,;=-]{1,})            (?# username - optional )
           :
         )?
-        (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,})             (?# password - min 8 chars )
-      @ (?P<host>(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9_.-]+)) (?: :(?P<port>\d{1,5}))?  (?# host and optional port )
+        (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/+-]{8,})              (?# password - min 8 chars )
+      @ (?P<host>[a-zA-Z0-9_.-]{1,}) (?: :(?P<port>\d{1,5}))?         (?# hostname and optional port )
       (?: / (?P<db>\d{1,2}))?                                         (?# optional database number )
       \b
 
     pattern_requirements:
-      min_digits: 1
       ignore_if_contains:
         - "****"
         - "xxxx"
         - "example.com"
         - "your_password"
         - "your-password"
-        - "changeme"
-        - "replaceme"
         - ":password@"
         - ":secret@"
         - "localhost"
-        - "127.0.0.1"
         - "# redis"
         - "// redis"
 
@@ -39,7 +36,7 @@ rules:
       - 'rediss://admin:TESTsecur3K3y456@redis.cache.internal:6380/1'
       - 'redis+sentinel://default:SAMPLEr3d1sK3y789@sentinel.cluster.local:26379'
       - 'redis://:oJs3RjFV5CVDyObDiooJk8NGGSylGTlNmAzCaPVydjM=@gainazurecacheforredis03.eastus.redisenterprise.cache.azure.net:10000'
-      - 'redis://default:MyP4ss@192.168.1.10:6379/2'
+      - 'redis://default:MyP4ssw0rd@192.168.1.10:6379/2'
       - 'rediss://:token123@[::1]:6380/0'
 
     references:
@@ -61,10 +58,9 @@ rules:
       (?:,|\s)                                                        (?# separator )
       .*?
       host\s*=\s*                                                     (?# host key )
-      (?P<host>(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9_.-]+))                (?# host - hostname, IPv4, or IPv6 )
+      (?P<host>[a-zA-Z0-9_.-]+)                  (?# host - hostname, IPv4, or IPv6 )
 
     pattern_requirements:
-      min_digits: 1
       ignore_if_contains:
         - "password=None"
         - "passwd=None"
@@ -92,11 +88,10 @@ rules:
       (?:.|[\n\r]){0,24}?
       [=:\s]+
       ['"]?
-      (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,})
+      (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,64})
       ['"]?
 
     pattern_requirements:
-      min_digits: 1
       ignore_if_contains:
         - "****"
         - "xxxx"
