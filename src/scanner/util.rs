@@ -37,6 +37,15 @@ const SQLITE_EXTENSIONS: &[&str] = &["db", "sqlite", "sqlite3", "db3", "s3db", "
 #[allow(dead_code)]
 pub const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
 
+pub fn is_pyc_file(path: &Path) -> bool {
+    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+        let ext_lower = ext.to_lowercase();
+        ext_lower == "pyc" || ext_lower == "pyo"
+    } else {
+        false
+    }
+}
+
 pub fn is_sqlite_file(path: &Path) -> bool {
     if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
         let ext_lower = ext.to_lowercase();

@@ -39,9 +39,10 @@ use crate::{
     scanner::{
         processing::BlobProcessor,
         runner::{create_datastore_channel, spawn_datastore_writer_thread},
-        util::{is_compressed_file, is_sqlite_file},
+        util::{is_compressed_file, is_pyc_file, is_sqlite_file},
     },
     scanner_pool::ScannerPool,
+    pyc::extract_pyc_strings,
     sqlite::extract_sqlite_contents,
     DirectoryResult, EnumeratorConfig, EnumeratorFileResult, FileResult, FilesystemEnumerator,
     FoundInput, GitDiffConfig, GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator,
@@ -358,6 +359,25 @@ impl ParallelBlobIterator for FileResult {
                 }
                 Err(e) => {
                     debug!("Failed to extract SQLite database {}: {e:#}", self.path.display());
+                    Ok(None)
+                }
+            }
+        } else if extraction_enabled && is_pyc_file(&self.path) {
+            match extract_pyc_strings(&self.path) {
+                Ok(strings) if strings.is_empty() => {
+                    debug!("No strings found in .pyc file: {}", self.path.display());
+                    Ok(None)
+                }
+                Ok(strings) => {
+                    let origin = OriginSet::new(Origin::from_file(self.path.clone()), vec![]);
+                    let blob = Blob::from_bytes(strings);
+                    Ok(Some(FileResultIter {
+                        iter_kind: FileResultIterKind::Single(Some((origin, blob))),
+                        _marker: PhantomData,
+                    }))
+                }
+                Err(e) => {
+                    debug!("Failed to extract .pyc file {}: {e:#}", self.path.display());
                     Ok(None)
                 }
             }

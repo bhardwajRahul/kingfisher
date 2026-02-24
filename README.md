@@ -40,6 +40,7 @@ Designed for offensive security engineers and blue-teamers alike, Kingfisher hel
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **SQLite Database Scanning**: Automatically extracts and scans SQLite database contents for secrets stored in table rows
+- **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
 - **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json`
@@ -611,7 +612,7 @@ Since then it has evolved far beyond that starting point, introducing live valid
 - **Baseline management** to suppress known findings over time  
 - **Tree-sitter parsing** layered on Hyperscan for language-aware detection  
 - **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, S3, GCS, Docker, Hugging Face, etc.)  
-- **Compressed Files** and **SQLite database** scanning support
+- **Compressed Files**, **SQLite database**, and **Python bytecode (.pyc)** scanning support
 - **New storage model** (in-memory + Bloom filter, replacing SQLite)  
 - **Unified workflow** with JSON/BSON/SARIF outputs  
 - **Cross-platform builds** for Linux, macOS, and Windows

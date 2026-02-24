@@ -40,6 +40,7 @@ pub mod location;
 pub mod matcher;
 pub mod origin;
 pub mod parser;
+pub mod pyc;
 pub mod reporter;
 pub mod rule_loader;
 pub mod rule_profiling;
