@@ -1781,6 +1781,7 @@ mod tests {
             view_report: false,
             redact: false,
             no_base64: false,
+            fast: false,
             git_repo_timeout: 1_800,
             output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
             baseline_file: None,

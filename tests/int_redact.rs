@@ -137,6 +137,7 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         skip_aws_account: Vec::new(),
         skip_aws_account_file: None,
         no_base64: false,
+        fast: false,
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
         no_ignore_if_contains: false,

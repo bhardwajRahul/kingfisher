@@ -961,6 +961,7 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
         skip_aws_account_file: None,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_base64: false,
+        fast: false,
         no_inline_ignore: false,
         no_ignore_if_contains: false,
         validation_timeout: 10,

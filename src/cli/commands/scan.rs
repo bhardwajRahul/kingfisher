@@ -151,6 +151,10 @@ pub struct ScanArgs {
     #[arg(global = true, long, default_value_t = false)]
     pub no_base64: bool,
 
+    /// Fast mode: equivalent to --commit-metadata=false --no-base64
+    #[arg(global = true, long, default_value_t = false)]
+    pub fast: bool,
+
     /// Timeout for Git repository scanning in seconds
     #[arg(global = true, long, default_value_t = 1800, value_name = "SECONDS")]
     pub git_repo_timeout: u64,
@@ -484,6 +488,11 @@ impl ScanCommandArgs {
 
         if self.scan_args.manage_baseline {
             self.scan_args.no_dedup = true;
+        }
+
+        if self.scan_args.fast {
+            self.scan_args.no_base64 = true;
+            self.scan_args.input_specifier_args.commit_metadata = false;
         }
 
         if self.scan_args.access_map && self.scan_args.no_validate {

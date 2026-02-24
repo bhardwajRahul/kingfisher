@@ -312,6 +312,10 @@ kingfisher scan /path/to/code
 # Scan without validation
 kingfisher scan ~/src/myrepo --no-validate
 
+# Fast mode: run as fast as possible by disabling Git commit metadata and Base64 decoding
+# (findings omit commit context and Base64-encoded secrets)
+kingfisher scan ~/src/myrepo --fast
+
 # Display only secrets confirmed active by third‑party APIs
 kingfisher scan /path/to/repo --only-valid
 
@@ -393,6 +397,10 @@ cat /path/to/file.py | kingfisher scan -
 
 # Limit maximum file size scanned (default: 256 MB)
 kingfisher scan /some/file --max-file-size 500
+
+# Fast mode: equivalent to --commit-metadata=false --no-base64 for maximum speed
+# No Git commit metadata (author, date, hash) or Base64 decoding in findings
+kingfisher scan /path/to/repo --fast
 
 # Scan using a rule family
 kingfisher scan /path/to/repo --rule kingfisher.aws
