@@ -22,6 +22,9 @@ pub const DEFAULT_PORT: u16 = 7890;
 // Embedded viewer assets - force rebuild
 static VIEWER_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs/access-map-viewer");
 
+/// Default bind address for the report viewer (localhost only for security).
+pub const DEFAULT_ADDRESS: &str = "127.0.0.1";
+
 /// View a Kingfisher access-map report locally.
 #[derive(clap::Args, Debug)]
 pub struct ViewArgs {
@@ -32,6 +35,10 @@ pub struct ViewArgs {
     /// Local port for the embedded viewer (default 7890)
     #[arg(long, default_value_t = DEFAULT_PORT)]
     pub port: u16,
+
+    /// Bind address for the report viewer (default 127.0.0.1). Use 0.0.0.0 to allow access from Docker or other hosts.
+    #[arg(long, default_value = DEFAULT_ADDRESS, value_name = "ADDRESS")]
+    pub address: String,
 
     #[arg(skip)]
     pub open_browser: bool,
@@ -45,8 +52,10 @@ struct AppState {
     report: Option<Vec<u8>>,
 }
 
-pub fn ensure_port_available(port: u16) -> Result<()> {
-    StdTcpListener::bind(("127.0.0.1", port)).map_err(|err| match err.kind() {
+pub fn ensure_port_available(port: u16, address: &str) -> Result<()> {
+    let addr: std::net::IpAddr =
+        address.parse().context("Invalid bind address for report viewer")?;
+    StdTcpListener::bind((addr, port)).map_err(|err| match err.kind() {
         std::io::ErrorKind::AddrInUse => anyhow!(
             "Port {} is already in use. Re-run with --port <PORT> to choose a different port.",
             port
@@ -81,14 +90,15 @@ pub async fn run(args: ViewArgs) -> Result<()> {
         None
     };
 
-    let listener =
-        TcpListener::bind(("127.0.0.1", args.port)).await.map_err(|err| match err.kind() {
-            std::io::ErrorKind::AddrInUse => anyhow!(
-                "Port {} is already in use. Re-run with --port <PORT> to choose a different port.",
-                args.port
-            ),
-            _ => err.into(),
-        })?;
+    let addr: std::net::IpAddr =
+        args.address.parse().context("Invalid bind address for report viewer")?;
+    let listener = TcpListener::bind((addr, args.port)).await.map_err(|err| match err.kind() {
+        std::io::ErrorKind::AddrInUse => anyhow!(
+            "Port {} is already in use. Re-run with --port <PORT> to choose a different port.",
+            args.port
+        ),
+        _ => err.into(),
+    })?;
 
     let address: SocketAddr =
         listener.local_addr().context("Failed to read local listener address")?;

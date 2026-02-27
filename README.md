@@ -75,7 +75,7 @@ NOTE: Replay has been slowed down for demo
 ## Report Viewer Demo
 Explore Kingfisher's built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, GitLab, and Slack...more coming) can actually access.
 
-Note: when you pass `--view-report`, Kingfisher starts a **localhost-only** web server on port `7890` and opens it in your default browser. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
+Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
 ```bash
 INFO kingfisher::cli::commands::view: Starting access-map viewer address=127.0.0.1:7890
@@ -242,13 +242,44 @@ KF_SLACK_TOKEN="xoxp-..." kingfisher scan slack "api_key OR password"
 docker run --rm -v "$PWD":/src ghcr.io/mongodb/kingfisher:latest scan /src
 ```
 
-### 19: Output JSON results
+### 19: Run with Docker and view report in browser
+
+To run a scan in Docker and view the HTML report on your host machine, use `--view-report-address 0.0.0.0` so the server is reachable from outside the container, and map the port with `-p`:
+
+```bash
+docker run --rm \
+  -v "$PWD":/src \
+  -p 7890:7890 \
+  ghcr.io/mongodb/kingfisher:latest \
+  scan https://github.com/leaktk/fake-leaks \
+  --access-map \
+  --view-report \
+  --view-report-address 0.0.0.0
+```
+
+Then open **http://localhost:7890** in your browser. If port 7890 is already in use, use `--view-report-port` and map accordingly:
+
+```bash
+docker run --rm \
+  -v "$PWD":/src \
+  -p 7891:7891 \
+  ghcr.io/mongodb/kingfisher:latest \
+  scan https://github.com/leaktk/fake-leaks \
+  --access-map \
+  --view-report \
+  --view-report-port 7891 \
+  --view-report-address 0.0.0.0
+```
+
+Then open **http://localhost:7891**.
+
+### 20: Output JSON results
 
 ```bash
 kingfisher scan /path/to/code --format json --output findings.json
 ```
 
-### 20: Map blast radius of discovered credentials
+### 21: Map blast radius of discovered credentials
 
 ```bash
 kingfisher scan /path/to/code --access-map --view-report

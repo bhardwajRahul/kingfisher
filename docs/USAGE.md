@@ -105,7 +105,7 @@ Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with a
 kingfisher view kingfisher.json
 ```
 
-The `view` subcommand starts a local-only server (default port `7890`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically and Kingfisher will open your browser, or open the page and upload a report in the browser. If port 7890 is already in use, Kingfisher will exit and tell you to re-run with `--port <PORT>`.
+The `view` subcommand starts a server (default port `7890`, bind address `127.0.0.1`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically and Kingfisher will open your browser, or open the page and upload a report in the browser. If port 7890 is already in use, re-run with `--port <PORT>`. To allow access from Docker or other hosts, use `--address 0.0.0.0`.
 
 ### Pipe any text directly into Kingfisher by passing `-`
 
@@ -348,11 +348,10 @@ kingfisher scan /path/to/local/repo --branch <ref>
 kingfisher scan C:\\src\\repo --branch <commit-hash>
 ```
 
-The same diff-focused workflow works when cloning repositories on the fly with `--git-url`. Kingfisher automatically tries remote-tracking names like `origin/main` and `origin/feature-1`, so you can target the branches involved in a pull request without performing a local checkout first.
+The same diff-focused workflow works when cloning repositories on the fly by passing a Git URL directly to `scan`. Kingfisher automatically tries remote-tracking names like `origin/main` and `origin/feature-1`, so you can target the branches involved in a pull request without performing a local checkout first.
 
 ```bash
-kingfisher scan \
-  --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --since-commit main \
   --branch development
 ```
@@ -364,16 +363,14 @@ When `--since-commit` is omitted, specifying `--branch` scans the requested ref 
 kingfisher scan ~/tmp/repo --branch feature-123
 
 # Or scan a branch when cloning on the fly
-kingfisher scan \
-  --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --branch origin/feature-123
 ```
 
-In CI systems that expose the base and head commits explicitly, you can pass those SHAs directly while still using `--git-url`:
+In CI systems that expose the base and head commits explicitly, you can pass those SHAs directly while scanning a Git URL:
 
 ```bash
-kingfisher scan \
-  --git-url git@github.com:org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --since-commit "$BASE_COMMIT" \
   --branch "$PR_HEAD_COMMIT"
 ```
@@ -530,7 +527,7 @@ kingfisher scan github --organization my-org \
 
 ### Scan remote GitHub repository
 
-`--git-url` clones the repository and scans its files and history. When the URL targets GitHub and you pass `--include-contributors`, Kingfisher enumerates repository contributors and attempts to clone **all public repos owned by those contributors**—a common offensive and blue-team pivot when developers leak secrets in personal or side projects. Use `--repo-clone-limit` to cap how many repositories are cloned during this enumeration.
+Pass a repository URL as a positional scan target to clone and scan its files and history. (The legacy `--git-url` flag still works but is deprecated.) When the URL targets GitHub and you pass `--include-contributors`, Kingfisher enumerates repository contributors and attempts to clone **all public repos owned by those contributors**—a common offensive and blue-team pivot when developers leak secrets in personal or side projects. Use `--repo-clone-limit` to cap how many repositories are cloned during this enumeration.
 
 **NOTE**: This may cause you to be temporarily rate-limited by GitHub. Providing a token (`KF_GITHUB_TOKEN`) will provide a higher rate limit.
 
@@ -538,29 +535,29 @@ To inspect related server-side data, supply `--repo-artifacts`. This flag pulls 
 
 Use `--git-clone-dir` to choose where cloned repositories land and `--keep-clones` to preserve them for follow-on analysis.
 
-> **Why does `--git-url` sometimes report fewer findings than scanning a local checkout?**. 
+> **Why can scanning a remote URL report fewer findings than scanning a local checkout?**. 
 > 
-> Remote clones created via `--git-url` default to `--mirror`/bare mode so Kingfisher only reads the Git history. When you point Kingfisher at an existing working tree (for example `kingfisher scan ./repo`), it enumerates both the filesystem contents *and* the Git history. Any secrets that are present in the checked-out files therefore appear twice: once from the working tree path and once from the commit where the secret entered the history. To replicate the remote behavior locally, either scan a bare clone or disable history scanning with `--git-history none` when targeting a working tree.
+> Remote clones default to `--mirror`/bare mode so Kingfisher only reads the Git history. When you point Kingfisher at an existing working tree (for example `kingfisher scan ./repo`), it enumerates both the filesystem contents *and* the Git history. Any secrets that are present in the checked-out files therefore appear twice: once from the working tree path and once from the commit where the secret entered the history. To replicate the remote behavior locally, either scan a bare clone or disable history scanning with `--git-history none` when targeting a working tree.
 
 ```bash
 # Scan the repository only
-kingfisher scan --git-url https://github.com/org/repo.git
+kingfisher scan github.com/org/repo
 
 # Scan the repository plus contributor repos, but cap the crawl
-kingfisher scan --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --include-contributors \
   --repo-clone-limit 250
 
 # Keep clones for later manual inspection
-kingfisher scan --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --git-clone-dir ./kingfisher-clones \
   --keep-clones
 
 # Include issues, wiki, and owner gists
-kingfisher scan --git-url https://github.com/org/repo.git --repo-artifacts
+kingfisher scan https://github.com/org/repo.git --repo-artifacts
 
 # Private repositories or artifacts
-KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/private_repo.git --repo-artifacts
+KF_GITHUB_TOKEN="ghp_…" kingfisher scan https://github.com/org/private_repo.git --repo-artifacts
 ```
 
 ---
@@ -594,7 +591,7 @@ kingfisher scan gitlab --group my-group \
 
 ### Scan remote GitLab repository by URL
 
-`--git-url` by itself clones the project repository. When the URL targets GitLab and you pass `--include-contributors`, Kingfisher enumerates contributors and tries to clone **their other public projects** to catch secrets that escape the main repo. Apply `--repo-clone-limit` to cap the total repos cloned during this pivot.
+A Git URL target by itself clones the project repository. When the URL targets GitLab and you pass `--include-contributors`, Kingfisher enumerates contributors and tries to clone **their other public projects** to catch secrets that escape the main repo. Apply `--repo-clone-limit` to cap the total repos cloned during this pivot.
 
 **NOTE**: This may cause you to be temporarily rate-limited by GitLab. Providing a token (`KF_GITLAB_TOKEN`) will provide a higher rate limit.
 
@@ -604,23 +601,23 @@ Use `--git-clone-dir` to choose where cloned projects land and `--keep-clones` t
 
 ```bash
 # Scan the repository only
-kingfisher scan --git-url https://gitlab.com/group/project.git
+kingfisher scan gitlab.com/group/project.git
 
 # Scan the repository plus contributor projects, but cap the crawl
-kingfisher scan --git-url https://gitlab.com/group/project.git \
+kingfisher scan https://gitlab.com/group/project.git \
   --include-contributors \
   --repo-clone-limit 250
 
 # Keep clones for later manual inspection
-kingfisher scan --git-url https://gitlab.com/group/project.git \
+kingfisher scan https://gitlab.com/group/project.git \
   --git-clone-dir ./kingfisher-clones \
   --keep-clones
 
 # Include issues, wiki, and snippets
-kingfisher scan --git-url https://gitlab.com/group/project.git --repo-artifacts
+kingfisher scan https://gitlab.com/group/project.git --repo-artifacts
 
 # Private projects or artifacts
-KF_GITLAB_TOKEN="glpat-…" kingfisher scan --git-url https://gitlab.com/group/private_project.git --repo-artifacts
+KF_GITLAB_TOKEN="glpat-…" kingfisher scan https://gitlab.com/group/private_project.git --repo-artifacts
 ```
 
 ### List GitLab repositories
@@ -705,15 +702,15 @@ kingfisher scan gitea --organization my-org \
 
 ### Scan remote Gitea repository by URL
 
-`--git-url` clones the repository and scans its history. Adding `--repo-artifacts` also clones the repository wiki if one exists. Private repositories and wikis require `KF_GITEA_TOKEN` (and `KF_GITEA_USERNAME` when cloning via HTTPS).
+A Git URL target clones the repository and scans its history. Adding `--repo-artifacts` also clones the repository wiki if one exists. Private repositories and wikis require `KF_GITEA_TOKEN` (and `KF_GITEA_USERNAME` when cloning via HTTPS).
 
 ```bash
 # Scan the repository only
-kingfisher scan --git-url https://gitea.com/org/repo.git
+kingfisher scan https://gitea.com/org/repo.git
 
 # Include the repository wiki (if present)
 KF_GITEA_TOKEN="gtoken" KF_GITEA_USERNAME="org" \
-  kingfisher scan --git-url https://gitea.com/org/repo.git --repo-artifacts
+  kingfisher scan https://gitea.com/org/repo.git --repo-artifacts
 ```
 
 ### List Gitea repositories
@@ -757,15 +754,15 @@ kingfisher scan bitbucket --workspace my-team \
 
 ### Scan remote Bitbucket repository by URL
 
-`--git-url` clones the repository and scans its files and history. To inspect Bitbucket artifacts such as issues, add `--repo-artifacts`. Private artifacts require credentials (see [Authenticate to Bitbucket](#authenticate-to-bitbucket)).
+A Git URL target clones the repository and scans its files and history. To inspect Bitbucket artifacts such as issues, add `--repo-artifacts`. Private artifacts require credentials (see [Authenticate to Bitbucket](#authenticate-to-bitbucket)).
 
 ```bash
 # Scan the repository only
-kingfisher scan --git-url https://bitbucket.org/hashashash/secretstest.git
+kingfisher scan https://bitbucket.org/hashashash/secretstest.git
 
 # Include repository issues
 KF_BITBUCKET_TOKEN="$BITBUCKET_TOKEN" \
-  kingfisher scan --git-url https://bitbucket.org/workspace/project.git --repo-artifacts
+  kingfisher scan https://bitbucket.org/workspace/project.git --repo-artifacts
 ```
 
 ### List Bitbucket repositories

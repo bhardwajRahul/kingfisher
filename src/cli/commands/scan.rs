@@ -1,6 +1,10 @@
 use anyhow::bail;
 use clap::{Args, Subcommand, ValueEnum, ValueHint};
-use std::path::{Path, PathBuf};
+use std::{
+    net::IpAddr,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use strum::Display;
 use tracing::debug;
 use url::Url;
@@ -17,6 +21,7 @@ use crate::{
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
             output::{OutputArgs, ReportOutputFormat},
             rules::RuleSpecifierArgs,
+            view,
         },
         global::RAM_GB,
     },
@@ -202,6 +207,11 @@ pub struct ScanArgs {
     /// Disable rule-level `ignore_if_contains` filtering for pattern requirements
     #[arg(global = true, long = "no-ignore-if-contains", default_value_t = false)]
     pub no_ignore_if_contains: bool,
+
+    #[arg(skip)]
+    pub view_report_port: u16,
+    #[arg(skip)]
+    pub view_report_address: String,
 }
 
 /// Confidence levels for findings
@@ -232,6 +242,24 @@ pub struct ScanCommandArgs {
     #[arg(global = true, long = "view-report", default_value_t = false)]
     pub view_report: bool,
 
+    /// Port for the report viewer when using --view-report (default 7890)
+    #[arg(
+        global = true,
+        long = "view-report-port",
+        default_value_t = view::DEFAULT_PORT,
+        value_name = "PORT"
+    )]
+    pub view_report_port: u16,
+
+    /// Bind address for the report viewer when using --view-report (default 127.0.0.1). Use 0.0.0.0 to allow access from Docker or other hosts.
+    #[arg(
+        global = true,
+        long = "view-report-address",
+        default_value = view::DEFAULT_ADDRESS,
+        value_name = "ADDRESS"
+    )]
+    pub view_report_address: String,
+
     #[command(subcommand)]
     pub provider: Option<ScanInputCommand>,
 }
@@ -253,11 +281,34 @@ pub enum ListRepositoriesCommand {
 }
 
 impl ScanCommandArgs {
+    fn infer_positional_git_urls(&mut self) {
+        let mut inferred_git_urls = Vec::new();
+        let mut retained_paths = Vec::new();
+
+        for path in self.scan_args.input_specifier_args.path_inputs.drain(..) {
+            if path.as_path() == Path::new("-") || path.exists() {
+                retained_paths.push(path);
+                continue;
+            }
+
+            if let Some(git_url) = parse_git_url_target(&path) {
+                inferred_git_urls.push(git_url);
+            } else {
+                retained_paths.push(path);
+            }
+        }
+
+        self.scan_args.input_specifier_args.path_inputs = retained_paths;
+        self.scan_args.input_specifier_args.git_url.extend(inferred_git_urls);
+    }
+
     /// Convert CLI arguments into a scan or repository-listing operation.
     pub fn into_operation(mut self) -> anyhow::Result<ScanOperation> {
         let mut used_provider_subcommand = false;
 
         self.scan_args.view_report = self.view_report;
+        self.scan_args.view_report_port = self.view_report_port;
+        self.scan_args.view_report_address = self.view_report_address.clone();
 
         if let Some(provider) = self.provider.take() {
             used_provider_subcommand = true;
@@ -466,9 +517,12 @@ impl ScanCommandArgs {
             }
         }
 
+        let used_legacy_git_url_flag = !self.scan_args.input_specifier_args.git_url.is_empty();
+        self.infer_positional_git_urls();
+
         if !self.scan_args.input_specifier_args.has_any_input() {
             bail!(
-                "Specify a path, --git-url, or use a provider subcommand such as 'kingfisher scan github'"
+                "Specify a path or Git URL (for example: 'kingfisher scan github.com/org/repo'), or use a provider subcommand such as 'kingfisher scan github'"
             );
         }
 
@@ -483,7 +537,7 @@ impl ScanCommandArgs {
         }
 
         if !used_provider_subcommand {
-            self.scan_args.input_specifier_args.emit_deprecated_warnings();
+            self.scan_args.input_specifier_args.emit_deprecated_warnings(used_legacy_git_url_flag);
         }
 
         if self.scan_args.manage_baseline {
@@ -501,6 +555,44 @@ impl ScanCommandArgs {
 
         Ok(ScanOperation::Scan(self.scan_args))
     }
+}
+
+fn parse_git_url_target(path: &Path) -> Option<GitUrl> {
+    let raw = path.to_str()?.trim();
+    if raw.is_empty() || raw == "-" || raw.contains('\\') {
+        return None;
+    }
+
+    if let Ok(url) = GitUrl::from_str(raw) {
+        return Some(url);
+    }
+
+    if raw.contains("://")
+        || raw.starts_with('/')
+        || raw.starts_with("./")
+        || raw.starts_with("../")
+        || raw.starts_with('~')
+    {
+        return None;
+    }
+
+    let (host, suffix) = raw.split_once('/')?;
+    if host.is_empty() || suffix.is_empty() {
+        return None;
+    }
+
+    let path_segments = suffix.split('/').filter(|segment| !segment.is_empty()).count();
+    if path_segments < 2 {
+        return None;
+    }
+
+    let host_looks_valid =
+        host.contains('.') || host == "localhost" || host.parse::<IpAddr>().is_ok();
+    if !host_looks_valid {
+        return None;
+    }
+
+    GitUrl::from_str(&format!("https://{raw}")).ok()
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -552,7 +644,7 @@ pub struct FilesystemScanArgs {
     #[arg(value_name = "PATH", value_hint = ValueHint::AnyPath)]
     pub paths: Vec<PathBuf>,
 
-    /// Git repository URLs to clone and scan
+    /// Deprecated: git repository URLs to clone and scan. Prefer positional targets.
     #[arg(long = "git-url", value_hint = ValueHint::Url)]
     pub git_url: Vec<GitUrl>,
 }

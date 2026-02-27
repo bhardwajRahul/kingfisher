@@ -240,11 +240,10 @@ kingfisher scan /path/to/local/repo --branch <ref>
 kingfisher scan C:\\src\\repo --branch <commit-hash>
 ```
 
-The same diff-focused workflow works when cloning repositories on the fly with `--git-url`. Kingfisher automatically tries remote-tracking names like `origin/main` and `origin/feature-1`, so you can target the branches involved in a pull request without performing a local checkout first.
+The same diff-focused workflow works when cloning repositories on the fly by passing a Git URL directly to `scan`. Kingfisher automatically tries remote-tracking names like `origin/main` and `origin/feature-1`, so you can target the branches involved in a pull request without performing a local checkout first.
 
 ```bash
-kingfisher scan \
-  --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --since-commit main \
   --branch development
 ```
@@ -256,16 +255,14 @@ When `--since-commit` is omitted, specifying `--branch` scans the requested ref 
 kingfisher scan ~/tmp/repo --branch feature-123
 
 # Or scan a branch when cloning on the fly
-kingfisher scan \
-  --git-url https://github.com/org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --branch origin/feature-123
 ```
 
-In CI systems that expose the base and head commits explicitly, you can pass those SHAs directly while still using `--git-url`:
+In CI systems that expose the base and head commits explicitly, you can pass those SHAs directly while scanning a Git URL:
 
 ```bash
-kingfisher scan \
-  --git-url git@github.com:org/repo.git \
+kingfisher scan https://github.com/org/repo.git \
   --since-commit "$BASE_COMMIT" \
   --branch "$PR_HEAD_COMMIT"
 ```
@@ -341,8 +338,8 @@ kingfisher scan /path/to/repo --rule-stats
 - `--no-base64`: By default, Kingfisher finds and decodes base64 blobs and scans them for secrets. This adds a slight performance overhead; use this flag to disable
 - `--confidence <LEVEL>`: (low|medium|high)
 - `--min-entropy <VAL>`: Override default threshold
-- `--include-contributors`: When using `--git-url` for GitHub or GitLab, include contributor-owned repos in the scan
-- `--git-clone-dir <DIR>`: Choose the parent directory for cloned repos and scan artifacts (use with `--git-url`)
+- `--include-contributors`: When scanning GitHub or GitLab URLs, include contributor-owned repos in the scan
+- `--git-clone-dir <DIR>`: Choose the parent directory for cloned repos and scan artifacts (use with Git URL scans)
 - `--keep-clones`: Preserve cloned repositories on disk after a scan completes
 - `--repo-clone-limit <N>`: Cap the number of GitHub/GitLab repositories cloned when enumerating orgs/groups or contributor repos
 - `--no-binary`: Skip binary files

@@ -341,7 +341,7 @@ docker run --rm \
   -e KF_GITHUB_TOKEN=ghp_… \
   -v "$PWD":/proj \
   ghcr.io/mongodb/kingfisher:latest \
-    scan --git-url https://github.com/org/private_repo.git
+    scan https://github.com/org/private_repo.git
 
 # Scan an S3 bucket
 # Credentials can come from KF_AWS_KEY/KF_AWS_SECRET, --role-arn, or --profile
@@ -377,6 +377,15 @@ docker run --rm \
     scan /src \
     --format json \
     --output /out/findings.json
+
+# Scan and view the HTML report in your browser (Docker)
+# Use --view-report-address 0.0.0.0 and -p to expose the report server to the host
+docker run --rm \
+  -v "$PWD":/src \
+  -p 7890:7890 \
+  ghcr.io/mongodb/kingfisher:latest \
+  scan /src --access-map --view-report --view-report-address 0.0.0.0
+# Then open http://localhost:7890 in your browser
 ```
 
 ## PyPI Wheels

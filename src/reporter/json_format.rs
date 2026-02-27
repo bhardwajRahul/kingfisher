@@ -196,6 +196,8 @@ mod tests {
             turbo: false,
             no_inline_ignore: false,
             no_ignore_if_contains: false,
+            view_report_port: 7890,
+            view_report_address: "127.0.0.1".to_string(),
             validation_timeout: 10,
             validation_retries: 1,
             validation_rps: None,

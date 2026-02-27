@@ -31,8 +31,8 @@ pub struct InputSpecifierArgs {
     #[arg(num_args = 0.., value_hint = ValueHint::AnyPath)]
     pub path_inputs: Vec<PathBuf>,
 
-    /// Clone and scan the Git repository at the given URL
-    #[arg(long, value_hint = ValueHint::Url)]
+    /// Deprecated: clone and scan a Git repository URL. Prefer positional targets: `kingfisher scan github.com/org/repo`
+    #[arg(long = "git-url", value_hint = ValueHint::Url)]
     pub git_url: Vec<GitUrl>,
 
     /// Parent directory for cloned Git repositories and scan artifacts
@@ -421,7 +421,14 @@ impl InputSpecifierArgs {
     }
 
     /// Emit deprecation warnings for legacy top-level provider flags.
-    pub fn emit_deprecated_warnings(&self) {
+    pub fn emit_deprecated_warnings(&self, used_legacy_git_url_flag: bool) {
+        if used_legacy_git_url_flag {
+            warn_deprecated_provider(
+                "Git URL",
+                "Passing repository URLs with `--git-url` is deprecated. Pass the URL as a positional scan target instead, e.g. `kingfisher scan github.com/org/repo`.",
+            );
+        }
+
         if self.using_legacy_github_flags() {
             warn_deprecated_provider(
                 "GitHub",
