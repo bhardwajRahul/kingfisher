@@ -15,30 +15,43 @@ pub use gouqi::Issue as JiraIssue;
 fn extract_adf_text(node: &serde_json::Value) -> String {
     match node {
         serde_json::Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("text") {
+            let node_type = map.get("type").and_then(|v| v.as_str());
+            if node_type == Some("text") {
                 return map
                     .get("text")
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
             }
-            map.get("content")
-                .and_then(|v| v.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .map(extract_adf_text)
-                        .filter(|s| !s.is_empty())
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                })
-                .unwrap_or_default()
+            if node_type == Some("hardBreak") {
+                return "\n".to_string();
+            }
+
+            let mut text = String::new();
+            if let Some(arr) = map.get("content").and_then(|v| v.as_array()) {
+                for child in arr {
+                    text.push_str(&extract_adf_text(child));
+                }
+            }
+
+            if matches!(
+                node_type,
+                Some("paragraph" | "heading" | "blockquote" | "listItem" | "codeBlock" | "tableRow" | "table")
+            ) && !text.is_empty()
+                && !text.ends_with('\n')
+            {
+                text.push('\n');
+            }
+
+            text
         }
-        serde_json::Value::Array(arr) => arr
-            .iter()
-            .map(extract_adf_text)
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join(" "),
+        serde_json::Value::Array(arr) => {
+            let mut text = String::new();
+            for child in arr {
+                text.push_str(&extract_adf_text(child));
+            }
+            text
+        }
         _ => String::new(),
     }
 }
@@ -95,9 +108,9 @@ pub async fn download_issues_to_dir(
         // Jira Cloud API v3 returns descriptions as Atlassian Document Format (ADF),
         // a nested JSON tree whose leaf text nodes contain the actual content.
         // Flatten ADF to a plain string so the secret scanner can match against it.
-        if let Some(desc) = issue_value.pointer("/fields/description").cloned() {
-            if is_adf(&desc) {
-                let plain_text = extract_adf_text(&desc);
+        if let Some(desc) = issue_value.pointer("/fields/description") {
+            if is_adf(desc) {
+                let plain_text = extract_adf_text(desc);
                 if let Some(fields) = issue_value.pointer_mut("/fields") {
                     fields["description"] = serde_json::Value::String(plain_text);
                 }
@@ -108,11 +121,15 @@ pub async fn download_issues_to_dir(
         if let Some(comments) = issue_value.pointer_mut("/fields/comment/comments") {
             if let Some(arr) = comments.as_array_mut() {
                 for comment in arr.iter_mut() {
-                    if let Some(body) = comment.get("body").cloned() {
-                        if is_adf(&body) {
-                            let plain_text = extract_adf_text(&body);
-                            comment["body"] = serde_json::Value::String(plain_text);
+                    let plain_text = comment.get("body").and_then(|body| {
+                        if is_adf(body) {
+                            Some(extract_adf_text(body))
+                        } else {
+                            None
                         }
+                    });
+                    if let Some(plain_text) = plain_text {
+                        comment["body"] = serde_json::Value::String(plain_text);
                     }
                 }
             }
@@ -123,4 +140,67 @@ pub async fn download_issues_to_dir(
         paths.push(file);
     }
     Ok(paths)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_adf_text, is_adf};
+    use serde_json::json;
+
+    #[test]
+    fn is_adf_detects_doc_root() {
+        let doc = json!({"type": "doc", "version": 1, "content": []});
+        assert!(is_adf(&doc));
+        assert!(!is_adf(&json!({"type": "paragraph"})));
+        assert!(!is_adf(&json!("not-a-doc")));
+    }
+
+    #[test]
+    fn extract_adf_text_concatenates_adjacent_text_nodes() {
+        let value = json!({
+            "type": "doc",
+            "version": 1,
+            "content": [{
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": "sk-"},
+                    {"type": "text", "text": "proj-123"}
+                ]
+            }]
+        });
+        let text = extract_adf_text(&value);
+        assert_eq!(text.trim_end(), "sk-proj-123");
+    }
+
+    #[test]
+    fn extract_adf_text_preserves_hard_breaks() {
+        let value = json!({
+            "type": "doc",
+            "version": 1,
+            "content": [{
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": "foo"},
+                    {"type": "hardBreak"},
+                    {"type": "text", "text": "bar"}
+                ]
+            }]
+        });
+        let text = extract_adf_text(&value);
+        assert_eq!(text.trim_end(), "foo\nbar");
+    }
+
+    #[test]
+    fn extract_adf_text_adds_paragraph_separator() {
+        let value = json!({
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {"type": "paragraph", "content": [{"type": "text", "text": "first"}]},
+                {"type": "paragraph", "content": [{"type": "text", "text": "second"}]}
+            ]
+        });
+        let text = extract_adf_text(&value);
+        assert_eq!(text.trim_end(), "first\nsecond");
+    }
 }
