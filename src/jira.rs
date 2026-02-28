@@ -13,61 +13,116 @@ pub use gouqi::Issue as JiraIssue;
 /// rather than a plain string. This function walks the content tree and collects
 /// all leaf `"type": "text"` node values so that secret scanners can find them.
 fn extract_adf_text(node: &serde_json::Value) -> String {
-    match node {
-        serde_json::Value::Object(map) => {
-            let node_type = map.get("type").and_then(|v| v.as_str());
-            if node_type == Some("text") {
-                return map
-                    .get("text")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-            }
-            if node_type == Some("hardBreak") {
-                return "\n".to_string();
-            }
+    enum FrameState {
+        Enter,
+        Exit {
+            node_type: Option<String>,
+            child_count: usize,
+        },
+    }
 
-            let mut text = if let Some(arr) = map.get("content").and_then(|v| v.as_array()) {
-                match node_type {
-                    Some("table") => join_children_with_separator(arr, "\n"),
-                    Some("tableRow") => join_children_with_separator(arr, " "),
-                    _ => concat_children(arr),
+    struct Frame<'a> {
+        node: &'a serde_json::Value,
+        state: FrameState,
+    }
+
+    let mut stack = vec![Frame {
+        node,
+        state: FrameState::Enter,
+    }];
+    let mut values: Vec<String> = Vec::new();
+
+    while let Some(frame) = stack.pop() {
+        match frame.state {
+            FrameState::Enter => match frame.node {
+                serde_json::Value::Object(map) => {
+                    let node_type = map.get("type").and_then(|v| v.as_str());
+                    if node_type == Some("text") {
+                        values.push(
+                            map.get("text")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                        );
+                        continue;
+                    }
+                    if node_type == Some("hardBreak") {
+                        values.push("\n".to_string());
+                        continue;
+                    }
+
+                    let child_count = map
+                        .get("content")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| arr.len())
+                        .unwrap_or(0);
+                    stack.push(Frame {
+                        node: frame.node,
+                        state: FrameState::Exit {
+                            node_type: node_type.map(|value| value.to_string()),
+                            child_count,
+                        },
+                    });
+                    if let Some(arr) = map.get("content").and_then(|v| v.as_array()) {
+                        for child in arr.iter().rev() {
+                            stack.push(Frame {
+                                node: child,
+                                state: FrameState::Enter,
+                            });
+                        }
+                    }
                 }
-            } else {
-                String::new()
-            };
-
-            if matches!(
+                serde_json::Value::Array(arr) => {
+                    let child_count = arr.len();
+                    stack.push(Frame {
+                        node: frame.node,
+                        state: FrameState::Exit {
+                            node_type: None,
+                            child_count,
+                        },
+                    });
+                    for child in arr.iter().rev() {
+                        stack.push(Frame {
+                            node: child,
+                            state: FrameState::Enter,
+                        });
+                    }
+                }
+                _ => values.push(String::new()),
+            },
+            FrameState::Exit {
                 node_type,
-                Some("paragraph" | "heading" | "blockquote" | "listItem" | "codeBlock" | "tableRow" | "table")
-            ) && !text.is_empty()
-                && !text.ends_with('\n')
-            {
-                text.push('\n');
+                child_count,
+            } => {
+                let start = values.len().saturating_sub(child_count);
+                let child_texts = values.split_off(start);
+                let mut text = match node_type.as_deref() {
+                    Some("table") => join_texts_with_separator(child_texts, "\n"),
+                    Some("tableRow") => join_texts_with_separator(child_texts, " "),
+                    _ => child_texts.concat(),
+                };
+
+                if matches!(
+                    node_type.as_deref(),
+                    Some("paragraph" | "heading" | "blockquote" | "listItem" | "codeBlock" | "tableRow" | "table")
+                ) && !text.is_empty()
+                    && !text.ends_with('\n')
+                {
+                    text.push('\n');
+                }
+
+                values.push(text);
             }
-
-            text
         }
-        serde_json::Value::Array(arr) => {
-            concat_children(arr)
-        }
-        _ => String::new(),
     }
+
+    values.pop().unwrap_or_default()
 }
 
-fn concat_children(arr: &[serde_json::Value]) -> String {
-    let mut text = String::new();
-    for child in arr {
-        text.push_str(&extract_adf_text(child));
-    }
-    text
-}
-
-fn join_children_with_separator(arr: &[serde_json::Value], separator: &str) -> String {
+fn join_texts_with_separator(child_texts: Vec<String>, separator: &str) -> String {
     let mut text = String::new();
     let mut last_was_whitespace = true;
-    for child in arr {
-        let child_text = extract_adf_text(child);
+    for child_text in child_texts {
         if child_text.is_empty() {
             continue;
         }
