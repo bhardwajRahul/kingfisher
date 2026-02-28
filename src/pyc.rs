@@ -220,7 +220,14 @@ impl<'a> MarshalReader<'a> {
             TYPE_LONG => {
                 let n = self.read_i32()?;
                 let words = n.unsigned_abs() as usize;
-                self.skip(words * 2)?;
+                if words as u32 > MAX_COLLECTION_LEN {
+                    bail!("long size {words} exceeds collection limit");
+                }
+                let bytes = words.checked_mul(2).context("long size overflow")?;
+                if bytes > MAX_TOTAL_BYTES {
+                    bail!("long size {bytes} exceeds total bytes limit");
+                }
+                self.skip(bytes)?;
             }
 
             TYPE_STRING | TYPE_INTERNED => {
@@ -442,6 +449,12 @@ mod tests {
         buf
     }
 
+    fn marshal_long(words: i32) -> Vec<u8> {
+        let mut buf = vec![TYPE_LONG];
+        buf.extend_from_slice(&words.to_le_bytes());
+        buf
+    }
+
     fn marshal_small_tuple(items: &[Vec<u8>]) -> Vec<u8> {
         assert!(items.len() < 256);
         let mut buf = Vec::new();
@@ -620,6 +633,17 @@ mod tests {
         std::fs::write(tmp.path(), &data).unwrap();
         let result = extract_pyc_strings(tmp.path());
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn ignores_overlarge_long_objects() {
+        let mut data = make_pyc_header(3413, 16);
+        data.extend_from_slice(&marshal_long(i32::MIN));
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(tmp.path(), &data).unwrap();
+
+        let result = extract_pyc_strings(tmp.path()).unwrap();
+        assert!(result.is_empty());
     }
 
     #[test]

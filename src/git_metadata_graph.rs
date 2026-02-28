@@ -478,15 +478,15 @@ fn visit_tree(
                         debug!("No index for {} in tree {tree_oid}", child.oid);
                         continue;
                     };
-                    if seen.insert_tree(child_idx)? {
-                        let mut new_path = name_path.clone();
-                        new_path.push(symbols.get_or_intern(child.filename.into()));
-                        if exclude_globset.is_some() {
-                            let path = render_symbol_path(symbols, &new_path);
-                            if tree_path_is_excluded(&path, exclude_globset) {
-                                continue;
-                            }
+                    let mut new_path = name_path.clone();
+                    new_path.push(symbols.get_or_intern(child.filename.into()));
+                    if exclude_globset.is_some() {
+                        let path = render_symbol_path(symbols, &new_path);
+                        if tree_path_is_excluded(&path, exclude_globset) {
+                            continue;
                         }
+                    }
+                    if seen.insert_tree(child_idx)? {
                         tree_worklist.push((new_path, child.oid.to_owned()));
                     }
                 }
@@ -496,13 +496,13 @@ fn visit_tree(
                         continue;
                     };
                     if !seen.contains_blob(child_idx)? {
-                        blobs_encountered.push(child_idx);
                         let mut new_path = name_path.clone();
                         new_path.push(symbols.get_or_intern(child.filename.into()));
                         let path = render_symbol_path(symbols, &new_path);
                         if path_is_excluded(&path, exclude_globset) {
                             continue;
                         }
+                        blobs_encountered.push(child_idx);
                         *num_blobs_introduced += 1;
                         introduced.push((child.oid.to_owned(), path));
                     }
@@ -514,4 +514,88 @@ fn visit_tree(
         seen.insert_blob(idx)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs, path::Path, sync::Arc};
+
+    use anyhow::{bail, Result};
+    use bstr::ByteSlice;
+    use git2::{Repository as Git2Repository, Signature};
+    use gix::{open::Options, open_opts};
+    use globset::GlobSetBuilder;
+    use tempfile::tempdir;
+
+    use crate::git_repo_enumerator::{GitBlobSource, GitRepoWithMetadataEnumerator};
+
+    #[test]
+    fn excluded_blob_path_does_not_hide_later_included_blob() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join("repo");
+        let repo = Git2Repository::init(&repo_path)?;
+        let signature = Signature::now("tester", "tester@example.com")?;
+        let shared_contents = b"shared-secret-content-that-is-long-enough";
+
+        let excluded_dir = repo_path.join("excluded");
+        fs::create_dir_all(&excluded_dir)?;
+        fs::write(excluded_dir.join("secret.txt"), shared_contents)?;
+
+        let mut index = repo.index()?;
+        index.add_path(Path::new("excluded/secret.txt"))?;
+        let tree_id = index.write_tree()?;
+        let tree = repo.find_tree(tree_id)?;
+        let first_commit =
+            repo.commit(Some("HEAD"), &signature, &signature, "excluded only", &tree, &[])?;
+        let first_commit = repo.find_commit(first_commit)?;
+
+        fs::remove_file(excluded_dir.join("secret.txt"))?;
+        let visible_path = repo_path.join("visible.txt");
+        fs::write(&visible_path, shared_contents)?;
+
+        let mut index = repo.index()?;
+        index.remove_path(Path::new("excluded/secret.txt"))?;
+        index.add_path(Path::new("visible.txt"))?;
+        let tree_id = index.write_tree()?;
+        let tree = repo.find_tree(tree_id)?;
+        repo.commit(Some("HEAD"), &signature, &signature, "visible path", &tree, &[&first_commit])?;
+
+        let git_dir = repo_path.join(".git");
+        let gix_repo = open_opts(&git_dir, Options::isolated().open_path_as_is(true))?;
+
+        let mut builder = GlobSetBuilder::new();
+        builder.add(globset::Glob::new("excluded/**")?);
+        let exclude_globset = Arc::new(builder.build()?);
+
+        let result = GitRepoWithMetadataEnumerator::new(
+            &repo_path,
+            gix_repo,
+            Some(Arc::clone(&exclude_globset)),
+        )
+        .run()?;
+
+        let blobs = match result.blobs {
+            GitBlobSource::Precomputed(blobs) => blobs,
+            GitBlobSource::StreamFromOdb => {
+                bail!("expected precomputed metadata blobs from metadata enumerator")
+            }
+        };
+
+        let matching: Vec<_> = blobs
+            .into_iter()
+            .filter(|blob| {
+                blob.first_seen
+                    .iter()
+                    .any(|appearance| appearance.path.to_str_lossy() == "visible.txt")
+            })
+            .collect();
+
+        assert_eq!(matching.len(), 1);
+        assert!(matching[0]
+            .first_seen
+            .iter()
+            .all(|appearance| appearance.path.to_str_lossy() != "excluded/secret.txt"));
+
+        Ok(())
+    }
 }
