@@ -27,7 +27,7 @@ fn scan_fails_for_bad_rule_yaml() {
             tmp.path().to_str().unwrap(), // dummy input dir (exists)
             "--rules-path",
             tmp.path().to_str().unwrap(), // point loader at bad YAML
-            "--no-validate",              // keep the test turbo
+            "--no-validate",              // keep the test fast
             "--no-update-check",          // skip update check to avoid network calls
         ])
         .assert()

@@ -138,10 +138,10 @@ pub(crate) struct RepositoryIndex {
 impl RepositoryIndex {
     pub(crate) fn new(odb: &OdbHandle) -> Result<Self> {
         use gix::{odb::store::iter::Ordering, prelude::*};
-        let mut tree_oids = Vec::new();
-        let mut commit_oids = Vec::new();
-        let mut blob_oids = Vec::new();
-        let mut tag_oids = Vec::new();
+        let mut trees = ObjectIdBimap::with_capacity(0);
+        let mut commits = ObjectIdBimap::with_capacity(0);
+        let mut blobs = ObjectIdBimap::with_capacity(0);
+        let mut tags = ObjectIdBimap::with_capacity(0);
 
         for oid_result in odb
             .iter()
@@ -163,30 +163,12 @@ impl RepositoryIndex {
                 }
             };
             match hdr.kind() {
-                Kind::Tree => tree_oids.push(oid),
-                Kind::Blob if hdr.size() >= MIN_SCANNABLE_BLOB_SIZE => blob_oids.push(oid),
+                Kind::Tree => trees.insert(oid),
+                Kind::Blob if hdr.size() >= MIN_SCANNABLE_BLOB_SIZE => blobs.insert(oid),
                 Kind::Blob => {}
-                Kind::Commit => commit_oids.push(oid),
-                Kind::Tag => tag_oids.push(oid),
+                Kind::Commit => commits.insert(oid),
+                Kind::Tag => tags.insert(oid),
             }
-        }
-
-        let mut trees = ObjectIdBimap::with_capacity(tree_oids.len());
-        let mut commits = ObjectIdBimap::with_capacity(commit_oids.len());
-        let mut blobs = ObjectIdBimap::with_capacity(blob_oids.len());
-        let mut tags = ObjectIdBimap::with_capacity(tag_oids.len());
-
-        for oid in tree_oids {
-            trees.insert(oid);
-        }
-        for oid in commit_oids {
-            commits.insert(oid);
-        }
-        for oid in blob_oids {
-            blobs.insert(oid);
-        }
-        for oid in tag_oids {
-            tags.insert(oid);
         }
 
         Ok(Self { trees, commits, blobs, tags })

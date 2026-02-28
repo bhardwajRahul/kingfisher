@@ -86,12 +86,11 @@ fn dump_table(
 ) -> Result<String> {
     let mut out = String::with_capacity(4096);
     let create_statement = format!("{create_sql};\n");
-    if create_statement.len() > remaining_budget {
+    if !push_with_budget(&mut out, &create_statement, remaining_budget) {
         bail!(
             "CREATE TABLE statement for '{table_name}' exceeds remaining size budget ({remaining_budget} bytes)"
         );
     }
-    out.push_str(&create_statement);
 
     let col_names = column_names(conn, table_name)?;
     if col_names.is_empty() {
@@ -111,28 +110,42 @@ fn dump_table(
 
     while let Some(row) = rows.next()? {
         if rows_emitted >= MAX_ROWS_PER_TABLE {
-            writeln!(out, "-- (truncated after {MAX_ROWS_PER_TABLE} rows)")?;
+            let marker = format!("-- (truncated after {MAX_ROWS_PER_TABLE} rows)\n");
+            let _ = push_with_budget(&mut out, &marker, remaining_budget);
             break;
         }
         if out.len() >= remaining_budget {
-            writeln!(out, "-- (truncated: size limit reached)")?;
             break;
         }
 
-        write!(out, "INSERT INTO {quoted_table_name} ({columns_fragment}) VALUES (")?;
+        let mut row_sql = String::new();
+        write!(row_sql, "INSERT INTO {quoted_table_name} ({columns_fragment}) VALUES (")?;
 
         for i in 0..col_count {
             if i > 0 {
-                write!(out, ",")?;
+                write!(row_sql, ",")?;
             }
-            write_value(&mut out, row, i)?;
+            write_value(&mut row_sql, row, i)?;
         }
 
-        writeln!(out, ");")?;
+        writeln!(row_sql, ");")?;
+        if !push_with_budget(&mut out, &row_sql, remaining_budget) {
+            let marker = "-- (truncated: size limit reached)\n";
+            let _ = push_with_budget(&mut out, marker, remaining_budget);
+            break;
+        }
         rows_emitted += 1;
     }
 
     Ok(out)
+}
+
+fn push_with_budget(out: &mut String, fragment: &str, remaining_budget: usize) -> bool {
+    if out.len().saturating_add(fragment.len()) > remaining_budget {
+        return false;
+    }
+    out.push_str(fragment);
+    true
 }
 
 fn column_names(conn: &Connection, table_name: &str) -> Result<Vec<String>> {
@@ -288,5 +301,24 @@ mod tests {
         .unwrap_err();
 
         assert!(err.to_string().contains("exceeds remaining size budget"));
+    }
+
+    #[test]
+    fn does_not_exceed_budget_when_row_is_too_large() {
+        let tmp = NamedTempFile::new().unwrap();
+        let path = tmp.path().to_path_buf();
+        let conn = Connection::open(&path).unwrap();
+        let large_value = "x".repeat(512);
+        conn.execute_batch(&format!(
+            "CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT);
+             INSERT INTO t VALUES (1, '{large_value}');"
+        ))
+        .unwrap();
+
+        let sql = dump_table(&conn, "t", "CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)", 96)
+            .unwrap();
+
+        assert!(sql.len() <= 96);
+        assert!(!sql.contains(&large_value));
     }
 }

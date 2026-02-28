@@ -6,11 +6,11 @@ rules:
     pattern: |
       (?xi)
       (?: redis | rediss | redis\+sentinel ) ://
-        (?: (?P<username>[a-zA-Z0-9%;._~!$&'()*+,;=-]{1,})
+        (?: (?P<username>[a-zA-Z0-9%;._~!$&'()*+,;=-]*)
           :
         )?
         (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;:=/+-]{8,})
-      @ (?P<host>[a-zA-Z0-9_.-]{1,}) (?: :(?P<port>\d{1,5}))?
+      @ (?P<host>(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9_.-]{1,})) (?: :(?P<port>\d{1,5}))?
       (?: / (?P<db>\d{1,2}))?
       \b
 

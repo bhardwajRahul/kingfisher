@@ -227,7 +227,7 @@ rules:
 
 #[test]
 fn test_dedup_branch() -> Result<()> {
-    // A *single* runtime reused for both scans keeps the test turbo
+    // A *single* runtime reused for both scans keeps the test fast
     let rt = Runtime::new().unwrap();
 
     let findings_with_dups = run_scan(&rt, true)?; // keep duplicates
