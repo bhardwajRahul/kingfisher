@@ -27,12 +27,15 @@ fn extract_adf_text(node: &serde_json::Value) -> String {
                 return "\n".to_string();
             }
 
-            let mut text = String::new();
-            if let Some(arr) = map.get("content").and_then(|v| v.as_array()) {
-                for child in arr {
-                    text.push_str(&extract_adf_text(child));
+            let text = if let Some(arr) = map.get("content").and_then(|v| v.as_array()) {
+                match node_type {
+                    Some("table") => join_children_with_separator(arr, "\n"),
+                    Some("tableRow") => join_children_with_separator(arr, " "),
+                    _ => concat_children(arr),
                 }
-            }
+            } else {
+                String::new()
+            };
 
             if matches!(
                 node_type,
@@ -46,14 +49,43 @@ fn extract_adf_text(node: &serde_json::Value) -> String {
             text
         }
         serde_json::Value::Array(arr) => {
-            let mut text = String::new();
-            for child in arr {
-                text.push_str(&extract_adf_text(child));
-            }
-            text
+            concat_children(arr)
         }
         _ => String::new(),
     }
+}
+
+fn concat_children(arr: &[serde_json::Value]) -> String {
+    let mut text = String::new();
+    for child in arr {
+        text.push_str(&extract_adf_text(child));
+    }
+    text
+}
+
+fn join_children_with_separator(arr: &[serde_json::Value], separator: &str) -> String {
+    let mut text = String::new();
+    for child in arr {
+        let child_text = extract_adf_text(child);
+        if child_text.is_empty() {
+            continue;
+        }
+        let needs_separator = text
+            .chars()
+            .last()
+            .map(|c| !c.is_whitespace())
+            .unwrap_or(false)
+            && child_text
+                .chars()
+                .next()
+                .map(|c| !c.is_whitespace())
+                .unwrap_or(false);
+        if needs_separator {
+            text.push_str(separator);
+        }
+        text.push_str(&child_text);
+    }
+    text
 }
 
 /// Returns true if the value looks like an ADF document root.
@@ -72,8 +104,14 @@ fn flatten_adf_fields(issue_value: &mut serde_json::Value) {
     if let Some(desc) = issue_value.pointer("/fields/description") {
         if is_adf(desc) {
             let plain_text = extract_adf_text(desc);
-            if let Some(fields) = issue_value.pointer_mut("/fields") {
-                fields["description"] = serde_json::Value::String(plain_text);
+            if let Some(fields) = issue_value
+                .pointer_mut("/fields")
+                .and_then(|value| value.as_object_mut())
+            {
+                fields.insert(
+                    "description".to_string(),
+                    serde_json::Value::String(plain_text.trim_end_matches('\n').to_string()),
+                );
             }
         }
     }
@@ -90,7 +128,14 @@ fn flatten_adf_fields(issue_value: &mut serde_json::Value) {
                     }
                 });
                 if let Some(plain_text) = plain_text {
-                    comment["body"] = serde_json::Value::String(plain_text);
+                    if let Some(comment_obj) = comment.as_object_mut() {
+                        comment_obj.insert(
+                            "body".to_string(),
+                            serde_json::Value::String(
+                                plain_text.trim_end_matches('\n').to_string(),
+                            ),
+                        );
+                    }
                 }
             }
         }
@@ -311,6 +356,43 @@ mod tests {
             .and_then(|v| v.as_str())
             .unwrap_or("");
         assert_eq!(body, "secret");
+    }
+
+    #[test]
+    fn flatten_adf_fields_converts_description() {
+        let mut issue_value = json!({
+            "fields": {
+                "description": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [{
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "desc"}]
+                    }]
+                }
+            }
+        });
+        flatten_adf_fields(&mut issue_value);
+        let desc = issue_value
+            .pointer("/fields/description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert_eq!(desc, "desc");
+    }
+
+    #[test]
+    fn flatten_adf_fields_leaves_plain_description() {
+        let mut issue_value = json!({
+            "fields": {
+                "description": "plain description"
+            }
+        });
+        flatten_adf_fields(&mut issue_value);
+        let desc = issue_value
+            .pointer("/fields/description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert_eq!(desc, "plain description");
     }
 
     #[test]
