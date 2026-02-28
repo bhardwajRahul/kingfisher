@@ -348,7 +348,7 @@ impl ParallelBlobIterator for FileResult {
             match extract_sqlite_contents(&self.path) {
                 Ok(tables) if tables.is_empty() => {
                     debug!("No tables found in SQLite database: {}", self.path.display());
-                    Ok(None)
+                    self.raw_blob_iter().map(Some)
                 }
                 Ok(tables) => {
                     let items = tables
@@ -366,14 +366,14 @@ impl ParallelBlobIterator for FileResult {
                 }
                 Err(e) => {
                     debug!("Failed to extract SQLite database {}: {e:#}", self.path.display());
-                    Ok(None)
+                    self.raw_blob_iter().map(Some)
                 }
             }
         } else if extraction_enabled && is_pyc_file(&self.path) {
             match extract_pyc_strings(&self.path) {
                 Ok(strings) if strings.is_empty() => {
                     debug!("No strings found in .pyc file: {}", self.path.display());
-                    Ok(None)
+                    self.raw_blob_iter().map(Some)
                 }
                 Ok(strings) => {
                     let origin = OriginSet::new(Origin::from_file(self.path.clone()), vec![]);
@@ -385,7 +385,7 @@ impl ParallelBlobIterator for FileResult {
                 }
                 Err(e) => {
                     debug!("Failed to extract .pyc file {}: {e:#}", self.path.display());
-                    Ok(None)
+                    self.raw_blob_iter().map(Some)
                 }
             }
         } else if extraction_enabled && is_compressed_file(&self.path) {
@@ -502,6 +502,18 @@ impl ParallelBlobIterator for FileResult {
                 _marker: PhantomData,
             }))
         }
+    }
+}
+
+impl FileResult {
+    fn raw_blob_iter(&self) -> Result<FileResultIter<'static>> {
+        let blob = Blob::from_file(&self.path)
+            .with_context(|| format!("Failed to load blob from {}", self.path.display()))?;
+        let origin = OriginSet::new(Origin::from_file(self.path.clone()), vec![]);
+        Ok(FileResultIter {
+            iter_kind: FileResultIterKind::Single(Some((origin, blob))),
+            _marker: PhantomData,
+        })
     }
 }
 
@@ -1160,14 +1172,17 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
-    use super::{enumerate_git_diff_repo, GitBlobSource, GitDiffConfig};
+    use super::{
+        enumerate_git_diff_repo, reference_candidates, FileResult, GitBlobSource, GitDiffConfig,
+        ParallelBlobIterator,
+    };
     use anyhow::Result;
     use bstr::ByteSlice;
     use git2::{Repository as Git2Repository, Signature};
     use gix::{open::Options, open_opts};
+    use rayon::iter::ParallelIterator;
+    use rusqlite::Connection;
     use tempfile::tempdir;
-
-    use super::reference_candidates;
 
     #[test]
     fn reference_candidates_for_plain_branch() {
@@ -1264,6 +1279,82 @@ mod tests {
         let appearance_path = blob.first_seen[0].path.to_str_lossy();
         assert_eq!(appearance_path, "secret.txt");
 
+        Ok(())
+    }
+
+    fn collect_file_bytes(file: FileResult) -> Result<Vec<(std::path::PathBuf, Vec<u8>)>> {
+        let iter = file.into_blob_iter()?.expect("file result should yield a blob");
+        iter.collect::<Vec<_>>()
+            .into_iter()
+            .map(|item| {
+                let (origin, blob) = item?;
+                let path = origin
+                    .first()
+                    .full_path()
+                    .expect("file origin should preserve the filesystem path");
+                Ok((path, blob.bytes().to_vec()))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn sqlite_extension_falls_back_to_raw_bytes_when_extraction_fails() -> Result<()> {
+        let dir = tempdir()?;
+        let path = dir.path().join("not-a-database.db");
+        let expected = b"ghp_not_really_sqlite_but_should_still_scan".to_vec();
+        fs::write(&path, &expected)?;
+
+        let blobs = collect_file_bytes(FileResult {
+            path: path.clone(),
+            num_bytes: expected.len() as u64,
+            extract_archives: true,
+            extraction_depth: 2,
+        })?;
+
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].0, path);
+        assert_eq!(blobs[0].1, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn pyc_without_extractable_strings_falls_back_to_raw_bytes() -> Result<()> {
+        let dir = tempdir()?;
+        let path = dir.path().join("empty.pyc");
+        let mut expected = vec![0x55, 0x0D, b'\r', b'\n'];
+        expected.extend_from_slice(&[0; 12]);
+        fs::write(&path, &expected)?;
+
+        let blobs = collect_file_bytes(FileResult {
+            path: path.clone(),
+            num_bytes: expected.len() as u64,
+            extract_archives: true,
+            extraction_depth: 2,
+        })?;
+
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].0, path);
+        assert_eq!(blobs[0].1, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn sqlite_with_no_user_tables_falls_back_to_raw_bytes() -> Result<()> {
+        let dir = tempdir()?;
+        let path = dir.path().join("empty.db");
+        Connection::open(&path)?;
+        let expected = fs::read(&path)?;
+
+        let blobs = collect_file_bytes(FileResult {
+            path: path.clone(),
+            num_bytes: expected.len() as u64,
+            extract_archives: true,
+            extraction_depth: 2,
+        })?;
+
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].0, path);
+        assert_eq!(blobs[0].1, expected);
         Ok(())
     }
 }
