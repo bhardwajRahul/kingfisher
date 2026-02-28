@@ -65,25 +65,25 @@ fn concat_children(arr: &[serde_json::Value]) -> String {
 
 fn join_children_with_separator(arr: &[serde_json::Value], separator: &str) -> String {
     let mut text = String::new();
+    let mut last_was_whitespace = true;
     for child in arr {
         let child_text = extract_adf_text(child);
         if child_text.is_empty() {
             continue;
         }
-        let needs_separator = text
+        let child_starts_non_whitespace = child_text
             .chars()
-            .last()
+            .next()
             .map(|c| !c.is_whitespace())
-            .unwrap_or(false)
-            && child_text
-                .chars()
-                .next()
-                .map(|c| !c.is_whitespace())
-                .unwrap_or(false);
+            .unwrap_or(false);
+        let needs_separator = !last_was_whitespace && child_starts_non_whitespace;
         if needs_separator {
             text.push_str(separator);
         }
         text.push_str(&child_text);
+        if let Some(last_char) = child_text.chars().rev().next() {
+            last_was_whitespace = last_char.is_whitespace();
+        }
     }
     text
 }
