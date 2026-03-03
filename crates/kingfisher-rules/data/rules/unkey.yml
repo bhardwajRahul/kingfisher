@@ -47,12 +47,11 @@ rules:
     id: kingfisher.unkey.2
     pattern: |
       (?xi)
-      \b
-      (?:unkey)?
-      (?:.|[\n\r]){0,32}?
-      (?:API_KEY|KEY|SECRET|TOKEN)?
-      (?:.|[\n\r]){0,16}?
-      \b
+      (?:
+        UNKEY(?:_API)?_KEY \s* [=:] \s*
+        | x-api-key \s* : \s*
+        | Authorization \s* : \s* Bearer \s+
+      )
       (
         key_[A-Za-z0-9]{10,48}
       )
@@ -92,12 +91,9 @@ rules:
     id: kingfisher.unkey.3
     pattern: |
       (?xi)
-      \b
       unkey
-      (?:.|[\n\r]){0,32}?
-      (?:SECRET|PLAINTEXT|KEY|CREATE)
-      (?:.|[\n\r]){0,32}?
-      [=:\s]+
+      (?:_(?:secret|plaintext|key|create)){1,3}
+      \s* [=:] \s*
       ['"]?
       (?P<secret>[A-Za-z0-9]{20,48})
       ['"]?
