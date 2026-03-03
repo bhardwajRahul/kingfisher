@@ -2,7 +2,7 @@ rules:
   - name: Unkey Root Key
     id: kingfisher.unkey.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         unkey_[A-Za-z0-9]{20,32}
