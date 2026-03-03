@@ -46,12 +46,11 @@ rules:
   - name: Unkey API Key (key_ prefix)
     id: kingfisher.unkey.2
     pattern: |
-      (?xi)
+      (?x)
       \b
-      unkey
-      (?:.|[\n\r]){0,32}?
-      (?:API_KEY|KEY|SECRET|TOKEN)?
-      (?:.|[\n\r]){0,16}?
+      (
+        key_[A-Za-z0-9]{10,48}
+      )
       \b
     pattern_requirements:
       min_digits: 1
