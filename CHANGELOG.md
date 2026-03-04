@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.86.0]
+- GitLab scanning: honor OS-trusted internal CAs without requiring `SSL_CERT_FILE`, and preserve custom GitLab API ports in repository enumeration and artifact fetching.
+- Added detection/validation rules for App Center, Branch.io, BrowserStack, Calendly, Cypress, Delighted, DeviantArt, Instagram, Iterable, Keen.io, Lokalise, Pendo, Razorpay, Spotify, WakaTime, WPEngine.
+- Added revocation support for DeviantArt access tokens via the OAuth revoke endpoint and BrowserStack access keys via the key recycle endpoint.
+
 ## [v1.85.0]
 - Report viewer: added `--view-report-port` and `--view-report-address` to `kingfisher scan --view-report`, and `--address` to `kingfisher view`, so the embedded report server can bind to `0.0.0.0` and be reached from the host when running in Docker. Use `--view-report-address 0.0.0.0` with `-p 7890:7890` (or `--view-report-port 7891` with `-p 7891:7891`) to view the HTML report at http://localhost:7890 from your host.
 - Updated `kingfisher scan` to accept Git repository URLs as positional targets (for example `kingfisher scan github.com/org/repo` or `kingfisher scan https://gitlab.com/group/project.git`) without requiring `--git-url`.
