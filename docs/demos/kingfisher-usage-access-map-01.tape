@@ -11,4 +11,4 @@ Enter
 
 Wait+Screen@30s /(report|findings|summary|kingfisher)/
 
-Sleep 14000ms
+Sleep 18000ms
