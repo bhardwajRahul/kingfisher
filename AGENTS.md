@@ -66,7 +66,7 @@ Key capabilities:
   - `make linux-arm64`
   - `make darwin-x64`
   - `make darwin-arm64`
-  - `make windows-x64` (Windows host only)
+  - `make windows-x64` (Windows host only, requires Visual Studio 2019/2022 for C++ compilation support)
 - Ubuntu bare-metal (Zig/cargo-zigbuild flow):
   - `make ubuntu-x64`
   - `make ubuntu-arm64`
@@ -93,14 +93,14 @@ Key capabilities:
 ## Common Development Tasks
 - Add a detection rule: follow the workflow below and validate with relevant tests.
 - Add a CLI command: implement under `src/cli/commands/` and register in the CLI command wiring.
-- Add a validator (rare exception path): implement in `src/validation/` and wire feature flags/dependencies in `crates/kingfisher-scanner/Cargo.toml` only when YAML validation cannot express the required logic.
+- Add a validator (rare exception path): implement in `crates/kingfisher-scanner/src/validation/` and wire feature flags/dependencies in `crates/kingfisher-scanner/Cargo.toml` only when YAML validation cannot express the required logic.
 
 ## Rule Authoring Workflow
 Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/`.
 
 1. Pick a nearby reference rule file in the same provider family and copy its structure.
-2. Define a stable rule id (`id`) and detection regex (`pattern`) under `rules:`.
-3. Include `examples` that must match.
+2. Define a stable rule id (`id`, prefixed with `kingisher.` and detection regex (`pattern`) under `rules:`.
+3. Include `examples` that must match. These can be tested with `cargo test check_rules` or `kingfisher rules check --rules-path crates/kingfisher-rules/data/rules/slack.yml --load-builtins=false --no-update-check`
 4. Set guardrails:
    - `min_entropy` for high-entropy tokens.
    - `pattern_requirements` (e.g., `min_digits`, `min_uppercase`, `min_lowercase`, `min_special_chars`, `ignore_if_contains`) when format constraints are known.
@@ -114,6 +114,9 @@ Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/
    - `cargo test --workspace --all-targets`
    - `kingfisher scan ./testdata --rule <rule-family-or-id> --rule-stats`
    - If validation is implemented: `kingfisher validate --rule <rule-id> <token-or-secret>`
+10. Confidence for rules should be set at `confidence: medium`
+11. The `pattern` field must contain a valid Hyperscan/Vectorscan regular expression. Lookahead and lookbehind assertions aren’t supported. Because inefficient or overly broad regex can degrade performance, patterns should be as specific as possible and written to minimize false positives.
+    1.  **Writing `pattern`**: Start with `(?x)` (free-spacing). Use one unnamed capture `( ... )` around the secret—it becomes `{{ TOKEN }}`. Use `\b` word boundaries and `(?: ... )` for non-capturing structure. For flexible context between keywords and token, use `(?:.|[\n\r]){0,N}?`. Hyperscan doesn't support `(?=...)`; use `pattern_requirements` (e.g. `min_digits`) instead.
 
 ## Rule Docs (Read Before Editing)
 - `docs/RULES.md`:
