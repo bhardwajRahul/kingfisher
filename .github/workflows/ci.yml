@@ -141,13 +141,35 @@ jobs:
         run: make windows-${{ matrix.arch }}
 
       - name: Run tests
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          if (-not (Get-Command cargo-nextest -ErrorAction SilentlyContinue)) {
+          set -eu -o pipefail
+
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            toolchain_root=/clangarm64
+            target_triple=aarch64-pc-windows-gnullvm
+          else
+            toolchain_root=/mingw64
+            target_triple=x86_64-pc-windows-gnu
+          fi
+
+          export LIBHS_NO_PKG_CONFIG=1
+          export HYPERSCAN_ROOT="$(cygpath -m "$toolchain_root")"
+          export PKG_CONFIG_PATH="$toolchain_root/lib/pkgconfig"
+
+          if ! command -v cargo >/dev/null 2>&1 && [ -n "${USERPROFILE:-}" ]; then
+            cargo_home_candidate="$(cygpath -u "${USERPROFILE}")/.cargo/bin"
+            if [ -d "$cargo_home_candidate" ]; then
+              export PATH="$cargo_home_candidate:$PATH"
+            fi
+          fi
+
+          if ! command -v cargo-nextest >/dev/null 2>&1; then
             cargo install --locked cargo-nextest
-          }
-          Write-Host "▶ cargo nextest run --release --workspace --all-targets"
-          cargo nextest run --release --workspace --all-targets
+          fi
+
+          echo "▶ cargo nextest run --release --workspace --all-targets --target $target_triple"
+          cargo nextest run --release --workspace --all-targets --target "$target_triple"
 
       - name: Move artifact to dist
         shell: bash
