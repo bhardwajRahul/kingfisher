@@ -10,14 +10,24 @@
     Specific version to download (e.g., "1.76.0" or "v1.76.0").
     Defaults to "latest".
 
+.PARAMETER Arch
+    Optional architecture override. Defaults to auto-detection.
+    Allowed values: auto, x64, arm64.
+
 .EXAMPLE
     ./kingfisher-pre-commit-auto.ps1
 
 .EXAMPLE
     $env:KINGFISHER_VERSION = "1.76.0"; ./kingfisher-pre-commit-auto.ps1
+
+.EXAMPLE
+    ./kingfisher-pre-commit-auto.ps1 -Arch arm64
 #>
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('auto', 'x64', 'arm64')]
+    [string]$Arch = 'auto'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -27,13 +37,35 @@ $cacheDir = if ($env:KINGFISHER_CACHE_DIR) {
 } else { 
     Join-Path $env:LOCALAPPDATA 'kingfisher' 
 }
-$kingfisherBin = Join-Path $cacheDir 'kingfisher.exe'
-$versionFile = Join-Path $cacheDir '.version'
 $expectedVersion = if ($env:KINGFISHER_VERSION) { $env:KINGFISHER_VERSION } else { 'latest' }
+$resolvedArch = $null
+$kingfisherBin = $null
+$versionFile = $null
+
+function Resolve-ArchSuffix {
+    param(
+        [ValidateSet('auto', 'x64', 'arm64')]
+        [string]$RequestedArch
+    )
+
+    if ($RequestedArch -ne 'auto') {
+        return $RequestedArch
+    }
+
+    $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+    switch ($osArch) {
+        'X64' { return 'x64' }
+        'Arm64' { return 'arm64' }
+        default { throw "Unsupported Windows architecture '$osArch'. Supported values are x64 and arm64." }
+    }
+}
 
 function Get-AssetName {
-    # Windows only supports x64 currently
-    return 'kingfisher-windows-x64.zip'
+    param(
+        [string]$ArchSuffix
+    )
+
+    return "kingfisher-windows-$ArchSuffix.zip"
 }
 
 function Download-Kingfisher {
@@ -41,7 +73,7 @@ function Download-Kingfisher {
         [string]$Version
     )
 
-    $assetName = Get-AssetName
+    $assetName = Get-AssetName -ArchSuffix $resolvedArch
 
     if (-not (Test-Path $cacheDir)) {
         New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
@@ -52,14 +84,14 @@ function Download-Kingfisher {
     try {
         if ($Version -eq 'latest') {
             $downloadUrl = "https://github.com/$repo/releases/latest/download/$assetName"
-            Write-Host "Downloading kingfisher (latest) for Windows..." -ForegroundColor Cyan
+            Write-Host "Downloading kingfisher (latest) for Windows $resolvedArch..." -ForegroundColor Cyan
         } else {
             # Support both "v1.76.0" and "1.76.0" formats
             if (-not $Version.StartsWith('v')) {
                 $Version = "v$Version"
             }
             $downloadUrl = "https://github.com/$repo/releases/download/$Version/$assetName"
-            Write-Host "Downloading kingfisher ($Version) for Windows..." -ForegroundColor Cyan
+            Write-Host "Downloading kingfisher ($Version) for Windows $resolvedArch..." -ForegroundColor Cyan
         }
 
         $archivePath = Join-Path $tempDir.FullName $assetName
@@ -133,6 +165,10 @@ function Test-NeedsDownload {
 }
 
 # Main execution
+$resolvedArch = Resolve-ArchSuffix -RequestedArch $Arch
+$kingfisherBin = Join-Path $cacheDir 'kingfisher.exe'
+$versionFile = Join-Path $cacheDir ".version-$resolvedArch"
+
 if (Test-NeedsDownload) {
     Download-Kingfisher -Version $expectedVersion
 }
