@@ -3,15 +3,20 @@
     Download and install a Kingfisher release for Windows.
 
 .DESCRIPTION
-    Fetches a GitHub release for mongodb/kingfisher, downloads the Windows x64
-    archive, and extracts kingfisher.exe to the destination folder. By default
-    the script installs into "$env:USERPROFILE\bin".
+    Fetches a GitHub release for mongodb/kingfisher, detects your Windows
+    architecture (x64 or arm64), downloads the matching archive, and extracts
+    kingfisher.exe to the destination folder. By default the script installs
+    into "$env:USERPROFILE\bin".
 
 .PARAMETER InstallDir
     Optional destination directory for the kingfisher.exe binary.
 
 .PARAMETER Tag
     Optional GitHub release tag (e.g., v1.71.0). Defaults to the latest release.
+
+.PARAMETER Arch
+    Optional architecture override. Defaults to auto-detection.
+    Allowed values: auto, x64, arm64.
 
 .EXAMPLE
     ./install-kingfisher.ps1
@@ -21,16 +26,42 @@
 
 .EXAMPLE
     ./install-kingfisher.ps1 -Tag v1.71.0
+
+.EXAMPLE
+    ./install-kingfisher.ps1 -Arch arm64
 #>
 param(
     [Parameter(Position = 0)]
     [string]$InstallDir = (Join-Path $env:USERPROFILE 'bin'),
 
-    [string]$Tag
+    [string]$Tag,
+
+    [ValidateSet('auto', 'x64', 'arm64')]
+    [string]$Arch = 'auto'
 )
 
 $repo = 'mongodb/kingfisher'
-$assetName = 'kingfisher-windows-x64.zip'
+
+function Get-WindowsArchSuffix {
+    param(
+        [ValidateSet('auto', 'x64', 'arm64')]
+        [string]$RequestedArch
+    )
+
+    if ($RequestedArch -ne 'auto') {
+        return $RequestedArch
+    }
+
+    $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+    switch ($osArch) {
+        'X64' { return 'x64' }
+        'Arm64' { return 'arm64' }
+        default { throw "Unsupported Windows architecture '$osArch'. Supported values are x64 and arm64." }
+    }
+}
+
+$archSuffix = Get-WindowsArchSuffix -RequestedArch $Arch
+$assetName = "kingfisher-windows-$archSuffix.zip"
 
 if (-not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
     throw 'Invoke-WebRequest is required to download releases.'
@@ -67,6 +98,7 @@ try {
     if ($releaseTag) {
         Write-Host "Latest release: $releaseTag"
     }
+    Write-Host "Resolved Windows architecture: $archSuffix"
 
     Write-Host "Downloading $assetName…"
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archivePath -UseBasicParsing

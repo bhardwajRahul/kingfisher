@@ -71,6 +71,9 @@ Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/mai
 ./install-kingfisher.ps1
 ```
 
+The installer auto-detects your Windows architecture and downloads the matching
+release artifact (`windows-x64` or `windows-arm64`).
+
 You can provide a custom destination using the `-InstallDir` parameter:
 
 ```powershell
@@ -81,6 +84,12 @@ To install a specific tag:
 
 ```powershell
 ./install-kingfisher.ps1 -Tag v1.71.0
+```
+
+To explicitly override architecture selection:
+
+```powershell
+./install-kingfisher.ps1 -Arch arm64
 ```
 
 ## Pre-commit Hooks
@@ -150,6 +159,7 @@ Install as a **global** hook (using core.hooksPath):
 ```
 
 Uninstall the **global** hook:
+
 ```powershell
 ./install-kingfisher-pre-commit.ps1 -Global -Uninstall
 ```
@@ -180,18 +190,22 @@ repos:
 **Available hooks:**
 
 | Hook ID | Description | Requirements |
-|---------|-------------|--------------|
+| ------- | ----------- | ------------ |
 | `kingfisher-auto` | Automatically downloads and caches the appropriate binary for your platform | curl, tar (or unzip on Windows) |
 | `kingfisher-docker` | Runs Kingfisher in Docker | Docker |
 | `kingfisher` | Uses locally installed Kingfisher binary | Manual installation |
 
 The `kingfisher-auto` hook is recommended for most users as it:
+
 - Automatically downloads the correct binary for your OS and architecture
 - Caches the binary in `~/.cache/kingfisher` (Linux/macOS) or `%LOCALAPPDATA%\kingfisher` (Windows)
 - Works across Linux, macOS, and Windows (via Git Bash which comes with Git for Windows)
 - Requires no Docker or manual installation
 
 **Windows users:** The `kingfisher-auto` hook uses a bash script that runs via Git Bash (included with [Git for Windows](https://gitforwindows.org/)). For native PowerShell, a `kingfisher-pre-commit-auto.ps1` script is also available in the `scripts/` directory.
+
+The PowerShell auto-hook script also auto-detects Windows architecture and
+downloads the matching `windows-x64` or `windows-arm64` binary.
 
 Then install the hook via `pre-commit install`. Every hook now drives Kingfisher
 directly with the built-in `--staged` flag:
@@ -290,6 +304,12 @@ For Windows users preferring native PowerShell over Git Bash, create a `.husky/p
 # Download and run the PowerShell auto-install script
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/kingfisher-pre-commit-auto.ps1' -OutFile "$env:TEMP\kf-scan.ps1"
 & "$env:TEMP\kf-scan.ps1"
+```
+
+If needed, you can override architecture explicitly:
+
+```powershell
+& "$env:TEMP\kf-scan.ps1" -Arch arm64
 ```
 
 Or if Kingfisher is already installed:
