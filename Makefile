@@ -369,7 +369,16 @@ endif
 	  export HYPERSCAN_ROOT="$$(cygpath -m /mingw64)"; \
 	  export LIBRARY_PATH="/mingw64/lib:$${LIBRARY_PATH:-}"; \
 	  export CPATH="/mingw64/include:$${CPATH:-}"; \
-	  export RUSTFLAGS="$${RUSTFLAGS:-} -L native=/mingw64/lib -C target-feature=+crt-static -C link-arg=-static"; \
+	  extra_native_lib_dirs="-L native=/mingw64/lib"; \
+	  if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
+	    libgcc_a_path="$$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"; \
+	    if [ -n "$$libgcc_a_path" ] && [ -f "$$libgcc_a_path" ]; then \
+	      libgcc_dir="$$(dirname "$$libgcc_a_path")"; \
+	      extra_native_lib_dirs="$$extra_native_lib_dirs -L native=$$libgcc_dir"; \
+	      echo "Using libgcc from $$libgcc_dir"; \
+	    fi; \
+	  fi; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} $$extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"; \
 	  echo "Using HYPERSCAN_ROOT=$$HYPERSCAN_ROOT"; \
 	  "$$RUSTUP_BIN" target add x86_64-pc-windows-gnu; \
 	  export LIBHS_NO_PKG_CONFIG=1; \
