@@ -102,11 +102,17 @@ jobs:
 
   windows:
     name: Windows ${{ matrix.arch }}
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64, arm64]
+        include:
+          - arch: x64
+            runs_on: windows-latest
+            msystem: MINGW64
+          - arch: arm64
+            runs_on: windows-11-arm
+            msystem: CLANGARM64
 
     steps:
       - uses: actions/checkout@v4
@@ -119,7 +125,7 @@ jobs:
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.msystem }}
           update: true
           install: >-
             make
@@ -147,9 +153,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp target/release/kingfisher-windows-x64.zip dist/
+          cp target/release/kingfisher-windows-${{ matrix.arch }}.zip dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: kingfisher-windows-x64
-          path: dist/kingfisher-*windows-x64*.*
+          name: kingfisher-windows-${{ matrix.arch }}
+          path: dist/kingfisher-*windows-${{ matrix.arch }}*.*
