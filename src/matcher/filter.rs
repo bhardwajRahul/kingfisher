@@ -38,17 +38,13 @@ fn check_entropy_and_safelist(
     min_entropy: f32,
 ) -> Option<f32> {
     let calculated_entropy = calculate_shannon_entropy(entropy_bytes);
-    let low_entropy = calculated_entropy <= min_entropy;
-    let safe_match_reason = is_safe_match_reason(entropy_bytes);
-    let user_match = is_user_match(entropy_bytes, full_bytes);
-
-    if low_entropy {
+    if calculated_entropy <= min_entropy {
         debug!("Skipping match: entropy {} <= min_entropy {}", calculated_entropy, min_entropy);
         None
-    } else if let Some(reason) = safe_match_reason {
+    } else if let Some(reason) = is_safe_match_reason(entropy_bytes) {
         debug!("Skipping match: safe-list match - {reason}");
         None
-    } else if user_match {
+    } else if is_user_match(entropy_bytes, full_bytes) {
         debug!("Skipping match: user safe-list match");
         None
     } else {

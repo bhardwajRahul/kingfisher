@@ -98,7 +98,7 @@ Key capabilities:
 Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/`.
 
 1. Pick a nearby reference rule file in the same provider family and copy its structure.
-2. Define a stable rule id (`id`, prefixed with `kingfisher.` and detection regex (`pattern`) under `rules:`.
+2. Define a stable rule id (`id`, prefixed with `kingfisher.`) and detection regex (`pattern`) under `rules:`.
 3. Include `examples` that must match. These can be tested with `cargo test check_rules` or `kingfisher rules check --rules-path crates/kingfisher-rules/data/rules/slack.yml --load-builtins=false --no-update-check`
 4. Set guardrails:
    - `min_entropy` for high-entropy tokens.

@@ -12,6 +12,10 @@ on:
         description: "Tag to publish (leave blank to use Cargo.toml version)"
         required: false
         type: string
+
+permissions:
+  contents: read
+
 env:
   VCPKG_ROOT: C:\vcpkg
   VCPKG_DOWNLOADS: C:\vcpkg\downloads
