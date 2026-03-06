@@ -421,18 +421,16 @@ endif
 	      export PATH=/clangarm64/bin:$$PATH; \
 	      ;; \
 	  esac; \
-	  command -v mingw32-make >/dev/null 2>&1 || { \
-	    echo "Installing ARM64 MinGW/clang dependencies..."; \
-	    pacman --noconfirm --needed -S \
-	      mingw-w64-clang-aarch64-toolchain \
-	      mingw-w64-clang-aarch64-cmake \
-	      mingw-w64-clang-aarch64-boost \
-	      mingw-w64-clang-aarch64-pkgconf \
-	      mingw-w64-clang-aarch64-ragel \
-	      mingw-w64-clang-aarch64-pcre2 \
-	      mingw-w64-clang-aarch64-python \
-	      git make; \
-	  }; \
+	  echo "Ensuring ARM64 MinGW/clang dependencies are installed..."; \
+	  pacman --noconfirm --needed -S \
+	    mingw-w64-clang-aarch64-toolchain \
+	    mingw-w64-clang-aarch64-cmake \
+	    mingw-w64-clang-aarch64-boost \
+	    mingw-w64-clang-aarch64-pkgconf \
+	    mingw-w64-clang-aarch64-ragel \
+	    mingw-w64-clang-aarch64-pcre2 \
+	    mingw-w64-clang-aarch64-python \
+	    git make; \
 	  repo_root="$$(pwd)"; \
 	  test -d /tmp/vectorscan-arm64 || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan-arm64; \
 	  mkdir -p /tmp/vectorscan-arm64/build; \

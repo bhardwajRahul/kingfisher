@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 env:
   VCPKG_ROOT: C:\vcpkg
   VCPKG_DOWNLOADS: C:\vcpkg\downloads
