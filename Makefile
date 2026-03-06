@@ -382,6 +382,10 @@ endif
 	  echo "Using HYPERSCAN_ROOT=$$HYPERSCAN_ROOT"; \
 	  "$$RUSTUP_BIN" target add x86_64-pc-windows-gnu; \
 	  export LIBHS_NO_PKG_CONFIG=1; \
+	  if [ "$${WINDOWS_ONLY_DEPS:-0}" = "1" ]; then \
+	    echo "WINDOWS_ONLY_DEPS=1 set; skipping cargo build and packaging."; \
+	    exit 0; \
+	  fi; \
 	  "$$CARGO_BIN" build --release --target x86_64-pc-windows-gnu --features system-alloc; \
 	  mkdir -p target/release; \
 	  cp target/x86_64-pc-windows-gnu/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \
@@ -501,6 +505,10 @@ endif
 	  echo "Using HYPERSCAN_ROOT=$$HYPERSCAN_ROOT"; \
 	  "$$RUSTUP_BIN" target add aarch64-pc-windows-gnullvm; \
 	  export LIBHS_NO_PKG_CONFIG=1; \
+	  if [ "$${WINDOWS_ONLY_DEPS:-0}" = "1" ]; then \
+	    echo "WINDOWS_ONLY_DEPS=1 set; skipping cargo build and packaging."; \
+	    exit 0; \
+	  fi; \
 	  "$$CARGO_BIN" build --release --target aarch64-pc-windows-gnullvm --features system-alloc; \
 	  mkdir -p target/release; \
 	  cp target/aarch64-pc-windows-gnullvm/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \

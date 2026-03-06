@@ -49,12 +49,12 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-x64
       - name: Run tests
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
+      - name: Build (Makefile linux-x64)
+        run: make ubuntu-x64
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
@@ -118,12 +118,12 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-arm64
       - name: Run tests
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
+      - name: Build (Makefile linux-arm64)
+        run: make ubuntu-arm64
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
@@ -203,10 +203,10 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
-      - name: Build Darwin arm64
-        run: make darwin-arm64
       - name: Run tests
         run: make tests
+      - name: Build Darwin arm64
+        run: make darwin-arm64
 
       - name: Move artifacts to dist
         shell: bash
@@ -254,9 +254,9 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
-      - name: Build
+      - name: Prepare Windows dependencies
         shell: msys2 {0}
-        run: make windows-${{ matrix.arch }}
+        run: WINDOWS_ONLY_DEPS=1 make windows-${{ matrix.arch }}
 
       - name: Run tests
         shell: msys2 {0}
@@ -282,12 +282,12 @@ jobs:
             fi
           fi
 
-          if ! command -v cargo-nextest >/dev/null 2>&1; then
-            cargo install --locked cargo-nextest
-          fi
+          echo "▶ cargo test --release --workspace --all-targets --target $target_triple"
+          cargo test --release --workspace --all-targets --target "$target_triple"
 
-          echo "▶ cargo nextest run --release --workspace --all-targets --target $target_triple"
-          cargo nextest run --release --workspace --all-targets --target "$target_triple"
+      - name: Build
+        shell: msys2 {0}
+        run: make windows-${{ matrix.arch }}
 
       - name: Move artifact to dist
         shell: bash
