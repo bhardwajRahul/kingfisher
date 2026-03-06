@@ -40,6 +40,12 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libboost-all-dev patch perl ragel
+
       - name: Run tests
         run: make tests
         env:
@@ -74,6 +80,12 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
       
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libboost-all-dev patch perl ragel
+
       - name: Run tests
         run: make tests
         env:
@@ -95,6 +107,14 @@ jobs:
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
+
+      - name: Install macOS test dependencies
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          brew list boost >/dev/null 2>&1 || brew install boost
+          brew list pkg-config >/dev/null 2>&1 || brew install pkg-config
+          brew list ragel >/dev/null 2>&1 || brew install ragel
+
       - name: Run tests
         run: make tests
       - name: Build (Makefile darwin-arm64)
@@ -162,6 +182,21 @@ jobs:
             if [ -d "$cargo_home_candidate" ]; then
               export PATH="$cargo_home_candidate:$PATH"
             fi
+          fi
+
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            extra_native_lib_dirs="-L native=/mingw64/lib"
+            if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+              libgcc_a_path="$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"
+              if [ -n "$libgcc_a_path" ] && [ -f "$libgcc_a_path" ]; then
+                libgcc_dir="$(dirname "$libgcc_a_path")"
+                extra_native_lib_dirs="$extra_native_lib_dirs -L native=$libgcc_dir"
+                echo "Using libgcc from $libgcc_dir"
+              fi
+            fi
+            export RUSTFLAGS="${RUSTFLAGS:-} $extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"
+          else
+            export RUSTFLAGS="${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"
           fi
 
           echo "▶ cargo test --release --workspace --all-targets --target $target_triple"
