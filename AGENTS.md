@@ -45,6 +45,7 @@ Key capabilities:
 - Shell assumptions in build scripts: `bash` with `set -eu -o pipefail`
 - Workspace minimum Rust version: `1.90` (`Cargo.toml`)
 - `make check-rust` enforces `>= 1.92.0` for build targets
+- Windows Makefile targets (`windows-x64`, `windows-arm64`) expect an MSYS2 environment with `pacman` available.
 - Prefer `rg` and `rg --files` for fast code/file search.
 
 ## Quick Commands
@@ -61,12 +62,14 @@ Key capabilities:
 - Host convenience:
   - `make linux`
   - `make darwin`
+  - `make windows` (Windows host; builds `windows-x64` and `windows-arm64`)
 - Explicit platform archives:
   - `make linux-x64`
   - `make linux-arm64`
   - `make darwin-x64`
   - `make darwin-arm64`
-  - `make windows-x64` (Windows host only, requires Visual Studio 2019/2022 for C++ compilation support)
+  - `make windows-x64` (Windows host only; MSYS2/MinGW flow)
+  - `make windows-arm64` (Windows host only; MSYS2 clangarm64 flow)
 - Ubuntu bare-metal (Zig/cargo-zigbuild flow):
   - `make ubuntu-x64`
   - `make ubuntu-arm64`
