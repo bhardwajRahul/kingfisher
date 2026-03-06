@@ -2,10 +2,10 @@ rules:
   - name: Sendinblue API Token
     id: kingfisher.sendinblue.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        xkeysib-[a-f0-9]{64}-[a-z0-9]{16}
+        xkeysib-[a-fA-F0-9]{64}-[a-zA-Z0-9]{16}
       )
       \b
     pattern_requirements:

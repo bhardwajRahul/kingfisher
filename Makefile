@@ -22,6 +22,12 @@ else
   endif
 endif
 
+# uname reports MSYS_NT*/MINGW*/CYGWIN* under Windows POSIX shells.
+IS_WINDOWS_HOST := 0
+ifneq (,$(filter Windows_NT MSYS_NT% MINGW% CYGWIN_NT%,$(OS)))
+  IS_WINDOWS_HOST := 1
+endif
+
 ifeq ($(OS),darwin)
   export HOMEBREW_NO_INSTALL_CLEANUP=1
   export HOMEBREW_NO_ENV_HINTS=1
@@ -45,7 +51,7 @@ endif
 ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
-.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows \
+.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows \
         linux darwin all list-archives check-docker check-rust clean tests
 
 default: help
@@ -60,6 +66,7 @@ help:
 	@echo "  darwin-x64"
 	@echo "  darwin"
 	@echo "  windows-x64"
+	@echo "  windows-arm64"
 	@echo "  windows"
 	@echo "  all"
 	@echo "  list-archives"
@@ -261,13 +268,241 @@ darwin-x64:
 		fi
 	$(MAKE) list-archives
 
+# Windows x64 build path for MSYS2/MinGW (GNU toolchain + vectorscan from source)
 windows-x64:
-ifeq ($(OS),Windows_NT)
+ifeq ($(IS_WINDOWS_HOST),1)
 	@echo "Detected Windows host."
 else
 	$(error "This target can only run on Windows.")
 endif
-	buildwin.bat -force
+	@bash -eu -o pipefail -c '\
+	  command -v pacman >/dev/null 2>&1 || { \
+	    echo "MSYS2 pacman not found. Run this target from an MSYS2 MinGW64 shell."; \
+	    exit 1; \
+	  }; \
+	  case "$${MSYSTEM:-}" in \
+	    MINGW64) ;; \
+	    MSYS) \
+	      echo "MSYSTEM=MSYS detected; continuing with /mingw64 toolchain for testing."; \
+	      export PATH=/mingw64/bin:$$PATH; \
+	      ;; \
+	    *) \
+	      echo "MSYSTEM=$${MSYSTEM:-unset}. Continuing by forcing /mingw64 toolchain path."; \
+	      export PATH=/mingw64/bin:$$PATH; \
+	      ;; \
+	  esac; \
+	  command -v mingw32-make >/dev/null 2>&1 || { \
+	    echo "Installing MinGW build dependencies..."; \
+	    pacman --noconfirm --needed -S \
+	      mingw-w64-x86_64-toolchain \
+	      mingw-w64-x86_64-cmake \
+	      mingw-w64-x86_64-boost \
+	      mingw-w64-x86_64-pkg-config \
+	      mingw-w64-x86_64-ragel \
+	      mingw-w64-x86_64-pcre2 \
+	      mingw-w64-x86_64-python \
+	      git make; \
+	  }; \
+	  repo_root="$$(pwd)"; \
+	  test -d /tmp/vectorscan || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan; \
+	  mkdir -p /tmp/vectorscan/build; \
+	  cd /tmp/vectorscan/build; \
+	  cmake .. \
+	    -G "MinGW Makefiles" \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_TOOLS=OFF \
+	    -DCMAKE_C_COMPILER=gcc \
+	    -DCMAKE_CXX_COMPILER=g++ \
+	    -DCMAKE_INSTALL_PREFIX=/mingw64; \
+	  mingw32-make -j$$(nproc); \
+	  mingw32-make install; \
+	  mkdir -p /mingw64/lib/pkgconfig; \
+	  if [ -f /mingw64/include/hs/hs.h ]; then \
+	    hs_include=/mingw64/include/hs; \
+	  else \
+	    hs_include=/mingw64/include; \
+	  fi; \
+	  printf "%s\n" \
+	    "prefix=/mingw64" \
+	    "exec_prefix=\$${prefix}" \
+	    "libdir=\$${prefix}/lib" \
+	    "includedir=$$hs_include" \
+	    "" \
+	    "Name: libhs" \
+	    "Description: Vectorscan regex library (Hyperscan fork)" \
+	    "Version: 5.4.11" \
+	    "Libs: -L\$${libdir} -lhs" \
+	    "Cflags: -I\$${includedir}" \
+	    > /mingw64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig; \
+	  pkg-config --cflags --libs libhs; \
+	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
+	    cargo_home_candidate=""; \
+	    if [ -n "$${USERPROFILE:-}" ]; then \
+	      cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    elif [ -n "$${HOMEDRIVE:-}" ] && [ -n "$${HOMEPATH:-}" ]; then \
+	      cargo_home_candidate="$$(cygpath -u "$${HOMEDRIVE}$${HOMEPATH}")/.cargo/bin"; \
+	    fi; \
+	    if [ -n "$$cargo_home_candidate" ] && [ -d "$$cargo_home_candidate" ]; then \
+	      echo "Adding Rust toolchain path: $$cargo_home_candidate"; \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  if command -v rustup >/dev/null 2>&1; then \
+	    RUSTUP_BIN=rustup; \
+	  elif command -v rustup.exe >/dev/null 2>&1; then \
+	    RUSTUP_BIN=rustup.exe; \
+	  else \
+	    echo "rustup not found. Install Rust via rustup and ensure ~/.cargo/bin is on PATH."; \
+	    exit 1; \
+	  fi; \
+	  if command -v cargo >/dev/null 2>&1; then \
+	    CARGO_BIN=cargo; \
+	  elif command -v cargo.exe >/dev/null 2>&1; then \
+	    CARGO_BIN=cargo.exe; \
+	  else \
+	    echo "cargo not found. Install Rust via rustup and ensure ~/.cargo/bin is on PATH."; \
+	    exit 1; \
+	  fi; \
+	  cd "$$repo_root"; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m /mingw64)"; \
+	  export LIBRARY_PATH="/mingw64/lib:$${LIBRARY_PATH:-}"; \
+	  export CPATH="/mingw64/include:$${CPATH:-}"; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} -L native=/mingw64/lib -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "Using HYPERSCAN_ROOT=$$HYPERSCAN_ROOT"; \
+	  "$$RUSTUP_BIN" target add x86_64-pc-windows-gnu; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  "$$CARGO_BIN" build --release --target x86_64-pc-windows-gnu --features system-alloc; \
+	  mkdir -p target/release; \
+	  cp target/x86_64-pc-windows-gnu/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \
+	  cd target/release; \
+	  sha256sum $(PROJECT_NAME).exe > CHECKSUM-windows-x64.txt; \
+	  rm -f $(PROJECT_NAME)-windows-x64.zip; \
+	  powershell.exe -NoProfile -Command "Compress-Archive -Path '\''$(PROJECT_NAME).exe'\'','\''CHECKSUM-windows-x64.txt'\'' -DestinationPath '\''$(PROJECT_NAME)-windows-x64.zip'\'' -Force"; \
+	  sha256sum $(PROJECT_NAME)-windows-x64.zip >> CHECKSUM-windows-x64.txt; \
+	  echo "Built binary: target/release/$(PROJECT_NAME).exe"; \
+	  echo "Built archive: target/release/$(PROJECT_NAME)-windows-x64.zip"; \
+	'
+
+# Windows ARM64 build path for MSYS2/clangarm64 (GNU/LLVM MinGW)
+windows-arm64:
+ifeq ($(IS_WINDOWS_HOST),1)
+	@echo "Detected Windows host."
+else
+	$(error "This target can only run on Windows.")
+endif
+	@bash -eu -o pipefail -c '\
+	  command -v pacman >/dev/null 2>&1 || { \
+	    echo "MSYS2 pacman not found. Run this target from an MSYS2 shell."; \
+	    exit 1; \
+	  }; \
+	  case "$${MSYSTEM:-}" in \
+	    CLANGARM64) ;; \
+	    MINGW64|MSYS) \
+	      echo "MSYSTEM=$${MSYSTEM:-unset} detected; using /clangarm64 cross toolchain for ARM64."; \
+	      export PATH=/clangarm64/bin:$$PATH; \
+	      ;; \
+	    *) \
+	      echo "MSYSTEM=$${MSYSTEM:-unset}. Continuing by forcing /clangarm64 toolchain path."; \
+	      export PATH=/clangarm64/bin:$$PATH; \
+	      ;; \
+	  esac; \
+	  command -v mingw32-make >/dev/null 2>&1 || { \
+	    echo "Installing ARM64 MinGW/clang dependencies..."; \
+	    pacman --noconfirm --needed -S \
+	      mingw-w64-clang-aarch64-toolchain \
+	      mingw-w64-clang-aarch64-cmake \
+	      mingw-w64-clang-aarch64-boost \
+	      mingw-w64-clang-aarch64-pkgconf \
+	      mingw-w64-clang-aarch64-ragel \
+	      mingw-w64-clang-aarch64-pcre2 \
+	      mingw-w64-clang-aarch64-python \
+	      git make; \
+	  }; \
+	  repo_root="$$(pwd)"; \
+	  test -d /tmp/vectorscan-arm64 || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan-arm64; \
+	  mkdir -p /tmp/vectorscan-arm64/build; \
+	  cd /tmp/vectorscan-arm64/build; \
+	  cmake .. \
+	    -G "MinGW Makefiles" \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_TOOLS=OFF \
+	    -DCMAKE_SYSTEM_NAME=Windows \
+	    -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
+	    -DCMAKE_C_COMPILER=clang \
+	    -DCMAKE_CXX_COMPILER=clang++ \
+	    -DCMAKE_INSTALL_PREFIX=/clangarm64; \
+	  mingw32-make -j$$(nproc); \
+	  mingw32-make install; \
+	  mkdir -p /clangarm64/lib/pkgconfig; \
+	  if [ -f /clangarm64/include/hs/hs.h ]; then \
+	    hs_include=/clangarm64/include/hs; \
+	  else \
+	    hs_include=/clangarm64/include; \
+	  fi; \
+	  printf "%s\n" \
+	    "prefix=/clangarm64" \
+	    "exec_prefix=\$${prefix}" \
+	    "libdir=\$${prefix}/lib" \
+	    "includedir=$$hs_include" \
+	    "" \
+	    "Name: libhs" \
+	    "Description: Vectorscan regex library (Hyperscan fork)" \
+	    "Version: 5.4.11" \
+	    "Libs: -L\$${libdir} -lhs" \
+	    "Cflags: -I\$${includedir}" \
+	    > /clangarm64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_PATH=/clangarm64/lib/pkgconfig; \
+	  pkg-config --cflags --libs libhs; \
+	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
+	    cargo_home_candidate=""; \
+	    if [ -n "$${USERPROFILE:-}" ]; then \
+	      cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    elif [ -n "$${HOMEDRIVE:-}" ] && [ -n "$${HOMEPATH:-}" ]; then \
+	      cargo_home_candidate="$$(cygpath -u "$${HOMEDRIVE}$${HOMEPATH}")/.cargo/bin"; \
+	    fi; \
+	    if [ -n "$$cargo_home_candidate" ] && [ -d "$$cargo_home_candidate" ]; then \
+	      echo "Adding Rust toolchain path: $$cargo_home_candidate"; \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  if command -v rustup >/dev/null 2>&1; then \
+	    RUSTUP_BIN=rustup; \
+	  elif command -v rustup.exe >/dev/null 2>&1; then \
+	    RUSTUP_BIN=rustup.exe; \
+	  else \
+	    echo "rustup not found. Install Rust via rustup and ensure ~/.cargo/bin is on PATH."; \
+	    exit 1; \
+	  fi; \
+	  if command -v cargo >/dev/null 2>&1; then \
+	    CARGO_BIN=cargo; \
+	  elif command -v cargo.exe >/dev/null 2>&1; then \
+	    CARGO_BIN=cargo.exe; \
+	  else \
+	    echo "cargo not found. Install Rust via rustup and ensure ~/.cargo/bin is on PATH."; \
+	    exit 1; \
+	  fi; \
+	  cd "$$repo_root"; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m /clangarm64)"; \
+	  export LIBRARY_PATH="/clangarm64/lib:$${LIBRARY_PATH:-}"; \
+	  export CPATH="/clangarm64/include:$${CPATH:-}"; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "Using HYPERSCAN_ROOT=$$HYPERSCAN_ROOT"; \
+	  "$$RUSTUP_BIN" target add aarch64-pc-windows-gnullvm; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  "$$CARGO_BIN" build --release --target aarch64-pc-windows-gnullvm --features system-alloc; \
+	  mkdir -p target/release; \
+	  cp target/aarch64-pc-windows-gnullvm/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \
+	  cd target/release; \
+	  sha256sum $(PROJECT_NAME).exe > CHECKSUM-windows-arm64.txt; \
+	  rm -f $(PROJECT_NAME)-windows-arm64.zip; \
+	  powershell.exe -NoProfile -Command "Compress-Archive -Path '\''$(PROJECT_NAME).exe'\'','\''CHECKSUM-windows-arm64.txt'\'' -DestinationPath '\''$(PROJECT_NAME)-windows-arm64.zip'\'' -Force"; \
+	  sha256sum $(PROJECT_NAME)-windows-arm64.zip >> CHECKSUM-windows-arm64.txt; \
+	  echo "Built binary: target/release/$(PROJECT_NAME).exe"; \
+	  echo "Built archive: target/release/$(PROJECT_NAME)-windows-arm64.zip"; \
+	'
 #
 # =============  DOCKER-BASED BUILDS =============
 # #
@@ -335,12 +570,14 @@ linux-arm64: check-docker create-dockerignore
 # =============  AGGREGATE TARGETS  =============
 #
 
-windows: windows-x64
+windows: windows-x64 windows-arm64
 	@echo "# Windows builds:" > target/release/CHECKSUMS-windows.txt
 	@echo -e "\n# x86_64-windows build:" >> target/release/CHECKSUMS-windows.txt
 	@cat target/release/CHECKSUM-windows-x64.txt >> target/release/CHECKSUMS-windows.txt
+	@echo -e "\n# arm64-windows build:" >> target/release/CHECKSUMS-windows.txt
+	@cat target/release/CHECKSUM-windows-arm64.txt >> target/release/CHECKSUMS-windows.txt
 	@echo -e "\nBuilt Windows archives:"
-	@ls -lh target/release/*.tgz
+	@ls -lh target/release/*.zip
 	@echo -e "\nWindows Checksums:"
 	@cat target/release/CHECKSUMS-windows.txt
 

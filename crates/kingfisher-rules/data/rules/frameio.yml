@@ -2,12 +2,11 @@ rules:
   - name: Frame.io API Token
     id: kingfisher.frameio.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        fio-u-[a-z0-9\-_=]{64}
+        fio-u-[a-zA-Z0-9\-_=]{64}
       )
-      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3

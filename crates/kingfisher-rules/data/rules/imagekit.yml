@@ -10,14 +10,14 @@ rules:
       (?:.|[\n\r]){0,64}?
       \b
       (
-        private_[A-Z0-9_-]{8,128}
+        (?-i:private_)[A-Z0-9_-]{8,128}
       )
       \b
     min_entropy: 3.2
     confidence: medium
     examples:
       - IMAGEKIT_PRIVATE_KEY=private_rGAPQJbhBx
-      - imagekit token private_AbCdEf0123456789GhIjKlMn
+      - imagekit token private_AbDcEf0124356789GhIjKlMn
     references:
       - https://imagekit.io/docs/api-keys
       - https://imagekit.io/docs/api-reference/account-management-api/url-endpoints/list-url-endpoints

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 - GitLab scanning: honor OS-trusted internal CAs without requiring `SSL_CERT_FILE`, and preserve custom GitLab API ports in repository enumeration and artifact fetching.
 - Added detection/validation rules for App Center, Branch.io, BrowserStack, Calendly, Cypress, Delighted, DeviantArt, Instagram, Iterable, Keen.io, Lokalise, Pendo, Razorpay, Spotify, WakaTime, WPEngine.
 - Added revocation support for DeviantArt access tokens via the OAuth revoke endpoint and BrowserStack access keys via the key recycle endpoint.
+- Windows builds: replaced `buildwin.bat` flow with Makefile-driven MinGW targets for `windows-x64` and `windows-arm64`, producing static `kingfisher.exe` artifacts packaged as `kingfisher-windows-*.zip` with checksums.
+- GitHub Actions (`ci.yml`, `release.yml`): Windows jobs now build and test both x64 and arm64 via a matrix using `make windows-x64` / `make windows-arm64`.
 
 ## [v1.85.0]
 - Report viewer: added `--view-report-port` and `--view-report-address` to `kingfisher scan --view-report`, and `--address` to `kingfisher view`, so the embedded report server can bind to `0.0.0.0` and be reached from the host when running in Docker. Use `--view-report-address 0.0.0.0` with `-p 7890:7890` (or `--view-report-port 7891` with `-p 7891:7891`) to view the HTML report at http://localhost:7890 from your host.

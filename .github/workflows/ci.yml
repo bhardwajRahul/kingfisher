@@ -101,15 +101,12 @@ jobs:
         run: make tests
 
   windows:
-    name: Windows x64
+    name: Windows ${{ matrix.arch }}
     runs-on: windows-latest
-
-    # Windows-only env to keep vcpkg consistent and enable caching
-    env:
-      VCPKG_ROOT: C:\vcpkg
-      VCPKG_DOWNLOADS: C:\vcpkg\downloads
-      VCPKG_FEATURE_FLAGS: binarycaching
-      VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
 
     steps:
       - uses: actions/checkout@v4
@@ -119,61 +116,14 @@ jobs:
           profile: minimal
           override: true
 
-      # Cache vcpkg artifacts & downloads (so we only fetch PCRE once)
-      - name: Cache vcpkg artifacts
-        uses: actions/cache@v4
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
         with:
-          path: |
-            C:\vcpkg\buildtrees
-            C:\vcpkg\packages
-            C:\vcpkg\installed
-            C:\vcpkg\downloads
-            C:\vcpkg\archives
-            C:\Users\runneradmin\AppData\Local\vcpkg\archives
-          key: vcpkg-${{ runner.os }}-hs-542
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
-            vcpkg-
-
-      # Ensure downloads dir exists and seed PCRE 8.45 zip from a working mirror
-      - name: Pre-seed PCRE 8.45 for vcpkg
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "$env:VCPKG_DOWNLOADS" | Out-Null
-          $dst = Join-Path $env:VCPKG_DOWNLOADS "pcre-8.45.zip"
-
-          if (-not (Test-Path $dst)) {
-            $sf = "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.zip/download"
-
-            # Resolve to the final mirror URL (follow redirects without downloading the whole file)
-            $handler = New-Object System.Net.Http.HttpClientHandler
-            $handler.AllowAutoRedirect = $true
-            $client  = New-Object System.Net.Http.HttpClient($handler)
-
-            try {
-              $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Head, $sf)
-              $resp = $client.SendAsync($req).GetAwaiter().GetResult()
-
-              # Some mirrors don’t like HEAD; fall back to GET headers only.
-              if (-not $resp.IsSuccessStatusCode) {
-                $req.Dispose()
-                $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, $sf)
-                $resp = $client.SendAsync($req, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
-              }
-
-              $finalUrl = $resp.RequestMessage.RequestUri.AbsoluteUri
-              Write-Host "Resolved SourceForge URL to: $finalUrl"
-
-              # Download the actual file
-              Invoke-WebRequest -Uri $finalUrl -OutFile $dst
-            }
-            finally {
-              $client.Dispose()
-              $handler.Dispose()
-            }
-          }
-
-          Get-ChildItem $env:VCPKG_DOWNLOADS
+          msystem: MINGW64
+          update: true
+          install: >-
+            make
+            git
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -181,8 +131,8 @@ jobs:
           cache-on-failure: true
 
       - name: Build
-        run: .\buildwin.bat
-        shell: cmd
+        shell: msys2 {0}
+        run: make windows-${{ matrix.arch }}
 
       - name: Run tests
         shell: pwsh

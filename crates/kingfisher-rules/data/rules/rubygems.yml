@@ -2,12 +2,11 @@ rules:
   - name: RubyGems API Key
     id: kingfisher.rubygems.1
     pattern: |
-      (?x)                   
-      (?i)                   
+      (?x)
       \b                     
       (                      
         rubygems_
-        [a-z0-9]{42,52}
+        [a-zA-Z0-9]{42,52}
       )
       \b
     pattern_requirements:

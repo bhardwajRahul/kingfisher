@@ -13,7 +13,7 @@ use crate::{
     origin::OriginSet,
     rule_profiling::{ConcurrentRuleProfiler, RuleTimer},
     rules::rule::{PatternRequirementContext, PatternValidationResult, Rule, Validation},
-    safe_list::{is_safe_match, is_user_match},
+    safe_list::{is_safe_match_reason, is_user_match},
     validation::{is_parseable_mongodb_uri, is_parseable_mysql_uri, is_parseable_postgres_uri},
 };
 
@@ -38,14 +38,18 @@ fn check_entropy_and_safelist(
     min_entropy: f32,
 ) -> Option<f32> {
     let calculated_entropy = calculate_shannon_entropy(entropy_bytes);
-    if calculated_entropy <= min_entropy
-        || is_safe_match(entropy_bytes)
-        || is_user_match(entropy_bytes, full_bytes)
-    {
-        debug!(
-            "Skipping match with entropy {} <= {} or safe match",
-            calculated_entropy, min_entropy
-        );
+    let low_entropy = calculated_entropy <= min_entropy;
+    let safe_match_reason = is_safe_match_reason(entropy_bytes);
+    let user_match = is_user_match(entropy_bytes, full_bytes);
+
+    if low_entropy {
+        debug!("Skipping match: entropy {} <= min_entropy {}", calculated_entropy, min_entropy);
+        None
+    } else if let Some(reason) = safe_match_reason {
+        debug!("Skipping match: safe-list match - {reason}");
+        None
+    } else if user_match {
+        debug!("Skipping match: user safe-list match");
         None
     } else {
         Some(calculated_entropy)

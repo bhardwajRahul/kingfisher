@@ -2,12 +2,11 @@ rules:
   - name: Together.ai API Key
     id: kingfisher.together.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        tgp_v1_[A-Z0-9_-]{43}
+        tgp_v1_[A-Za-z0-9_-]{43}
       )
-      \b
     pattern_requirements:
       min_digits: 2
     confidence: medium
