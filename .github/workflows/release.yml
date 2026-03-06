@@ -342,14 +342,11 @@ jobs:
         run: |
           mkdir -p dist
           cp target/release/kingfisher-windows-${{ matrix.arch }}.zip dist/
-          cp target/release/CHECKSUM-windows-${{ matrix.arch }}.txt dist/
 
       - uses: actions/upload-artifact@v4
         with:
           name: kingfisher-windows-${{ matrix.arch }}
-          path: |
-            dist/kingfisher-windows-${{ matrix.arch }}.zip
-            dist/CHECKSUM-windows-${{ matrix.arch }}.txt
+          path: dist/kingfisher-windows-${{ matrix.arch }}.zip
 
   release:
     name: Public GitHub Release
