@@ -65,8 +65,21 @@ fn main() {
         println!("cargo:rustc-link-lib=static=hs");
 
         let target_env_kind = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+        let target_triple = std::env::var("TARGET").unwrap_or_default();
         if target_env_kind == "msvc" {
             // MSVC typically links in its own runtime automatically
+        } else if target_triple.ends_with("gnullvm") {
+            // On clang/LLVM MinGW (e.g. aarch64-pc-windows-gnullvm), avoid dynamic
+            // libc++.dll imports by linking the static C++ runtime archives.
+            println!("cargo:rustc-link-lib=static=c++");
+            println!("cargo:rustc-link-lib=static=c++abi");
+            println!("cargo:rustc-link-lib=static=unwind");
+        } else if target_env_kind == "gnu" {
+            // On MinGW GNU targets (e.g. x86_64-pc-windows-gnu), prefer static GNU
+            // C++ runtime linkage to avoid libstdc++/libgcc/winpthread DLL imports.
+            println!("cargo:rustc-link-lib=static=stdc++");
+            println!("cargo:rustc-link-lib=static=gcc");
+            println!("cargo:rustc-link-lib=static=winpthread");
         } else {
             println!("cargo:rustc-link-lib=stdc++");
         }

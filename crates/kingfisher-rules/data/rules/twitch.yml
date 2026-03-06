@@ -3,6 +3,7 @@ rules:
     id: kingfisher.twitch.1
     pattern: |
       (?xi)
+      \b
       twitch
       (?:.|[\n\r]){0,32}?
       \b

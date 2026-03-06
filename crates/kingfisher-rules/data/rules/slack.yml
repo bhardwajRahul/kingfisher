@@ -142,7 +142,7 @@ rules:
             Content-Type: application/json
           method: POST
           response_matcher:
-            - report_response: true
+            - report_response: false
               type: WordMatch
               words:
                 - invalid_payload

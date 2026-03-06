@@ -100,6 +100,7 @@ jobs:
           mac_x64=$(find extracted -type f -name "kingfisher" | grep -m1 "darwin-x64")
           mac_arm64=$(find extracted -type f -name "kingfisher" | grep -m1 "darwin-arm64")
           win_x64=$(find extracted -type f -name "kingfisher.exe" | grep -m1 "windows-x64")
+          win_arm64=$(find extracted -type f -name "kingfisher.exe" | grep -m1 "windows-arm64")
 
           scripts/build-pypi-wheel.sh \
             --binary "$linux_x64" \
@@ -127,7 +128,7 @@ jobs:
             --plat-name win_amd64
 
           scripts/build-pypi-wheel.sh \
-            --binary "$win_x64" \
+            --binary "$win_arm64" \
             --version "$version" \
             --plat-name win_arm64
 

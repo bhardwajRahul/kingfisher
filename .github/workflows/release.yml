@@ -12,6 +12,10 @@ on:
         description: "Tag to publish (leave blank to use Cargo.toml version)"
         required: false
         type: string
+
+permissions:
+  contents: read
+
 env:
   VCPKG_ROOT: C:\vcpkg
   VCPKG_DOWNLOADS: C:\vcpkg\downloads
@@ -49,12 +53,18 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-x64
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libboost-all-dev patch perl ragel
+
       - name: Run tests
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
+      - name: Build (Makefile linux-x64)
+        run: make ubuntu-x64
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
@@ -118,12 +128,18 @@ jobs:
       - name: Install packaging tools
         run: cargo install cargo-deb cargo-generate-rpm
 
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-arm64
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libboost-all-dev patch perl ragel
+
       - name: Run tests
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
+      - name: Build (Makefile linux-arm64)
+        run: make ubuntu-arm64
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) target
@@ -174,6 +190,16 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
+      - name: Install macOS test dependencies
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          brew list boost >/dev/null 2>&1 || brew install boost
+          brew list pkg-config >/dev/null 2>&1 || brew install pkg-config
+          brew list ragel >/dev/null 2>&1 || brew install ragel
+
+      - name: Run tests
+        run: make tests
+
       - name: Build Darwin x64
         run: make darwin-x64
 
@@ -203,10 +229,17 @@ jobs:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
-      - name: Build Darwin arm64
-        run: make darwin-arm64
+      - name: Install macOS test dependencies
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          brew list boost >/dev/null 2>&1 || brew install boost
+          brew list pkg-config >/dev/null 2>&1 || brew install pkg-config
+          brew list ragel >/dev/null 2>&1 || brew install ragel
+
       - name: Run tests
         run: make tests
+      - name: Build Darwin arm64
+        run: make darwin-arm64
 
       - name: Move artifacts to dist
         shell: bash
@@ -221,15 +254,18 @@ jobs:
 
   # ──────────────── Windows ────────────────
   windows:
-    name: Windows x64
-    runs-on: windows-latest
-
-    # Windows-only env to keep vcpkg consistent and enable caching
-    env:
-      VCPKG_ROOT: C:\vcpkg
-      VCPKG_DOWNLOADS: C:\vcpkg\downloads
-      VCPKG_FEATURE_FLAGS: binarycaching
-      VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+    name: Windows ${{ matrix.arch }}
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runs_on: windows-latest
+            msystem: MINGW64
+          - arch: arm64
+            runs_on: windows-11-arm
+            msystem: CLANGARM64
 
     steps:
       - uses: actions/checkout@v4
@@ -237,90 +273,83 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      # Cache vcpkg artifacts & downloads (so we only fetch PCRE once)
-      - name: Cache vcpkg artifacts
-        uses: actions/cache@v4
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
         with:
-          path: |
-            C:\vcpkg\buildtrees
-            C:\vcpkg\packages
-            C:\vcpkg\installed
-            C:\vcpkg\downloads
-            C:\vcpkg\archives
-            C:\Users\runneradmin\AppData\Local\vcpkg\archives
-          key: vcpkg-${{ runner.os }}-hs-542
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
-            vcpkg-
-
-      # Ensure downloads dir exists and seed PCRE 8.45 zip from a working mirror
-      - name: Pre-seed PCRE 8.45 for vcpkg
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "$env:VCPKG_DOWNLOADS" | Out-Null
-          $dst = Join-Path $env:VCPKG_DOWNLOADS "pcre-8.45.zip"
-
-          if (-not (Test-Path $dst)) {
-            $sf = "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.zip/download"
-
-            # Resolve to the final mirror URL (follow redirects without downloading the whole file)
-            $handler = New-Object System.Net.Http.HttpClientHandler
-            $handler.AllowAutoRedirect = $true
-            $client  = New-Object System.Net.Http.HttpClient($handler)
-
-            try {
-              $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Head, $sf)
-              $resp = $client.SendAsync($req).GetAwaiter().GetResult()
-
-              # Some mirrors don’t like HEAD; fall back to GET headers only.
-              if (-not $resp.IsSuccessStatusCode) {
-                $req.Dispose()
-                $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, $sf)
-                $resp = $client.SendAsync($req, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
-              }
-
-              $finalUrl = $resp.RequestMessage.RequestUri.AbsoluteUri
-              Write-Host "Resolved SourceForge URL to: $finalUrl"
-
-              # Download the actual file
-              Invoke-WebRequest -Uri $finalUrl -OutFile $dst
-            }
-            finally {
-              $client.Dispose()
-              $handler.Dispose()
-            }
-          }
-
-          Get-ChildItem $env:VCPKG_DOWNLOADS
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: >-
+            make
+            git
 
       - uses: swatinem/rust-cache@v2
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
 
-      - name: Build
-        run: .\buildwin.bat
-        shell: cmd
+      - name: Prepare Windows dependencies
+        shell: msys2 {0}
+        run: WINDOWS_ONLY_DEPS=1 make windows-${{ matrix.arch }}
 
       - name: Run tests
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          if (-not (Get-Command cargo-nextest -ErrorAction SilentlyContinue)) {
-            cargo install --locked cargo-nextest
-          }
-          Write-Host "▶ cargo nextest run --release --workspace --all-targets"
-          cargo nextest run --release --workspace --all-targets
+          set -eu -o pipefail
+
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            toolchain_root=/clangarm64
+            target_triple=aarch64-pc-windows-gnullvm
+          else
+            toolchain_root=/mingw64
+            target_triple=x86_64-pc-windows-gnu
+          fi
+
+          export LIBHS_NO_PKG_CONFIG=1
+          export HYPERSCAN_ROOT="$(cygpath -m "$toolchain_root")"
+          export PKG_CONFIG_PATH="$toolchain_root/lib/pkgconfig"
+
+          if ! command -v cargo >/dev/null 2>&1 && [ -n "${USERPROFILE:-}" ]; then
+            cargo_home_candidate="$(cygpath -u "${USERPROFILE}")/.cargo/bin"
+            if [ -d "$cargo_home_candidate" ]; then
+              export PATH="$cargo_home_candidate:$PATH"
+            fi
+          fi
+
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            extra_native_lib_dirs="-L native=/mingw64/lib"
+            if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+              libgcc_a_path="$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"
+              if [ -n "$libgcc_a_path" ] && [ -f "$libgcc_a_path" ]; then
+                libgcc_dir="$(dirname "$libgcc_a_path")"
+                extra_native_lib_dirs="$extra_native_lib_dirs -L native=$libgcc_dir"
+                echo "Using libgcc from $libgcc_dir"
+              fi
+            fi
+            export RUSTFLAGS="${RUSTFLAGS:-} $extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"
+          else
+            export RUSTFLAGS="${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"
+          fi
+
+          echo "▶ cargo test --release --workspace --all-targets --target $target_triple"
+          cargo test --release --workspace --all-targets --target "$target_triple"
+
+      - name: Build
+        shell: msys2 {0}
+        run: make windows-${{ matrix.arch }}
 
       - name: Move artifact to dist
         shell: bash
         run: |
           mkdir -p dist
-          cp target/release/kingfisher-windows-x64.zip dist/
+          cp target/release/kingfisher-windows-${{ matrix.arch }}.zip dist/
+          cp target/release/CHECKSUM-windows-${{ matrix.arch }}.txt dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: kingfisher-windows-x64
-          path: dist/kingfisher-*windows-x64*.*
+          name: kingfisher-windows-${{ matrix.arch }}
+          path: |
+            dist/kingfisher-windows-${{ matrix.arch }}.zip
+            dist/CHECKSUM-windows-${{ matrix.arch }}.txt
 
   release:
     name: Public GitHub Release

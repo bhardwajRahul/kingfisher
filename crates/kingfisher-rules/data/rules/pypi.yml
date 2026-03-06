@@ -2,9 +2,9 @@ rules:
   - name: PyPI Upload Token
     id: kingfisher.pypi.1
     pattern: |
-      (?xi)
+      (?x)
       (
-        pypi-AgEIcHlwaS5vcmc[A-Z0-9_-]{50,}
+        pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}
       )
       \b
     pattern_requirements:

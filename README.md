@@ -4,7 +4,7 @@
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-476-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
+[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-500-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
 [![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)<br>
 
 

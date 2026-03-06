@@ -32,7 +32,7 @@ rules:
             Content-Type: application/json
           body: |
             { "key": "{{ TOKEN }}" }
-          url: https://mandrillapp.com/api/1.0/users/ping.json
+          url: https://mandrillapp.com/api/1.0/users/ping2.json
           response_matcher:
             - report_response: true
             - type: StatusMatch

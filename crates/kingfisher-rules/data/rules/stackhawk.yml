@@ -2,10 +2,10 @@ rules:
   - name: StackHawk API Key
     id: kingfisher.stackhawk.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        hawk\.[0-9A-Z_-]{20}\.[0-9A-Z_-]{20}
+        hawk\.[0-9A-Za-z_-]{20}\.[0-9A-Za-z_-]{20}
       )
       \b
     pattern_requirements:

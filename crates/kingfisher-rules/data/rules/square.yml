@@ -2,17 +2,13 @@ rules:
   - name: Square Access Token
     id: kingfisher.square.1
     pattern: |
-      (?xi)
-      \b
-      square
-      (?:.|[\n\r]){0,16}?
+      (?x)
       \b
       (
-        EAAA[a-z0-9\-\+=]{60}
+        EAAA[a-zA-Z0-9\-\+=]{60}
       )
-      \b
     pattern_requirements:
-      min_digits: 2
+      min_digits: 4
     min_entropy: 3.3
     confidence: medium
     examples:
@@ -39,12 +35,11 @@ rules:
   - name: Square Access Token
     id: kingfisher.square.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        sq0atp-[a-z0-9_-]{22}
+        sq0atp-[a-zA-Z0-9_-]{22}
       )
-      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3
@@ -73,12 +68,11 @@ rules:
   - name: Square OAuth Secret
     id: kingfisher.square.3
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        sq0csp-[a-z0-9_-]{43}
+        sq0csp-[a-zA-Z0-9_-]{43}
       )
-      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3

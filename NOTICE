@@ -33,8 +33,24 @@ limitations under the License.
 
 --------------------------------------------------------------------
 
-Some detection rules:
- * data/rules/redis.yml
+Certain detection rules:
+ * crates/kingfisher-rules/data/rules/redis.yml
+ * crates/kingfisher-rules/data/rules/branchio.yml
+ * crates/kingfisher-rules/data/rules/browserstack.yml
+ * crates/kingfisher-rules/data/rules/cypress.yml
+ * crates/kingfisher-rules/data/rules/keenio.yml
+ * crates/kingfisher-rules/data/rules/wpengine.yml
+ * crates/kingfisher-rules/data/rules/appcenter.yml
+ * crates/kingfisher-rules/data/rules/calendly.yml
+ * crates/kingfisher-rules/data/rules/delighted.yml
+ * crates/kingfisher-rules/data/rules/deviantart.yml
+ * crates/kingfisher-rules/data/rules/instagram.yml
+ * crates/kingfisher-rules/data/rules/iterable.yml
+ * crates/kingfisher-rules/data/rules/lokalise.yml
+ * crates/kingfisher-rules/data/rules/pendo.yml
+ * crates/kingfisher-rules/data/rules/razorpay.yml
+ * crates/kingfisher-rules/data/rules/spotify.yml
+ * crates/kingfisher-rules/data/rules/wakatime.yml
 
 are derived in part from Titus (https://github.com/praetorian-inc/titus),
 which is licensed under the Apache License, Version 2.0.

@@ -22,10 +22,10 @@ rules:
   - name: Riot Games API Key
     id: kingfisher.riot.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        RGAPI-[a-z0-9_-]{36}
+        RGAPI-[a-zA-Z0-9_-]{36}
       )
       \b
     pattern_requirements:

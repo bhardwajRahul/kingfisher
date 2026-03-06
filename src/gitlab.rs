@@ -7,24 +7,14 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use gitlab::{
-    api::{
-        groups::projects::GroupProjects,
-        paged,
-        users::{UserProjects, Users},
-        Pagination, Query,
-    },
-    Gitlab, GitlabBuilder,
-};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
-use tokio::task;
 use tracing::{info, warn};
 use url::{form_urlencoded, Url};
 
-use crate::{findings_store, git_host, git_url::GitUrl};
+use crate::{findings_store, git_host, git_url::GitUrl, validation::GLOBAL_USER_AGENT};
 use std::str::FromStr;
 
 #[derive(Deserialize)]
@@ -135,23 +125,14 @@ fn should_exclude_repo(clone_url: &str, excludes: &git_host::ExcludeMatcher) -> 
     git_host::should_exclude_repo(clone_url, excludes, parse_project_path_from_url)
 }
 
-fn create_gitlab_client(gitlab_url: &Url, ignore_certs: bool) -> Result<Gitlab> {
-    let host = gitlab_url.host_str().context("GitLab URL must contain a host")?;
-
-    if let Ok(token) = env::var("KF_GITLAB_TOKEN") {
-        return if ignore_certs {
-            Gitlab::new_insecure(host, token).map_err(Into::into)
-        } else {
-            Gitlab::new(host, token).map_err(Into::into)
-        };
-    }
-
-    // public-only client no PRIVATE-TOKEN header
-    let mut builder = GitlabBuilder::new_unauthenticated(host);
+fn create_gitlab_http_client(ignore_certs: bool) -> Result<reqwest::Client> {
+    let mut builder = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .user_agent(GLOBAL_USER_AGENT.as_str());
     if ignore_certs {
-        builder.insecure();
+        builder = builder.danger_accept_invalid_certs(true);
     }
-    Ok(builder.build()?)
+    builder.build().context("Failed to build GitLab HTTP client")
 }
 
 fn normalize_api_base(api_url: &Url) -> Url {
@@ -163,19 +144,161 @@ fn normalize_api_base(api_url: &Url) -> Url {
     base
 }
 
+fn gitlab_api_url(api_base: &Url, endpoint: &str) -> Result<Url> {
+    api_base.join(endpoint).with_context(|| format!("Failed to build GitLab URL for {endpoint}"))
+}
+
+fn gitlab_private_token() -> Option<String> {
+    env::var("KF_GITLAB_TOKEN").ok().filter(|token| !token.is_empty())
+}
+
+async fn send_gitlab_json<T: serde::de::DeserializeOwned>(
+    client: &reqwest::Client,
+    token: Option<&str>,
+    request_url: Url,
+) -> Result<T> {
+    let mut request = client.get(request_url.clone());
+    if let Some(token) = token {
+        request = request.header("PRIVATE-TOKEN", token);
+    }
+    let response = request.send().await?;
+    if !response.status().is_success() {
+        warn_on_rate_limit("GitLab", response.status(), "calling API");
+        anyhow::bail!("GitLab API request to {request_url} failed with HTTP {}", response.status());
+    }
+    response.json().await.map_err(Into::into)
+}
+
+async fn fetch_paged_projects(
+    client: &reqwest::Client,
+    token: Option<&str>,
+    base_url: Url,
+    extra_query: &[(&str, String)],
+    excludes: &git_host::ExcludeMatcher,
+) -> Result<Vec<String>> {
+    let mut page = 1u32;
+    let mut projects = Vec::new();
+
+    loop {
+        let mut request_url = base_url.clone();
+        {
+            let mut query = request_url.query_pairs_mut();
+            query.append_pair("per_page", "100").append_pair("page", &page.to_string());
+            for (key, value) in extra_query {
+                query.append_pair(key, value);
+            }
+        }
+
+        let page_projects: Vec<SimpleProject> =
+            send_gitlab_json(client, token, request_url).await?;
+        if page_projects.is_empty() {
+            break;
+        }
+
+        for project in page_projects {
+            if should_exclude_repo(&project.http_url_to_repo, excludes) {
+                continue;
+            }
+            projects.push(project.http_url_to_repo);
+        }
+
+        page += 1;
+    }
+
+    Ok(projects)
+}
+
 pub async fn enumerate_repo_urls(
     repo_specifiers: &RepoSpecifiers,
     gitlab_url: Url,
     ignore_certs: bool,
     progress: Option<ProgressBar>,
 ) -> Result<Vec<String>> {
-    let specifiers = repo_specifiers.clone();
-    let repo_urls = task::spawn_blocking(move || {
-        let progress_ref = progress.as_ref();
-        enumerate_repo_urls_blocking(&specifiers, gitlab_url, ignore_certs, progress_ref)
-    })
-    .await??;
+    let client = create_gitlab_http_client(ignore_certs)?;
+    let token = gitlab_private_token();
+    let api_base = normalize_api_base(&gitlab_url);
+    let exclude_set = build_exclude_matcher(&repo_specifiers.exclude_repos);
+    let mut repo_urls = Vec::new();
 
+    for username in &repo_specifiers.user {
+        let mut users_url = gitlab_api_url(&api_base, "api/v4/users")?;
+        users_url.query_pairs_mut().append_pair("username", username);
+        let hits: Vec<SimpleUser> = send_gitlab_json(&client, token.as_deref(), users_url).await?;
+        let user =
+            hits.into_iter().next().context(format!("GitLab user `{}` not found", username))?;
+
+        let projects_url =
+            gitlab_api_url(&api_base, &format!("api/v4/users/{}/projects", user.id))?;
+        let mut query = Vec::new();
+        match repo_specifiers.repo_filter {
+            RepoType::Owner => query.push(("owned", "true".to_string())),
+            RepoType::Member => query.push(("membership", "true".to_string())),
+            RepoType::All => {}
+        }
+        repo_urls.extend(
+            fetch_paged_projects(&client, token.as_deref(), projects_url, &query, &exclude_set)
+                .await?,
+        );
+
+        if let Some(pb) = progress.as_ref() {
+            pb.inc(1);
+        }
+    }
+
+    let groups: Vec<SimpleGroup> = if repo_specifiers.all_groups {
+        let mut page = 1u32;
+        let mut groups = Vec::new();
+        loop {
+            let mut groups_url = gitlab_api_url(&api_base, "api/v4/groups")?;
+            groups_url
+                .query_pairs_mut()
+                .append_pair("all_available", "true")
+                .append_pair("per_page", "100")
+                .append_pair("page", &page.to_string());
+            let page_groups: Vec<SimpleGroup> =
+                send_gitlab_json(&client, token.as_deref(), groups_url).await?;
+            if page_groups.is_empty() {
+                break;
+            }
+            groups.extend(page_groups);
+            page += 1;
+        }
+        groups
+    } else {
+        let mut found = Vec::new();
+        for group in &repo_specifiers.group {
+            let encoded = form_urlencoded::byte_serialize(group.as_bytes()).collect::<String>();
+            let group_url = gitlab_api_url(&api_base, &format!("api/v4/groups/{encoded}"))?;
+            let group_info: SimpleGroup =
+                send_gitlab_json(&client, token.as_deref(), group_url).await?;
+            found.push(group_info);
+        }
+        found
+    };
+
+    for group in groups {
+        let projects_url =
+            gitlab_api_url(&api_base, &format!("api/v4/groups/{}/projects", group.id))?;
+        let mut query = Vec::new();
+        if matches!(repo_specifiers.repo_filter, RepoType::Owner) {
+            query.push(("owned", "true".to_string()));
+        }
+        if repo_specifiers.include_subgroups {
+            query.push(("include_subgroups", "true".to_string()));
+        }
+
+        repo_urls.extend(
+            fetch_paged_projects(&client, token.as_deref(), projects_url, &query, &exclude_set)
+                .await?,
+        );
+
+        if let Some(pb) = progress.as_ref() {
+            pb.inc(1);
+        }
+    }
+
+    repo_urls.sort_unstable();
+    repo_urls.dedup();
     Ok(repo_urls)
 }
 
@@ -190,8 +313,8 @@ pub async fn enumerate_contributor_repo_urls(
     let (_, path) = parse_repo(repo_url).context("invalid GitLab repo URL")?;
     let encoded = form_urlencoded::byte_serialize(path.as_bytes()).collect::<String>();
     let exclude_set = build_exclude_matcher(exclude_repos);
-    let client = reqwest::Client::builder().danger_accept_invalid_certs(ignore_certs).build()?;
-    let token = env::var("KF_GITLAB_TOKEN").ok().filter(|t| !t.is_empty());
+    let client = create_gitlab_http_client(ignore_certs)?;
+    let token = gitlab_private_token();
     let api_base = normalize_api_base(gitlab_url);
 
     let project_url = api_base
@@ -390,99 +513,6 @@ fn build_contributor_progress_bar(
     }
 }
 
-fn enumerate_repo_urls_blocking(
-    repo_specifiers: &RepoSpecifiers,
-    gitlab_url: Url,
-    ignore_certs: bool,
-    progress: Option<&ProgressBar>,
-) -> Result<Vec<String>> {
-    let client = create_gitlab_client(&gitlab_url, ignore_certs)?;
-    let mut repo_urls = Vec::new();
-    let exclude_set = build_exclude_matcher(&repo_specifiers.exclude_repos);
-
-    // 1) Process each GitLab username
-    for username in &repo_specifiers.user {
-        // a) Look up the user by username, deserializing only `id`
-        let users_ep = Users::builder().username(username).build()?;
-        let hits: Vec<SimpleUser> = users_ep.query(&client)?;
-        let user =
-            hits.into_iter().next().context(format!("GitLab user `{}` not found", username))?;
-        let user_id = user.id;
-
-        // b) List that user's projects applying the requested filter
-        let mut builder = UserProjects::builder();
-        builder.user(user_id);
-
-        match repo_specifiers.repo_filter {
-            RepoType::Owner => {
-                builder.owned(true);
-            }
-            RepoType::Member => {
-                builder.membership(true);
-            }
-            RepoType::All => {
-                // default: list all visible repositories
-            }
-        }
-
-        let projects_ep = builder.build()?;
-        let projects: Vec<SimpleProject> = paged(projects_ep, Pagination::All).query(&client)?;
-        for proj in projects {
-            if should_exclude_repo(&proj.http_url_to_repo, &exclude_set) {
-                continue;
-            }
-            repo_urls.push(proj.http_url_to_repo);
-        }
-
-        if let Some(pb) = progress {
-            pb.inc(1);
-        }
-    }
-
-    // all groups
-    let groups: Vec<SimpleGroup> = if repo_specifiers.all_groups {
-        let groups_ep = gitlab::api::groups::Groups::builder().all_available(true).build()?;
-        paged(groups_ep, Pagination::All).query(&client.clone())?
-    } else {
-        let mut found: Vec<SimpleGroup> = Vec::new();
-        for grp in &repo_specifiers.group {
-            let ep = gitlab::api::groups::Group::builder().group(grp).build()?;
-            let group: SimpleGroup = ep.query(&client.clone())?;
-            found.push(group);
-        }
-        found
-    };
-
-    for group in groups {
-        let mut gp_builder = GroupProjects::builder();
-        gp_builder.group(group.id);
-        if matches!(repo_specifiers.repo_filter, RepoType::Owner) {
-            gp_builder.owned(true);
-        }
-        if repo_specifiers.include_subgroups {
-            gp_builder.include_subgroups(true);
-        }
-
-        let gp_ep = gp_builder.build()?;
-        let projects: Vec<SimpleProject> = paged(gp_ep, Pagination::All).query(&client)?;
-        for proj in projects {
-            if should_exclude_repo(&proj.http_url_to_repo, &exclude_set) {
-                continue;
-            }
-            repo_urls.push(proj.http_url_to_repo);
-        }
-        if let Some(pb) = progress {
-            pb.inc(1);
-        }
-    }
-
-    // 3) Sort & dedupe
-    repo_urls.sort_unstable();
-    repo_urls.dedup();
-
-    Ok(repo_urls)
-}
-
 pub async fn list_repositories(
     api_url: Url,
     ignore_certs: bool,
@@ -528,7 +558,11 @@ pub async fn list_repositories(
 
 fn parse_repo(repo_url: &GitUrl) -> Option<(String, String)> {
     let url = Url::parse(repo_url.as_str()).ok()?;
-    let host = url.host_str()?.to_string();
+    let host = match (url.host_str(), url.port()) {
+        (Some(host), Some(port)) => format!("{host}:{port}"),
+        (Some(host), None) => host.to_string(),
+        (None, _) => return None,
+    };
     let mut path = url.path().trim_start_matches('/').to_string();
     if let Some(stripped) = path.strip_suffix(".git") {
         path = stripped.to_string();
@@ -550,7 +584,7 @@ pub async fn fetch_repo_items(
 ) -> Result<Vec<PathBuf>> {
     let (host, path) = parse_repo(repo_url).context("invalid GitLab repo URL")?;
     let encoded = form_urlencoded::byte_serialize(path.as_bytes()).collect::<String>();
-    let client = reqwest::Client::builder().danger_accept_invalid_certs(ignore_certs).build()?;
+    let client = create_gitlab_http_client(ignore_certs)?;
 
     let mut dirs = Vec::new();
 
@@ -688,5 +722,25 @@ mod tests {
         let excludes = build_exclude_matcher(&vec!["group/**/archive-*".to_string()]);
         assert!(should_exclude_repo("https://gitlab.com/group/sub/archive-2023.git", &excludes));
         assert!(!should_exclude_repo("https://gitlab.com/group/sub/project.git", &excludes));
+    }
+
+    #[test]
+    fn normalize_api_base_preserves_port_and_path() {
+        let url = Url::parse("https://gitlab.example.com:8443/gitlab").unwrap();
+        let normalized = normalize_api_base(&url);
+        assert_eq!(normalized.as_str(), "https://gitlab.example.com:8443/gitlab/");
+        assert_eq!(
+            gitlab_api_url(&normalized, "api/v4/groups/example").unwrap().as_str(),
+            "https://gitlab.example.com:8443/gitlab/api/v4/groups/example"
+        );
+    }
+
+    #[test]
+    fn parse_repo_preserves_custom_port() {
+        let repo = GitUrl::from_str("https://gitlab.example.com:8443/group/project.git").unwrap();
+        assert_eq!(
+            parse_repo(&repo),
+            Some(("gitlab.example.com:8443".to_string(), "group/project".to_string()))
+        );
     }
 }

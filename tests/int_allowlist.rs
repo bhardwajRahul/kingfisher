@@ -1,6 +1,6 @@
 use std::{
     fs,
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex},
 };
 
 use anyhow::Result;
@@ -23,6 +23,7 @@ use kingfisher::{
     findings_store::FindingsStore,
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
+    safe_list,
     scanner::run_async_scan,
     update::UpdateStatus,
 };
@@ -30,7 +31,21 @@ use tempfile::TempDir;
 use tokio::runtime::Runtime;
 use url::Url;
 
+static USER_FILTER_TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+struct UserFilterReset;
+
+impl Drop for UserFilterReset {
+    fn drop(&mut self) {
+        safe_list::clear_user_filters_for_tests();
+    }
+}
+
 fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<usize> {
+    let _test_lock = USER_FILTER_TEST_LOCK.lock().unwrap();
+    safe_list::clear_user_filters_for_tests();
+    let _reset = UserFilterReset;
+
     let rt = Runtime::new().unwrap();
     let work = TempDir::new()?;
     let rules_dir = work.path().join("rules");

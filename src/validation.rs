@@ -334,6 +334,7 @@ pub async fn validate_single_match(
     validation_retries: u32,
     rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
 ) {
+    let fp = validation_dedup_key(m);
     let timeout_result = time::timeout(validation_timeout, async {
         timed_validate_single_match(
             m,
@@ -357,6 +358,20 @@ pub async fn validate_single_match(
             validation_timeout.as_secs()
         ));
         m.validation_response_status = StatusCode::REQUEST_TIMEOUT;
+
+        VALIDATION_CACHE.get_or_init(DashMap::new).insert(
+            fp,
+            CachedResponse {
+                body: m.validation_response_body.clone(),
+                status: m.validation_response_status,
+                is_valid: false,
+                timestamp: Instant::now(),
+            },
+        );
+
+        if let Some((_, notify)) = IN_FLIGHT.get_or_init(DashMap::new).remove(&fp) {
+            notify.notify_waiters();
+        }
     }
 }
 
@@ -391,7 +406,9 @@ async fn timed_validate_single_match<'a>(
             return;
         }
     }
-    if let Some(wait) = IN_FLIGHT.get_or_init(DashMap::new).get(&fp) {
+    if let Some(wait) =
+        IN_FLIGHT.get_or_init(DashMap::new).get(&fp).map(|entry| entry.value().clone())
+    {
         wait.notified().await;
         if let Some(entry) = VALIDATION_CACHE.get().unwrap().get(&fp) {
             m.validation_success = entry.is_valid;
