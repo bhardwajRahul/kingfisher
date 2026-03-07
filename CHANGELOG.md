@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.87.0]
+- Hardened Perplexity API key validation to reject auth failures (`401`/`403`) and avoid false "Active Credential" results from error payloads.
+- Fixed Yelp API key validation false positives by switching to an auth-enforcing endpoint (`/v3/businesses/search`) and adding explicit auth error guards.
+
 ## [v1.86.0]
 - GitLab scanning: honor OS-trusted internal CAs without requiring `SSL_CERT_FILE`, and preserve custom GitLab API ports in repository enumeration and artifact fetching.
 - Added detection/validation rules for App Center, Branch.io, BrowserStack, Calendly, Cypress, Delighted, DeviantArt, Instagram, Iterable, Keen.io, Lokalise, Pendo, Razorpay, Spotify, WakaTime, WPEngine.
