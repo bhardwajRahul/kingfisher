@@ -19,7 +19,7 @@ rules:
     confidence: medium
     examples:
       - CLERK_SECRET_KEY=sk_live_abcdefghijklmnopqrstuvwxyz123456
-      - clerk_secret = sk_test_4pX9kL2mN8qR5sT7vY1zA3bC6dE0fG2h
+      - clerk_secret = sk_test_4pX9kL2mN8qR3sT7vY1zA3bC6dE0fG2h
     references:
       - https://clerk.com/docs/deployments/clerk-environment-variables
       - https://clerk.com/docs/guides/development/machine-auth/api-keys
