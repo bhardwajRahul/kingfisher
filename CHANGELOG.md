@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [v1.87.0]
 - Hardened Perplexity API key validation to reject auth failures (`401`/`403`) and avoid false "Active Credential" results from error payloads.
 - Fixed Yelp API key validation false positives by switching to an auth-enforcing endpoint (`/v3/businesses/search`) and adding explicit auth error guards.
+- Added 37 new provider detection + HTTP validation rules: Ably, AbstractAPI, AbuseIPDB, AviationStack, Better Stack, Brevo, Clearout, Clerk, Cloudinary, Coinlayer, Contentstack, Currencylayer, Daily, Fixer, Geoapify, Hunter.io, Mux, NewsAPI, Numverify, OneSignal, Pinecone, Pingdom, Positionstack, Railway, Render, Rollbar, Salesloft, Sanity, StatusCake, Storyblok, UptimeRobot, urlscan.io, VirusTotal, WeatherAPI, Webflow, and ZeroBounce.
+- Tightened regex specificity for newly added rules by replacing broad variable-length token captures with explicit fixed formats/lengths and aligned examples to pass `rules check`.
 
 ## [v1.86.0]
 - GitLab scanning: honor OS-trusted internal CAs without requiring `SSL_CERT_FILE`, and preserve custom GitLab API ports in repository enumeration and artifact fetching.
