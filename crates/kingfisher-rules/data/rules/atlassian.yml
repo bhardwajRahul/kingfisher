@@ -13,10 +13,11 @@ rules:
       \b
     pattern_requirements:
       min_lowercase: 1
+      min_digits: 2
     min_entropy: 3.5
     confidence: medium
     examples:
-      - Atlassian_key = "DjayBenyJrtpvydFCzAphcqc"
+      - Atlassian_key = "DjayBeny2rtpvydF4zAphcqc"
       - "ATLASSIAN_API_TOKEN:'abcdef1234567890abcdef12'"
     references:
       - https://developer.atlassian.com/cloud/admin/organization/rest/api-group-orgs/#api-v1-orgs-get

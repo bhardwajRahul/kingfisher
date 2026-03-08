@@ -28,10 +28,14 @@ rules:
     id: kingfisher.google.3
     pattern: |
       (?xi)
-      client.?secret .{0,10}
+      client.?secret
+      (?:.|[\n\r]){0,10}?
+      [ \t]*[=:][ \t]*
+      ['"]?
       (
         [a-z0-9_-]{24}
       )
+      ['"]?
       (?: [^a-z0-9_-] |$)
     pattern_requirements:
       min_digits: 1
@@ -80,7 +84,13 @@ rules:
         (GOCSPX-[A-Z0-9_-]{28})
         |
         (?:
-          (?i) client.?secret .{0,10} \b ([A-Z0-9_-]{24})
+          (?i)
+          client.?secret
+          (?:.|[\n\r]){0,10}?
+          [ \t]*[=:][ \t]*
+          ['"]?
+          \b ([A-Z0-9_-]{24})
+          ['"]?
         )
       )
       (?:[^A-Z0-9_-] | $)

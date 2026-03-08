@@ -85,7 +85,7 @@ rules:
       (?:PASSWORD|PASS|PASSWD|AUTH|SECRET|TOKEN)
       \b
       (?:.|[\n\r]){0,24}?
-      [=:\s]+
+      [ \t]*[=:][ \t]*
       ['"]?
       (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,64})
       ['"]?
