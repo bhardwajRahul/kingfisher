@@ -8,9 +8,9 @@ rules:
         \.
         ey[A-Za-z0-9_-]{12,}  (?# payload )
         \.
-        [A-Za-z0-9_-]{12,}    (?# signature )
+        [A-Za-z0-9_-]{24,}    (?# signature )
       )
-      (?:[^A-Z0-9_-])
+      (?:[^A-Za-z0-9_-]|$)
     pattern_requirements:
       min_digits: 4
     min_entropy: 3.3
