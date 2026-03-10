@@ -26,17 +26,7 @@ rules:
 
   - name: Google OAuth Client Secret
     id: kingfisher.google.3
-    pattern: |
-      (?xi)
-      client.?secret
-      (?:.|[\n\r]){0,10}?
-      [ \t]*[=:][ \t]*
-      ['"]?
-      (
-        [a-z0-9_-]{24}
-      )
-      ['"]?
-      (?: [^a-z0-9_-] |$)
+    pattern: (?i)(?:client[_\-. ]?secret)(?:.|[\n\r]){0,20}?[=:][ \t]*['"]?([A-Z0-9_-]{24})['"]?(?:[^A-Z0-9_-]|$)
     pattern_requirements:
       min_digits: 1
       min_uppercase: 3
@@ -74,26 +64,7 @@ rules:
 
   - name: Google OAuth Credentials
     id: kingfisher.google.6
-    pattern: |
-      (?xi)
-      ([0-9]+-[a-z0-9_]{32}\.apps\.googleusercontent\.com)
-      (?:
-        (?s).{0,40}
-      )
-      (?:
-        (GOCSPX-[A-Z0-9_-]{28})
-        |
-        (?:
-          (?i)
-          client.?secret
-          (?:.|[\n\r]){0,10}?
-          [ \t]*[=:][ \t]*
-          ['"]?
-          \b ([A-Z0-9_-]{24})
-          ['"]?
-        )
-      )
-      (?:[^A-Z0-9_-] | $)
+    pattern: (?is)([0-9]+-[a-z0-9_]{32}\.apps\.googleusercontent\.com)(?:.|[\n\r]){0,120}?(?:GOCSPX-[A-Z0-9_-]{28}|(?:client[_\-. ]?secret)(?:.|[\n\r]){0,20}?[=:][ \t]*['"]?([A-Z0-9_-]{24})['"]?)(?:[^A-Z0-9_-]|$)
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3

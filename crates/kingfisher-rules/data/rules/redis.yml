@@ -77,18 +77,7 @@ rules:
   - id: kingfisher.redis.3
     name: Redis Password (Standalone Config)
     # Detects REDIS_PASSWORD, redis_password, redis.password etc. in env vars and config files
-    pattern: |
-      (?xi)
-      \b
-      (?:REDIS|redis)
-      [-_.]?
-      (?:PASSWORD|PASS|PASSWD|AUTH|SECRET|TOKEN)
-      \b
-      (?:.|[\n\r]){0,24}?
-      [ \t]*[=:][ \t]*
-      ['"]?
-      (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,64})
-      ['"]?
+    pattern: (?i)\b(?:redis[-_.]?(?:password|pass|passwd|auth|secret|token)|config\.redis\.auth)\b(?:.|[\n\r]){0,24}?[=:][ \t]*['"]?([a-zA-Z0-9%;._~!$&'()*+,;=/*+-]{8,64})['"]?
 
     pattern_requirements:
       ignore_if_contains:

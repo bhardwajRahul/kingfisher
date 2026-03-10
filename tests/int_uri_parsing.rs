@@ -7,8 +7,9 @@ use tempfile::tempdir;
 fn filters_invalid_mongodb_uri_even_without_validation() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let file_path = dir.path().join("mongo.txt");
-    let valid = "mongodb://usr:pass@exmple.com:27017/db";
-    let invalid = "mongodb://usr:pass@exmple.com:abc/db";
+    // Avoid placeholder-like passwords filtered by ignore_if_contains (e.g. :pass@).
+    let valid = "mongodb://usr:p4ssw0rd123@exmple.com:27017/db";
+    let invalid = "mongodb://usr:p4ssw0rd123@exmple.com:abc/db";
     fs::write(&file_path, format!("{valid}\n{invalid}\n"))?;
 
     Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))

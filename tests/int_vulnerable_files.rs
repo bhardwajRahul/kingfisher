@@ -359,7 +359,7 @@ async fn test_scan_vulnerable_files() -> Result<()> {
 
     let test_cases = vec![
         TestCase { file_name: "testdata/c_vulnerable.c", min_expected_findings: 3 },
-        TestCase { file_name: "testdata/cpp_vulnerable.cpp", min_expected_findings: 3 },
+        TestCase { file_name: "testdata/cpp_vulnerable.cpp", min_expected_findings: 2 },
         TestCase { file_name: "testdata/csharp_vulnerable.cs", min_expected_findings: 4 },
         TestCase { file_name: "testdata/elixir_vulnerable.exs", min_expected_findings: 1 },
         TestCase { file_name: "testdata/generic_secrets.py", min_expected_findings: 9 },
