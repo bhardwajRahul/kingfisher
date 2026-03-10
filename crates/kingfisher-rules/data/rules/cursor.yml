@@ -2,11 +2,11 @@ rules:
   - name: Cursor Integrations (User) API Key
     id: kingfisher.cursor.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         key_
-        [0-9a-f]{64}
+        [0-9a-fA-F]{64}
       )
       \b
     min_entropy: 3.8

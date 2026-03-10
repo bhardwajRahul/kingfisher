@@ -16,6 +16,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use http::StatusCode;
 use rustc_hash::{FxHashMap, FxHashSet};
+use tracing::debug;
 
 use crate::{
     blob::{Blob, BlobId, BlobIdMap},
@@ -26,10 +27,11 @@ use crate::{
     parser::{Checker, Language},
     rule_profiling::{ConcurrentRuleProfiler, RuleStats},
     rules::rule::Rule,
-    rules_database::RulesDatabase,
+    rules_database::{RuleDetectionProfileKind, RulesDatabase, TreeSitterFallbackPolicy},
     scanner_pool::ScannerPool,
     validation_body::ValidationResponseBody,
 };
+use kingfisher_scanner::primitives::find_secret_capture;
 
 use self::{
     base64_decode::get_base64_strings as get_b64_strings, dedup::record_match, filter::filter_match,
@@ -38,8 +40,13 @@ use self::{
 const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
 const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
 const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
-const TREE_SITTER_MAX_LIMIT: usize = 64 * 1024; // only run tree-sitter on blobs <= 64 KiB
-const TREE_SITTER_MIN_LIMIT: usize = 1 * 1024; // only run tree-sitter on blobs >= 1 KiB
+const TREE_SITTER_MAX_LIMIT: usize = 128 * 1024; // only run tree-sitter on blobs <= 128 KiB
+const TREE_SITTER_MIN_LIMIT: usize = 0; // allow tree-sitter starting at 0 bytes
+
+#[inline]
+pub(crate) fn should_attempt_tree_sitter(blob_len: usize) -> bool {
+    blob_len <= TREE_SITTER_MAX_LIMIT && blob_len >= TREE_SITTER_MIN_LIMIT
+}
 
 // -------------------------------------------------------------------------------------------------
 // RawMatch
@@ -281,48 +288,10 @@ impl<'a> Matcher<'a> {
         let rules_db = self.rules_db;
         let mut seen_matches = FxHashSet::default();
         let mut previous_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
+        let mut match_rule_indices: Vec<usize> = Vec::new();
 
         let blob_len = blob.len();
-
-        let should_run_tree_sitter = blob_len > 0
-            && blob_len <= TREE_SITTER_MAX_LIMIT
-            && blob_len >= TREE_SITTER_MIN_LIMIT
-            && has_raw_matches
-            && lang_hint.is_some();
-
-        let tree_sitter_result = if should_run_tree_sitter {
-            lang_hint.and_then(|lang_str| {
-                get_language_and_queries(lang_str).and_then(|(language, queries)| {
-                    let checker = Checker { language, rules: queries };
-                    match checker.check(&blob.bytes()) {
-                        Ok(results) => Some(results),
-                        Err(e) => {
-                            println!("Error in checker.check: {}", e);
-                            None
-                        }
-                    }
-                })
-            })
-        } else {
-            None
-        };
-        //
-        // Process matches
-        //
         let mut matches = Vec::new();
-        let owned_ts_results = tree_sitter_result.map(|ts_results| {
-            ts_results
-                .into_iter()
-                .map(|match_result| {
-                    (
-                        match_result.range,
-                        match_result.text,
-                        match_result.is_base64_decoded,
-                        match_result.original_base64,
-                    )
-                })
-                .collect::<Vec<_>>()
-        });
         let mut previous_raw_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
         for &RawMatch { rule_id, start_idx, end_idx } in
             self.user_data.raw_matches_scratch.iter().rev()
@@ -336,6 +305,7 @@ impl<'a> Matcher<'a> {
             if !record_match(&mut previous_raw_matches, rule_id_usize, current_span) {
                 continue;
             }
+            let before_len = matches.len();
             filter_match(
                 blob,
                 rule,
@@ -355,68 +325,8 @@ impl<'a> Matcher<'a> {
                 self.respect_ignore_if_contains,
                 &self.inline_ignore_config,
             );
-        }
-        // Pre-filter tree-sitter extracted key-value pairs through Vectorscan,
-        // then only run the anchored regex for rules that Vectorscan flags as candidates.
-        if let Some(ref ts_results) = owned_ts_results {
-            if !ts_results.is_empty() {
-                // Build a combined buffer of all tree-sitter texts separated by newlines
-                // so we can run a single Vectorscan pass instead of one per result.
-                let mut combined_buf = Vec::new();
-                let mut segment_ends: Vec<usize> = Vec::with_capacity(ts_results.len());
-                for (_ts_range, ts_match, _is_base64_decoded, _original_base64) in ts_results.iter()
-                {
-                    combined_buf.extend_from_slice(ts_match.as_bytes());
-                    segment_ends.push(combined_buf.len());
-                    combined_buf.push(b'\n');
-                }
-
-                // Single Vectorscan pass over the combined buffer
-                let mut ts_raw_matches: Vec<(u32, u64)> = Vec::new();
-                self.scanner_pool.with(|scanner| {
-                    scanner.scan(&combined_buf, |rule_id, _from, to, _flags| {
-                        ts_raw_matches.push((rule_id, to));
-                        vectorscan_rs::Scan::Continue
-                    })
-                })?;
-
-                // Map each Vectorscan hit back to its tree-sitter result and dedup
-                let mut rule_ts_pairs: FxHashSet<(usize, usize)> = FxHashSet::default();
-                for &(rule_id, to) in &ts_raw_matches {
-                    let to = to as usize;
-                    let seg_idx = segment_ends.partition_point(|&end| end < to);
-                    if seg_idx < ts_results.len() {
-                        rule_ts_pairs.insert((rule_id as usize, seg_idx));
-                    }
-                }
-
-                // Only run the anchored regex for (rule, ts_result) pairs Vectorscan flagged
-                for (rule_id_usize, ts_idx) in rule_ts_pairs {
-                    let (ts_range, ts_match, is_base64_decoded, _original_base64) =
-                        &ts_results[ts_idx];
-                    let rule = Arc::clone(&rules_db.rules()[rule_id_usize]);
-                    let re = &rules_db.anchored_regexes()[rule_id_usize];
-                    filter_match(
-                        blob,
-                        rule,
-                        re,
-                        ts_range.start,
-                        ts_range.end,
-                        &mut matches,
-                        &mut previous_matches,
-                        rule_id_usize,
-                        &mut seen_matches,
-                        origin,
-                        Some(ts_match.as_bytes()),
-                        *is_base64_decoded,
-                        redact,
-                        &filename,
-                        self.profiler.as_ref(),
-                        self.respect_ignore_if_contains,
-                        &self.inline_ignore_config,
-                    );
-                }
-            }
+            match_rule_indices
+                .extend(std::iter::repeat_n(rule_id_usize, matches.len() - before_len));
         }
 
         if !no_base64 {
@@ -427,6 +337,7 @@ impl<'a> Matcher<'a> {
             while let Some((item, depth)) = b64_stack.pop() {
                 for (rule_id_usize, rule) in rules_db.rules().iter().enumerate() {
                     let re = &rules_db.anchored_regexes()[rule_id_usize];
+                    let before_len = matches.len();
                     filter_match(
                         blob,
                         rule.clone(),
@@ -446,6 +357,8 @@ impl<'a> Matcher<'a> {
                         self.respect_ignore_if_contains,
                         &self.inline_ignore_config,
                     );
+                    match_rule_indices
+                        .extend(std::iter::repeat_n(rule_id_usize, matches.len() - before_len));
                 }
                 if depth + 1 < MAX_B64_DEPTH {
                     for nested in get_b64_strings(item.decoded.as_slice()) {
@@ -461,6 +374,14 @@ impl<'a> Matcher<'a> {
                 }
             }
         }
+        maybe_apply_tree_sitter_verification(
+            rules_db,
+            blob,
+            lang_hint,
+            blob_len,
+            &mut matches,
+            &match_rule_indices,
+        );
         // Finalize
         if !no_dedup && !matches.is_empty() {
             let blob_id = blob.id();
@@ -484,6 +405,108 @@ impl<'a> Matcher<'a> {
 
         Ok(ScanResult::New(matches))
     }
+}
+
+fn maybe_apply_tree_sitter_verification<'a>(
+    rules_db: &RulesDatabase,
+    blob: &'a Blob,
+    lang_hint: Option<&str>,
+    blob_len: usize,
+    matches: &mut Vec<BlobMatch<'a>>,
+    match_rule_indices: &[usize],
+) {
+    if matches.is_empty() {
+        return;
+    }
+
+    let profiles = rules_db.rule_match_profiles();
+    let candidate_indices: Vec<usize> = matches
+        .iter()
+        .enumerate()
+        .filter(|(idx, m)| {
+            if m.is_base64 {
+                return false;
+            }
+            let Some(rule_idx) = match_rule_indices.get(*idx) else {
+                return false;
+            };
+            profiles[*rule_idx].kind == RuleDetectionProfileKind::ContextDependent
+        })
+        .map(|(idx, _)| idx)
+        .collect();
+
+    if candidate_indices.is_empty() {
+        return;
+    }
+
+    let ts_results = load_tree_sitter_results(blob, lang_hint, blob_len);
+    let mut keep = vec![true; matches.len()];
+
+    for idx in candidate_indices {
+        let Some(rule_idx) = match_rule_indices.get(idx).copied() else {
+            continue;
+        };
+        let profile = &profiles[rule_idx];
+        let match_secret = matches[idx].matching_input;
+        let re = &rules_db.anchored_regexes()[rule_idx];
+
+        match ts_results.as_ref() {
+            Some(results) => {
+                let verified = results.iter().any(|text| {
+                    verify_match_in_tree_sitter_text(re, match_secret, text.as_bytes())
+                });
+                if !verified {
+                    keep[idx] = false;
+                }
+            }
+            None => {
+                if profile.fallback_policy == TreeSitterFallbackPolicy::SuppressWhenUnavailable {
+                    keep[idx] = false;
+                }
+            }
+        }
+    }
+
+    if keep.iter().all(|k| *k) {
+        return;
+    }
+
+    let mut filtered = Vec::with_capacity(matches.len());
+    for (idx, item) in std::mem::take(matches).into_iter().enumerate() {
+        if keep[idx] {
+            filtered.push(item);
+        }
+    }
+    *matches = filtered;
+}
+
+fn load_tree_sitter_results(
+    blob: &Blob,
+    lang_hint: Option<&str>,
+    blob_len: usize,
+) -> Option<Vec<String>> {
+    if !should_attempt_tree_sitter(blob_len) {
+        return None;
+    }
+    let lang = lang_hint?;
+    let (language, queries) = get_language_and_queries(lang)?;
+    let checker = Checker { language, rules: queries };
+    match checker.check(&blob.bytes()) {
+        Ok(results) => Some(results.into_iter().map(|m| m.text).collect()),
+        Err(e) => {
+            debug!("tree-sitter verification unavailable: {e}");
+            None
+        }
+    }
+}
+
+fn verify_match_in_tree_sitter_text(
+    re: &regex::bytes::Regex,
+    expected_secret: &[u8],
+    text: &[u8],
+) -> bool {
+    re.captures_iter(text)
+        .any(|captures| find_secret_capture(re, &captures).as_bytes() == expected_secret)
 }
 
 fn get_language_and_queries(lang: &str) -> Option<(Language, FxHashMap<String, String>)> {
@@ -1048,5 +1071,178 @@ line2
         assert_eq!(entries[0], (None, 1, "ghp_ABC12"));
         assert_eq!(entries[1], (Some("body"), 2, "ABC"));
         assert_eq!(entries[2], (Some("checksum"), 3, "12"));
+    }
+
+    #[test]
+    fn parser_second_pass_keeps_verified_contextual_match() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.auth0.2".into(),
+            name: "auth0 secret".into(),
+            pattern: "(?xi)\\bauth0(?:.|[\\n\\r]){0,16}?(?:secret|token)(?:.|[\\n\\r]){0,64}?\\b([a-z0-9_-]{64,})\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let mut content = "x".repeat(1200);
+        content.push_str(&format!("\nauth0_client_secret = \"{token}\"\n"));
+        let blob = Blob::from_bytes(content.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("verified.py")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("python".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(found.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn parser_second_pass_suppresses_unverified_contextual_match() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.auth0.2".into(),
+            name: "auth0 secret".into(),
+            pattern: "(?xi)\\bauth0(?:.|[\\n\\r]){0,16}?(?:secret|token)(?:.|[\\n\\r]){0,64}?\\b([a-z0-9_-]{64,})\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let mut content = "x".repeat(1200);
+        content.push_str(&format!("\n# auth0 secret {token}\n"));
+        let blob = Blob::from_bytes(content.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("comment.py")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("python".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert!(
+            found.is_empty(),
+            "comment-only contextual hits should be suppressed when tree-sitter cannot verify assignment context"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn strict_context_rule_suppresses_when_tree_sitter_unavailable() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.auth0.2".into(),
+            name: "auth0 secret".into(),
+            pattern: "(?xi)\\bauth0(?:.|[\\n\\r]){0,16}?(?:secret|token)(?:.|[\\n\\r]){0,64}?\\b([a-z0-9_-]{64,})\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let content = format!("auth0 token {token}");
+        let blob = Blob::from_bytes(content.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("small.txt")));
+
+        let found = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert!(
+            found.is_empty(),
+            "strict contextual rules should suppress when tree-sitter is unavailable for verification"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn self_identifying_rule_remains_hyperscan_only() -> Result<()> {
+        let token = "CCIPAT_FERZRjTN451xnDCy1y9gWn_79fb6ca4d0e5f833612eee17de397a9dca0a9e9f";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.circleci.1".into(),
+            name: "circleci pat".into(),
+            pattern: "(?x)\\b(CCIPAT_[A-Za-z0-9]{22}_[a-z0-9]{40})\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let blob = Blob::from_bytes(format!("token={token}").into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("circleci.txt")));
+
+        let found = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(found.len(), 1, "self-identifying tokens should remain raw-pass findings");
+        Ok(())
     }
 }

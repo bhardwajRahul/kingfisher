@@ -2,7 +2,7 @@ rules:
   - name: Freshdesk Domain
     id: kingfisher.freshdesk.1
     visible: false
-    confidence: low
+    confidence: medium
     min_entropy: 0.0
     pattern: |
       (?xi)

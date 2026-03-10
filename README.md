@@ -645,6 +645,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
 | [FINGERPRINT.md](docs/FINGERPRINT.md) | Understanding finding fingerprints and deduplication |
 | [COMPARISON.md](docs/COMPARISON.md) | Benchmark results and performance comparisons |
 | [PARSING.md](docs/PARSING.md) | Language-aware parsing details |
+| [TREE_SITTER.md](docs/TREE_SITTER.md) | Tree-sitter scanning flow, verification gates, and fallback behavior |
 
 # Library Usage
 

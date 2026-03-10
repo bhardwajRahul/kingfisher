@@ -2,11 +2,11 @@ rules:
   - name: GitLab Private Token
     id: kingfisher.gitlab.1
     pattern: |
-      (?xi)
+      (?x)
       \b 
       (
         glpat-
-        [0-9A-Z_-]{20}
+        [0-9A-Za-z_-]{20}
       )
       \b
     pattern_requirements:
@@ -51,10 +51,10 @@ rules:
   - name: GitLab Runner Registration Token
     id: kingfisher.gitlab.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        GR1348941[0-9A-Z_-]{20}
+        GR1348941[0-9A-Za-z_-]{20}
       )
       \b
     pattern_requirements:
@@ -97,10 +97,10 @@ rules:
   - name: GitLab Pipeline Trigger Token
     id: kingfisher.gitlab.3
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        glptt-[0-9a-f]{40}
+        glptt-[0-9a-fA-F]{40}
       )
     pattern_requirements:
       min_digits: 2
@@ -135,7 +135,7 @@ rules:
   - name: GitLab Private Token - Routable Format
     id: kingfisher.gitlab.4
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         glpat-
@@ -143,7 +143,7 @@ rules:
         \.
         (?<version>01)
         \.
-        (?<base36_payload_length>[0-9a-z]{2})
+        (?<base36_payload_length>[0-9a-zA-Z]{2})
         (?<crc32>[0-9a-z]{7})
       )
       \b

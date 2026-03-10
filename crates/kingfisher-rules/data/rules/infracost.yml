@@ -2,16 +2,16 @@ rules:
   - name: Infracost API Token
     id: kingfisher.infracost.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        ico-[a-z0-9]{32}
+        ico-[a-zA-Z0-9]{32}
       )
       \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3
-    confidence: medium
+    confidence: high
     examples:
       - export INFRACOST_API_KEY=ico-abcd12abcdefabcdefabcdefabcdefab
       - '"infracost": "ico-1234567890abcdef1234567890abcdef"'

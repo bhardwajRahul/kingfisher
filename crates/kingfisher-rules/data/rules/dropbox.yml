@@ -2,10 +2,10 @@ rules:
   - name: Dropbox API secret/key
     id: kingfisher.dropbox.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        sl\.[A-Z0-9\-\_]{130,152}
+        sl\.[A-Za-z0-9\-\_]{130,152}
       )
       \b
     pattern_requirements:

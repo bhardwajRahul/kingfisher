@@ -2,10 +2,10 @@ rules:
   - name: CodeRabbit API Key
     id: kingfisher.coderabbit.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        cr-[a-f0-9]{58}
+        cr-[a-fA-F0-9]{58}
       )
       \b
     pattern_requirements:

@@ -2,16 +2,16 @@ rules:
   - name: Duffel API Token
     id: kingfisher.duffel.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        duffel_(?:test|live)_[a-z0-9_\-=]{43}
+        duffel_(?:test|live)_[a-zA-Z0-9_\-=]{43}
       )
       \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.2
-    confidence: medium
+    confidence: high
     examples:
       - DUFFEL_TOKEN=duffel_test_qwertyuiopasdfghjklzxcvbnm123456789abcdefgh
       - 'Authorization: "Bearer duffel_live_abcd1234efgh5678ijkl9012mnop3456qrstuvwxyza"'

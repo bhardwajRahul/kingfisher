@@ -2,10 +2,10 @@ rules:
   - name: Dependency-Track API Key
     id: kingfisher.dtrack.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        odt_[A-Z0-9]{32,255}
+        odt_[A-Za-z0-9]{32,255}
       )
       \b
     pattern_requirements:

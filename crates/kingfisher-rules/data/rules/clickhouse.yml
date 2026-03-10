@@ -2,15 +2,15 @@ rules:
   - name: ClickHouse Cloud Secret Key
     id: kingfisher.clickhouse.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        4b1d[a-z0-9]{38}
+        4b1d[a-zA-Z0-9]{38}
       )
       \b
     pattern_requirements:
       min_digits: 2
-    confidence: medium
+    confidence: high
     min_entropy: 3.5
     examples:
       - "4b1dwEZ8aNo1U9ODBqffSci1INBrltLHM2d1bHF4dq"

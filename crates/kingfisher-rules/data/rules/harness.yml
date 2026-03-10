@@ -2,15 +2,15 @@ rules:
   - name: Harness Personal Access Token (PAT)
     id: kingfisher.harness.pat.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         pat\.
-        [A-Z0-9_-]{22}
+        [A-Za-z0-9_-]{22}
         \.
-        [0-9a-f]{24}
+        [0-9a-fA-F]{24}
         \.
-        [A-Z0-9]{20}
+        [A-Za-z0-9]{20}
       )
       \b
     pattern_requirements:

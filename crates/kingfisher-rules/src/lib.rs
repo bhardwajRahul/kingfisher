@@ -27,7 +27,10 @@ pub use rule::{
 pub use rules::{Rules, RulesError};
 
 // Re-export RulesDatabase
-pub use rules_database::{format_regex_pattern, RulesDatabase};
+pub use rules_database::{
+    format_regex_pattern, RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase,
+    TreeSitterFallbackPolicy,
+};
 
 // Re-export defaults
 pub use defaults::get_builtin_rules;

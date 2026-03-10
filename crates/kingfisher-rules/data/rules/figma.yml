@@ -2,10 +2,10 @@ rules:
   - name: Figma Personal Access Token
     id: kingfisher.figma.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        figd_[A-Z0-9_-]{38,42}
+        figd_[A-Za-z0-9_-]{38,42}
       )
       \b
     pattern_requirements:

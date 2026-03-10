@@ -2,10 +2,10 @@ rules:
   - name: Doppler CLI Token
     id: kingfisher.doppler.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        dp\.ct\.[A-Z0-9]{40,44}
+        dp\.ct\.[A-Za-z0-9]{40,44}
       )
       \b
     pattern_requirements:

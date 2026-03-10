@@ -2,11 +2,11 @@ rules:
   - name: ElevenLabs API Key
     id: kingfisher.elevenlabs.1
     pattern: |       
-      (?xi)       
+      (?x)       
       \b    
       (               
         sk_           
-        [0-9a-f]{48}  
+        [0-9a-fA-F]{48}  
       )
       \b
     pattern_requirements:

@@ -2,15 +2,15 @@ rules:
   - name: Groq API Key
     id: kingfisher.groq.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        gsk_[A-Z0-9]{52}
+        gsk_[A-Za-z0-9]{52}
       )
       \b
     pattern_requirements:
       min_digits: 4
-    confidence: medium
+    confidence: high
     min_entropy: 3.5
     validation:
       type: Http
