@@ -30,7 +30,7 @@ rules:
           method: GET
           url: https://rest.ably.io/channels?limit=1
           headers:
-            Authorization: "Basic {{ TOKEN | append: ':' | b64enc }}"
+            Authorization: "Basic {{ TOKEN | b64enc }}"
             Accept: application/json
           response_matcher:
             - report_response: true
