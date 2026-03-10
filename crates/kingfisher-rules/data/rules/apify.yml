@@ -11,7 +11,7 @@ rules:
       min_digits: 2
       min_uppercase: 1
       min_lowercase: 1
-    confidence: medium
+    confidence: high
     min_entropy: 3.5
     validation:
       type: Http

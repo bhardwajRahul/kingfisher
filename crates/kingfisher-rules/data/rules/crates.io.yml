@@ -2,10 +2,10 @@ rules:
   - name: crates.io API Key
     id: kingfisher.cratesio.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        cio[A-Z0-9]{32}
+        cio[A-Za-z0-9]{32}
       )
       \b
     pattern_requirements:

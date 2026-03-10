@@ -209,6 +209,10 @@ rules:
     min_entropy: 3.5
     pattern_requirements:
       min_digits: 3
+      ignore_if_contains:
+        - "www.w3.org"
+        - "/2001/"
+        - "/XMLSchema"
     confidence: medium
     examples:
       - |
@@ -309,6 +313,16 @@ rules:
       min_digits: 4
     min_entropy: 3.6
     confidence: medium
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: "https://login.salesforce.com/services/oauth2/authorize?response_type=code&client_id={{ TOKEN }}&redirect_uri=https%3A%2F%2Fexample.com%2Fcb"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
     examples:
       - 3MVG9P8aWj9n4kT2xQ5mV7rY1bC3dF6gH8jK0mN2pR4tU6wX8zA1cE3gH5kM7qS9uV2xY4bD6fJ8nP1rT3vW5yZ7
     references:

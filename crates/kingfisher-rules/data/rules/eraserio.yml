@@ -32,3 +32,6 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200, 403]
+            - type: WordMatch
+              words: ['API token is disabled']
+              negative: true

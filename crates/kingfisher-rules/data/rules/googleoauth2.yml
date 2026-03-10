@@ -2,10 +2,10 @@ rules:
   - name: Google OAuth2 Access Token
     id: kingfisher.google.oauth2.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        ya29\.(?i:[a-z0-9_-]{30,})
+        ya29\.(?i:[a-zA-Z0-9_-]{30,})
       )
       \b
     min_entropy: 3.5

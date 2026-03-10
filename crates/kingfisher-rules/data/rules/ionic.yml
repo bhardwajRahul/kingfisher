@@ -2,17 +2,17 @@ rules:
   - name: Ionic API token
     id: kingfisher.ionic.1
     pattern: |
-      (?xi)
+      (?x)
       \b                     
       (                      
         ion_
-        [a-z0-9]{42}
+        [a-zA-Z0-9]{42}
       )
       \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.5
-    confidence: medium
+    confidence: high
     examples:
       - ion_VNR17uGgdxr9P2aOrCulvSLTFDqijIV2ImQsOUhDEI
     validation:

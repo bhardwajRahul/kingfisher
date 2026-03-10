@@ -53,8 +53,6 @@ jobs:
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
-      - name: Build (Makefile linux-x64)
-        run: make ubuntu-x64
 
   linux-arm64:
     name: Linux arm64
@@ -93,8 +91,6 @@ jobs:
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-arm64
 
   macos-arm64:
     name: macOS arm64
@@ -120,8 +116,6 @@ jobs:
 
       - name: Run tests
         run: make tests
-      - name: Build (Makefile darwin-arm64)
-        run: make darwin-arm64
 
   windows:
     name: Windows ${{ matrix.arch }}
@@ -204,18 +198,3 @@ jobs:
 
           echo "▶ cargo test --release --workspace --all-targets --target $target_triple"
           cargo test --release --workspace --all-targets --target "$target_triple"
-
-      - name: Build
-        shell: msys2 {0}
-        run: make windows-${{ matrix.arch }}
-
-      - name: Move artifact to dist
-        shell: bash
-        run: |
-          mkdir -p dist
-          cp target/release/kingfisher-windows-${{ matrix.arch }}.zip dist/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kingfisher-windows-${{ matrix.arch }}
-          path: dist/kingfisher-*windows-${{ matrix.arch }}*.*

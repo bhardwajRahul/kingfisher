@@ -23,13 +23,24 @@ rules:
   - name: Alibaba Access Key Secret
     id: kingfisher.alibabacloud.2
     pattern: |
-      (?xi)
+      (?x)
       \b
-      alibaba
-      (?:.|[\n\r]){0,32}?
-      (
-        [a-z0-9]{30}
+      (?i:alibaba|alibaba[\s_-]*cloud|aliyun)
+      (?:.|[\n\r]){0,40}?
+      (?i:access[\s_-]*key[\s_-]*secret|access[\s_-]*secret|secret|token|key)
+      (?:.|[\n\r]){0,16}?
+      (?:
+        [=:]
+        |
+        ["']\s*:\s*["']
       )
+      \s*
+      ["']?
+      (
+        [A-Za-z0-9]{30}
+      )
+      \b
+      ["']?
     min_entropy: 4.2
     confidence: medium
     examples:

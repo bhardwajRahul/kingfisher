@@ -2,10 +2,10 @@ rules:
   - name: Fireworks.ai API Key
     id: kingfisher.fireworks.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        fw_[A-Z0-9]{24}
+        fw_[A-Za-z0-9]{24}
       )
       \b
     pattern_requirements:

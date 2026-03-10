@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.87.0]
+- Tree-sitter verification now runs for blobs from `0` bytes up to `128 KiB` (previously `1 KiB` to `64 KiB`), while remaining a post-regex verification step applied only to context-dependent candidate matches from Hyperscan/Vectorscan.
+- False-positive reduction: Hyperscan/Vectorscan still scans everything first, then tree-sitter performs a second-pass verification only on auto-classified context-dependent findings; self-identifying/token-explicit findings stay regex-first.
+- Hardened Perplexity API key validation to reject auth failures (`401`/`403`) and avoid false "Active Credential" results from error payloads.
+- Fixed Yelp API key validation false positives by switching to an auth-enforcing endpoint (`/v3/businesses/search`) and adding explicit auth error guards.
+- Added 37 new provider detection + HTTP validation rules: Ably, AbstractAPI, AbuseIPDB, AviationStack, Better Stack, Brevo, Clearout, Clerk, Cloudinary, Coinlayer, Contentstack, Currencylayer, Daily, Fixer, Geoapify, Hunter.io, Mux, NewsAPI, Numverify, OneSignal, Pinecone, Pingdom, Positionstack, Railway, Render, Rollbar, Salesloft, Sanity, StatusCake, Storyblok, UptimeRobot, urlscan.io, VirusTotal, WeatherAPI, Webflow, and ZeroBounce.
+- Tightened regex specificity for newly added rules by replacing broad variable-length token captures with explicit fixed formats/lengths and aligned examples to pass `rules check`.
+
 ## [v1.86.0]
 - GitLab scanning: honor OS-trusted internal CAs without requiring `SSL_CERT_FILE`, and preserve custom GitLab API ports in repository enumeration and artifact fetching.
 - Added detection/validation rules for App Center, Branch.io, BrowserStack, Calendly, Cypress, Delighted, DeviantArt, Instagram, Iterable, Keen.io, Lokalise, Pendo, Razorpay, Spotify, WakaTime, WPEngine.

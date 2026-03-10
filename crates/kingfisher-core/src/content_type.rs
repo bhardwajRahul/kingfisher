@@ -38,6 +38,8 @@ impl Default for ContentInspector {
 }
 
 impl ContentInspector {
+    /// Maximum bytes inspected for content-based language hints.
+    const LANGUAGE_SAMPLE_BYTES: usize = 4096;
     /// Create a new inspector with default thresholds.
     #[inline]
     pub fn new() -> Self {
@@ -140,8 +142,12 @@ impl ContentInspector {
             }
         }
 
+        // Limit expensive content probing to a small prefix. This keeps language
+        // detection cheap for large files while preserving extension-based accuracy.
+        let sample = &content[..content.len().min(Self::LANGUAGE_SAMPLE_BYTES)];
+
         // 3) Shebang detection (in-memory): match by longest prefix, byte-wise (no UTF-8 needed).
-        if let Some(first_line) = content.split(|&b| b == b'\n').next() {
+        if let Some(first_line) = sample.split(|&b| b == b'\n').next() {
             if first_line.starts_with(b"#!") {
                 for (prefix, lang) in SHEBANG_PREFIXES.iter() {
                     if first_line.starts_with(prefix) {
@@ -152,7 +158,7 @@ impl ContentInspector {
         }
 
         // 4) Lightweight content markers to catch a few ubiquitous cases without I/O.
-        let s = String::from_utf8_lossy(content);
+        let s = String::from_utf8_lossy(sample);
         if s.contains("<?php") {
             return Some(LanguageType::Php.name().to_string());
         }

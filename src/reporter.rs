@@ -1056,7 +1056,7 @@ impl DetailsReporter {
             finding: FindingRecordData {
                 snippet,
                 fingerprint: rm.m.finding_fingerprint.to_string(),
-                confidence: rm.m.rule.confidence().to_string(),
+                confidence: rm.match_confidence.to_string(),
                 entropy: format!("{:.2}", rm.m.calculated_entropy),
                 validation: ValidationInfo { status: validation_status, response: response_body },
                 language: rm

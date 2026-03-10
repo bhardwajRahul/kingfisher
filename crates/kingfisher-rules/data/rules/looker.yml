@@ -5,10 +5,13 @@ rules:
     confidence: low
     min_entropy: 2.0
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        https?://[a-z0-9.-]+(?::\d{2,5})?
+        https?://
+        (?:[a-z0-9-]+\.)+
+        looker\.com
+        (?::\d{2,5})?
       )
       (?:/api/(?:4\.0|3\.1))?
       \b

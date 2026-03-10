@@ -2,10 +2,10 @@ rules:
   - name: Friendli.ai API Key
     id: kingfisher.friendli.1
     pattern: | 
-      (?xi)
+      (?x)
       \b
       (
-        flp_[A-Z0-9]{46}
+        flp_[A-Za-z0-9]{46}
       )
       \b
     pattern_requirements:

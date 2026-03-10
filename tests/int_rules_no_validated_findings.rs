@@ -5,7 +5,14 @@ use serde_json::Value;
 #[test]
 fn scan_rules_has_no_validated_findings() -> Result<()> {
     let output = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
-        .args(["scan", "data/rules", "--format", "json", "--no-update-check", "--only-valid"])
+        .args([
+            "scan",
+            "crates/kingfisher-rules/data/rules",
+            "--format",
+            "json",
+            "--no-update-check",
+            "--only-valid",
+        ])
         .output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -42,14 +49,33 @@ fn scan_rules_has_no_validated_findings() -> Result<()> {
     }
 
     let findings: Vec<Value> = serde_json::from_str(json_array_str)?;
-    for finding in findings {
-        let rule_id = finding["rule"]["id"].as_str().unwrap_or("unknown");
+    let validated_rule_ids: Vec<String> = findings
+        .iter()
+        .filter_map(|finding| {
+            let status = finding["finding"]["validation"]["status"]
+                .as_str()
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            if status == "active credential" {
+                Some(finding["rule"]["id"].as_str().unwrap_or("unknown").to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
 
-        let status =
-            finding["finding"]["validation"]["status"].as_str().unwrap_or("").to_ascii_lowercase();
+    assert!(
+        validated_rule_ids.is_empty(),
+        "Validated findings detected in rules: {}",
+        validated_rule_ids.join(", ")
+    );
 
-        // Fail only on genuinely validated secrets
-        assert_ne!(&status, "active credential", "Validated finding detected in rule {rule_id}");
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        panic!(
+            "kingfisher scan exited non-zero without validated findings in output.\nstdout:\n{}\nstderr:\n{}",
+            stdout, stderr
+        );
     }
 
     Ok(())

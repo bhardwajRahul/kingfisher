@@ -2,15 +2,15 @@ rules:
   - name: Cerebras AI API Key
     id: kingfisher.cerebras.1
     pattern: |
-      (?xi)
+      (?x)
       (
-        csk-[a-z0-9]{48}
+        csk-[a-zA-Z0-9]{48}
       )
       \b
     pattern_requirements:
       min_digits: 2
       min_lowercase: 2
-    confidence: medium
+    confidence: high
     min_entropy: 3.0
     validation:
       type: Http
