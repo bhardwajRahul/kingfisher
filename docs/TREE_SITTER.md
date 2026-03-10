@@ -24,7 +24,7 @@ The goal is to confirm that a regex hit appears in a plausible code assignment/c
 
 Tree-sitter is attempted only when all of these are true:
 
-- Blob length is between `1 KiB` and `64 KiB` (`should_attempt_tree_sitter`).
+- Blob length is between `0 KiB` and `128 KiB` (`should_attempt_tree_sitter`).
 - `fast_mode` is disabled.
 - A language hint is available.
 - The language maps to a supported Tree-sitter grammar + query set.
