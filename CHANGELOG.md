@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.88.0]
+- Tree-sitter fallback behavior changed to be strictly additive: when parser context is unavailable, findings now fall back to Hyperscan/Vectorscan matches instead of being suppressed.
+- Fixed dependent-rule reporting gaps (for example Algolia API keys) by preserving regex findings when tree-sitter is unavailable, while still marking validation as skipped when dependency inputs are missing.
+- Expanded parser queries for C, Go, Java, JavaScript, and TypeScript to improve assignment/literal capture coverage (including template/raw string handling in JS/TS/Go).
+- Added parser query quality gates: compile-time query validation tests plus fixture-based capture-count regression tests backed by `testdata/parsers/tree_sitter_capture_baseline.json`.
+- Added inline-ignore coverage for directives placed on the line immediately before a single-line secret match.
+- Updated tree-sitter documentation wording to align with `--turbo` terminology.
+
 ## [v1.87.0]
 - Tree-sitter verification now runs for blobs from `0` bytes up to `128 KiB` (previously `1 KiB` to `64 KiB`), while remaining a post-regex verification step applied only to context-dependent candidate matches from Hyperscan/Vectorscan.
 - False-positive reduction: Hyperscan/Vectorscan still scans everything first, then tree-sitter performs a second-pass verification only on auto-classified context-dependent findings; self-identifying/token-explicit findings stay regex-first.

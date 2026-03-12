@@ -1,0 +1,16 @@
+{
+  "bash:testdata/shell_vulnerable.sh": 10,
+  "c:testdata/c_vulnerable.c": 14,
+  "c_sharp:testdata/csharp_vulnerable.cs": 29,
+  "cpp:testdata/cpp_vulnerable.cpp": 5,
+  "go:testdata/go_vulnerable.go": 29,
+  "java:testdata/java_vulnerable.java": 48,
+  "javascript:testdata/javascript_vulnerable.js": 14,
+  "php:testdata/php_vulnerable.php": 25,
+  "python:testdata/python_vulnerable.py": 27,
+  "ruby:testdata/ruby_vulnerable.rb": 36,
+  "rust:testdata/rust_vulnerable.rs": 16,
+  "toml:testdata/toml_vulnerable.toml": 11,
+  "typescript:testdata/typescript_vulnerable.ts": 25,
+  "yaml:testdata/yaml_vulnerable.yaml": 19
+}

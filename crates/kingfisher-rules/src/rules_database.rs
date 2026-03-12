@@ -138,7 +138,10 @@ impl RulesDatabase {
             };
         }
 
-        let fallback_policy = if looks_generic_token && has_distance_operator {
+        let fallback_policy = if has_depends_on {
+            reason_codes.push("depends_on_keep_when_unavailable");
+            TreeSitterFallbackPolicy::KeepRawWhenUnavailable
+        } else if looks_generic_token && has_distance_operator {
             reason_codes.push("strict_fallback_suppress_when_unavailable");
             TreeSitterFallbackPolicy::SuppressWhenUnavailable
         } else {
@@ -475,5 +478,35 @@ mod test_rule_match_profiles {
         );
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
+    }
+
+    #[test]
+    fn depends_on_rules_keep_raw_when_parser_unavailable() {
+        use crate::rule::DependsOnRule;
+
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.algolia.1".to_string(),
+            name: "algolia".to_string(),
+            pattern: r"(?xi)algolia(?:.|[\n\r]){0,32}?([a-z0-9]{32})".to_string(),
+            confidence: Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![Some(DependsOnRule {
+                rule_id: "kingfisher.algolia.2".to_string(),
+                variable: "APPID".to_string(),
+            })],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
+        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::KeepRawWhenUnavailable);
+        assert!(profile.reason_codes.contains(&"depends_on_keep_when_unavailable"));
     }
 }

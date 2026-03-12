@@ -391,6 +391,19 @@ mod tests {
     }
 
     #[test]
+    fn ignores_single_line_secret_with_directive_on_previous_line() {
+        let blob = b"# safe-secret\n123456\n";
+        let matched = b"123456";
+        let start = blob
+            .windows(matched.len())
+            .position(|window| window == matched)
+            .expect("match bytes present");
+        let span = OffsetSpan::from_range(start..start + matched.len());
+        let config = InlineIgnoreConfig::new(&["safe-secret".to_string()]);
+        assert!(config.should_ignore(blob, &span));
+    }
+
+    #[test]
     fn trim_ascii_whitespace_returns_inner_slice() {
         assert_eq!(trim_ascii_whitespace(b"  abc  "), b"abc");
         assert!(trim_ascii_whitespace(b"   ").is_empty());

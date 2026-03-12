@@ -306,3 +306,187 @@ impl Checker {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{collections::BTreeMap, fs, path::PathBuf};
+
+    fn fixture_cases() -> Vec<(Language, &'static str)> {
+        vec![
+            (Language::Bash, "testdata/shell_vulnerable.sh"),
+            (Language::C, "testdata/c_vulnerable.c"),
+            (Language::CSharp, "testdata/csharp_vulnerable.cs"),
+            (Language::Cpp, "testdata/cpp_vulnerable.cpp"),
+            (Language::Go, "testdata/go_vulnerable.go"),
+            (Language::Java, "testdata/java_vulnerable.java"),
+            (Language::JavaScript, "testdata/javascript_vulnerable.js"),
+            (Language::Php, "testdata/php_vulnerable.php"),
+            (Language::Python, "testdata/python_vulnerable.py"),
+            (Language::Ruby, "testdata/ruby_vulnerable.rb"),
+            (Language::Rust, "testdata/rust_vulnerable.rs"),
+            (Language::Toml, "testdata/toml_vulnerable.toml"),
+            (Language::TypeScript, "testdata/typescript_vulnerable.ts"),
+            (Language::Yaml, "testdata/yaml_vulnerable.yaml"),
+        ]
+    }
+
+    fn build_checker(language: &Language) -> Checker {
+        Checker {
+            language: language.clone(),
+            rules: match language {
+                Language::Bash => queries::bash::get_bash_queries(),
+                Language::C => queries::c::get_c_queries(),
+                Language::CSharp => queries::csharp::get_csharp_queries(),
+                Language::Cpp => queries::cpp::get_cpp_queries(),
+                Language::Css => queries::css::get_css_queries(),
+                Language::Go => queries::go::get_go_queries(),
+                Language::Html => queries::html::get_html_queries(),
+                Language::Java => queries::java::get_java_queries(),
+                Language::JavaScript => queries::javascript::get_javascript_queries(),
+                Language::Php => queries::php::get_php_queries(),
+                Language::Python => queries::python::get_python_queries(),
+                Language::Regex => queries::regex::get_regex_queries(),
+                Language::Ruby => queries::ruby::get_ruby_queries(),
+                Language::Rust => queries::rust::get_rust_queries(),
+                Language::Toml => queries::toml::get_toml_queries(),
+                Language::TypeScript => queries::typescript::get_typescript_queries(),
+                Language::Yaml => queries::yaml::get_yaml_queries(),
+            },
+        }
+    }
+
+    fn current_capture_counts(
+        root: &PathBuf,
+        cases: &[(Language, &'static str)],
+    ) -> BTreeMap<String, usize> {
+        let mut current = BTreeMap::new();
+        for (language, rel_path) in cases {
+            let file_path = root.join(rel_path);
+            let source = fs::read(&file_path)
+                .unwrap_or_else(|e| panic!("failed to read fixture {}: {e}", file_path.display()));
+            let checker = build_checker(language);
+            let count = checker
+                .check(&source)
+                .unwrap_or_else(|e| panic!("checker failed for {}: {e}", rel_path))
+                .len();
+            current.insert(format!("{}:{}", language.name(), rel_path), count);
+        }
+        current
+    }
+
+    #[test]
+    fn queries_compile_for_supported_languages() {
+        let cases = vec![
+            (Language::Bash, queries::bash::get_bash_queries()),
+            (Language::C, queries::c::get_c_queries()),
+            (Language::CSharp, queries::csharp::get_csharp_queries()),
+            (Language::Cpp, queries::cpp::get_cpp_queries()),
+            (Language::Css, queries::css::get_css_queries()),
+            (Language::Go, queries::go::get_go_queries()),
+            (Language::Html, queries::html::get_html_queries()),
+            (Language::Java, queries::java::get_java_queries()),
+            (Language::JavaScript, queries::javascript::get_javascript_queries()),
+            (Language::Php, queries::php::get_php_queries()),
+            (Language::Python, queries::python::get_python_queries()),
+            (Language::Regex, queries::regex::get_regex_queries()),
+            (Language::Ruby, queries::ruby::get_ruby_queries()),
+            (Language::Rust, queries::rust::get_rust_queries()),
+            (Language::Toml, queries::toml::get_toml_queries()),
+            (Language::TypeScript, queries::typescript::get_typescript_queries()),
+            (Language::Yaml, queries::yaml::get_yaml_queries()),
+        ];
+
+        for (language, rule_set) in cases {
+            let ts_language = language
+                .get_ts_language()
+                .unwrap_or_else(|e| panic!("failed to load language {}: {e}", language.name()));
+            for (name, query) in rule_set {
+                Query::new(&ts_language, &query).unwrap_or_else(|e| {
+                    panic!("query '{name}' failed for language {}: {e}", language.name())
+                });
+            }
+        }
+    }
+
+    #[test]
+    fn tree_sitter_capture_counts_do_not_regress() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let baseline_path = root.join("testdata/parsers/tree_sitter_capture_baseline.json");
+        let cases = fixture_cases();
+        let current = current_capture_counts(&root, &cases);
+
+        if std::env::var("UPDATE_TREE_SITTER_CAPTURE_BASELINE").as_deref() == Ok("1") {
+            let payload = serde_json::to_string_pretty(&current)
+                .unwrap_or_else(|e| panic!("failed to serialize baseline: {e}"));
+            fs::write(&baseline_path, format!("{payload}\n")).unwrap_or_else(|e| {
+                panic!("failed to write baseline {}: {e}", baseline_path.display())
+            });
+            return;
+        }
+
+        let baseline_raw = fs::read_to_string(&baseline_path).unwrap_or_else(|e| {
+            panic!(
+                "failed to read baseline {}: {e}. Run with UPDATE_TREE_SITTER_CAPTURE_BASELINE=1",
+                baseline_path.display()
+            )
+        });
+        let baseline: BTreeMap<String, usize> = serde_json::from_str(&baseline_raw)
+            .unwrap_or_else(|e| panic!("invalid baseline JSON {}: {e}", baseline_path.display()));
+
+        let mut regressions = Vec::new();
+        for (key, actual) in &current {
+            let expected = baseline.get(key).unwrap_or_else(|| {
+                panic!(
+                    "missing baseline entry for {key}. Run with UPDATE_TREE_SITTER_CAPTURE_BASELINE=1"
+                )
+            });
+            if actual < expected {
+                regressions.push(format!("{key}: expected >= {expected}, got {actual}"));
+            }
+        }
+
+        assert!(
+            regressions.is_empty(),
+            "tree-sitter capture regression(s):\n{}",
+            regressions.join("\n")
+        );
+    }
+
+    #[test]
+    fn report_tree_sitter_capture_count_deltas() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let baseline_path = root.join("testdata/parsers/tree_sitter_capture_baseline.json");
+        let cases = fixture_cases();
+        let current = current_capture_counts(&root, &cases);
+
+        let baseline_raw = match fs::read_to_string(&baseline_path) {
+            Ok(data) => data,
+            Err(e) => {
+                println!(
+                    "capture-delta report unavailable: cannot read baseline {}: {e}",
+                    baseline_path.display()
+                );
+                return;
+            }
+        };
+
+        let baseline: BTreeMap<String, usize> = match serde_json::from_str(&baseline_raw) {
+            Ok(v) => v,
+            Err(e) => {
+                println!(
+                    "capture-delta report unavailable: invalid baseline JSON {}: {e}",
+                    baseline_path.display()
+                );
+                return;
+            }
+        };
+
+        println!("tree-sitter capture delta report (current vs baseline):");
+        for (key, actual) in &current {
+            let expected = baseline.get(key).copied().unwrap_or(0);
+            let delta = (*actual as isize) - (expected as isize);
+            println!("  {key}: current={actual}, baseline={expected}, delta={delta:+}");
+        }
+    }
+}

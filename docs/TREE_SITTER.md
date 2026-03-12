@@ -13,7 +13,7 @@ The goal is to confirm that a regex hit appears in a plausible code assignment/c
 ## Where It Runs in the Scan Pipeline
 
 1. `BlobProcessor::run` decides whether to compute a language hint.
-   - It skips language hinting in `fast_mode`.
+   - It skips language hinting in `turbo_mode`.
    - It also skips when blob size is outside the Tree-sitter window.
 2. `Matcher::scan_blob` performs the primary regex scan and other filtering.
 3. `maybe_apply_tree_sitter_verification` runs near the end of `scan_blob`.
@@ -25,7 +25,7 @@ The goal is to confirm that a regex hit appears in a plausible code assignment/c
 Tree-sitter is attempted only when all of these are true:
 
 - Blob length is between `0 KiB` and `128 KiB` (`should_attempt_tree_sitter`).
-- `fast_mode` is disabled.
+- `turbo_mode` is disabled.
 - A language hint is available.
 - The language maps to a supported Tree-sitter grammar + query set.
 

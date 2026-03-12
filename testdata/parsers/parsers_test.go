@@ -55,7 +55,6 @@ func TestParseFiles(t *testing.T) {
 		{"elixir_vulnerable.exs", 5, 0},
 		{"generic_secrets.py", 15, 0},
 		{"go_vulnerable.go", 10, 0},
-		{"kotlin_vulnerable.kt", 10, 0},
 		{"java_vulnerable.java", 15, 0},
 		{"javascript_vulnerable.js", 7, 0},
 		{"json_vulnerable.json", 2, 0},

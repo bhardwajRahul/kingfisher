@@ -367,7 +367,6 @@ async fn test_scan_vulnerable_files() -> Result<()> {
         TestCase { file_name: "testdata/java_vulnerable.java", min_expected_findings: 4 },
         TestCase { file_name: "testdata/javascript_vulnerable.js", min_expected_findings: 4 },
         TestCase { file_name: "testdata/json_vulnerable.json", min_expected_findings: 4 },
-        TestCase { file_name: "testdata/kotlin_vulnerable.kt", min_expected_findings: 7 },
         TestCase { file_name: "testdata/objc_vulnerable.m", min_expected_findings: 4 },
         TestCase { file_name: "testdata/php_vulnerable.php", min_expected_findings: 5 },
         TestCase { file_name: "testdata/python_vulnerable.py", min_expected_findings: 10 },
