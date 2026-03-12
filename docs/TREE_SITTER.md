@@ -18,7 +18,7 @@ The goal is to confirm that a regex hit appears in a plausible code assignment/c
 2. `Matcher::scan_blob` performs the primary regex scan and other filtering.
 3. `maybe_apply_tree_sitter_verification` runs near the end of `scan_blob`.
 4. Only candidate matches are checked against Tree-sitter extracted text.
-5. Matches that fail verification can be dropped, depending on rule profile and fallback policy.
+5. Matches that fail verification are dropped for context-dependent rules.
 
 ## Size and Mode Gates
 
@@ -38,9 +38,9 @@ Tree-sitter verification is only applied to matches that are:
 - Classified as `ContextDependent` by rule profiling.
 - Not base64-derived findings (`is_base64 == false`).
 
-Classification and fallback policy come from rule profiles in `kingfisher-rules`:
+Classification comes from rule profiles in `kingfisher-rules`:
 
-- `SelfIdentifying`: usually keep raw regex result.
+- `SelfIdentifying`: keep raw regex result.
 - `ContextDependent`: may require Tree-sitter confirmation.
 
 ## How Verification Works
@@ -61,14 +61,9 @@ When Tree-sitter is available:
 
 If no extracted fragment verifies the secret, that candidate finding is removed.
 
-## Fallback Behavior When Tree-sitter Is Unavailable
+## Behavior When Tree-sitter Is Unavailable
 
-If Tree-sitter cannot run (size/mode/language/parse errors), behavior is rule-driven:
-
-- `KeepRawWhenUnavailable`: keep the regex finding.
-- `SuppressWhenUnavailable`: drop the finding.
-
-`SuppressWhenUnavailable` is used for stricter generic-context patterns where false positives are likely without syntax-aware confirmation.
+If Tree-sitter cannot run (size/mode/language/parse errors), Kingfisher keeps the original regex finding.
 
 ## Supported Languages in This Path
 
@@ -100,6 +95,6 @@ Tree-sitter in Kingfisher is a conditional verifier, not the primary detector:
 - Regex finds candidates quickly.
 - Rule profiling decides which candidates need context verification.
 - Tree-sitter confirms contextual plausibility from parsed syntax.
-- Fallback policy determines what to do when verification cannot run.
+- If verification cannot run, scan results fall back to the regex pass.
 
 This keeps scanning fast while reducing noisy matches for context-dependent secret patterns.

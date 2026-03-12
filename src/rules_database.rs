@@ -4,5 +4,4 @@
 
 pub use kingfisher_rules::rules_database::{
     format_regex_pattern, RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase,
-    TreeSitterFallbackPolicy,
 };

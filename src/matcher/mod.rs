@@ -446,7 +446,6 @@ fn maybe_apply_tree_sitter_verification<'a>(
         let Some(rule_idx) = match_rule_indices.get(idx).copied() else {
             continue;
         };
-        let profile = &profiles[rule_idx];
         let match_secret = matches[idx].matching_input;
         let re = &rules_db.anchored_regexes()[rule_idx];
 
@@ -462,7 +461,6 @@ fn maybe_apply_tree_sitter_verification<'a>(
             None => {
                 // Tree-sitter is an optional precision layer. If parser context
                 // is unavailable, always fall back to the original regex match.
-                let _ = profile.fallback_policy;
             }
         }
     }

@@ -90,7 +90,7 @@ rules:
         - "localhost"
 
     min_entropy: 3.0
-    confidence: medium
+    confidence: low
     examples:
       - 'REDIS_PASSWORD="EXAMPLEp4ssw0rd123"'
       - 'redis_password=MyS3cur3R3d1sK3y'

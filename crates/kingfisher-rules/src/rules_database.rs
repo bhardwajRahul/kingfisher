@@ -8,12 +8,6 @@ use vectorscan_rs::{BlockDatabase, Flag, Pattern};
 use crate::rule::{Rule, RULE_COMMENTS_PATTERN};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TreeSitterFallbackPolicy {
-    KeepRawWhenUnavailable,
-    SuppressWhenUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleDetectionProfileKind {
     SelfIdentifying,
     ContextDependent,
@@ -22,7 +16,6 @@ pub enum RuleDetectionProfileKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuleMatchProfile {
     pub kind: RuleDetectionProfileKind,
-    pub fallback_policy: TreeSitterFallbackPolicy,
     pub reason_codes: Vec<&'static str>,
 }
 
@@ -86,7 +79,6 @@ impl RulesDatabase {
             reason_codes.push("self_identifying_prefix");
             return RuleMatchProfile {
                 kind: RuleDetectionProfileKind::SelfIdentifying,
-                fallback_policy: TreeSitterFallbackPolicy::KeepRawWhenUnavailable,
                 reason_codes,
             };
         }
@@ -133,27 +125,14 @@ impl RulesDatabase {
         if !is_context_dependent {
             return RuleMatchProfile {
                 kind: RuleDetectionProfileKind::SelfIdentifying,
-                fallback_policy: TreeSitterFallbackPolicy::KeepRawWhenUnavailable,
                 reason_codes,
             };
         }
-
-        let fallback_policy = if has_depends_on {
-            reason_codes.push("depends_on_keep_when_unavailable");
-            TreeSitterFallbackPolicy::KeepRawWhenUnavailable
-        } else if looks_generic_token && has_distance_operator {
-            reason_codes.push("strict_fallback_suppress_when_unavailable");
-            TreeSitterFallbackPolicy::SuppressWhenUnavailable
-        } else {
-            reason_codes.push("fallback_keep_when_unavailable");
-            TreeSitterFallbackPolicy::KeepRawWhenUnavailable
-        };
-
-        RuleMatchProfile {
-            kind: RuleDetectionProfileKind::ContextDependent,
-            fallback_policy,
-            reason_codes,
+        if looks_generic_token && has_distance_operator {
+            reason_codes.push("strict_contextual_shape");
         }
+
+        RuleMatchProfile { kind: RuleDetectionProfileKind::ContextDependent, reason_codes }
     }
 
     pub fn get_rule_by_finding_fingerprint(&self, finding_fingerprint: &str) -> Option<Arc<Rule>> {
@@ -454,7 +433,6 @@ mod test_rule_match_profiles {
             mk_rule("kingfisher.circleci.1", r"(?x)\b(CCIPAT_[A-Za-z0-9]{22}_[a-z0-9]{40})\b");
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::KeepRawWhenUnavailable);
         assert!(profile.reason_codes.contains(&"self_identifying_prefix"));
     }
 
@@ -466,8 +444,8 @@ mod test_rule_match_profiles {
         );
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::SuppressWhenUnavailable);
         assert!(profile.reason_codes.contains(&"generic_token_shape"));
+        assert!(profile.reason_codes.contains(&"strict_contextual_shape"));
     }
 
     #[test]
@@ -506,7 +484,6 @@ mod test_rule_match_profiles {
 
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::KeepRawWhenUnavailable);
-        assert!(profile.reason_codes.contains(&"depends_on_keep_when_unavailable"));
+        assert!(profile.reason_codes.contains(&"depends_on_rule"));
     }
 }
