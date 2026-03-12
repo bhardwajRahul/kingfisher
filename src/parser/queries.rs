@@ -103,14 +103,6 @@ pub mod javascript {
         queries
     }
 }
-pub mod kotlin {
-    use super::*;
-    pub fn get_kotlin_queries() -> FxHashMap<String, String> {
-        let mut queries = FxHashMap::default();
-        queries.insert("combined_kotlin_query".to_string(), QUERIES_KOTLIN.to_string());
-        queries
-    }
-}
 pub mod php {
     use super::*;
     pub fn get_php_queries() -> FxHashMap<String, String> {
@@ -220,9 +212,12 @@ pub const QUERIES_C: &str = r#"
     )
 
     ; Query 7: Matches initializer lists containing string literals
-    declarator: (init_declarator
-        value: (initializer_list
-            (string_literal) @val
+    (declaration
+        declarator: (init_declarator
+            declarator: [(identifier)(array_declarator)(pointer_declarator)] @key
+            value: (initializer_list
+                (string_literal) @val
+            )
         )
     )
 
@@ -595,7 +590,7 @@ pub const QUERIES_GO: &str = r#"
     (var_spec
         name: (identifier) @key
         value: (expression_list
-            (interpreted_string_literal) @val
+            [(interpreted_string_literal)(raw_string_literal)] @val
         )
     )
 
@@ -605,7 +600,7 @@ pub const QUERIES_GO: &str = r#"
             (identifier) @key
         )
         right: (expression_list
-            (interpreted_string_literal) @val
+            [(interpreted_string_literal)(raw_string_literal)] @val
         )
     )
 
@@ -615,7 +610,7 @@ pub const QUERIES_GO: &str = r#"
             (identifier) @key
         )
         right: (expression_list
-            (interpreted_string_literal) @val
+            [(interpreted_string_literal)(raw_string_literal)] @val
         )
     )
 
@@ -627,7 +622,7 @@ pub const QUERIES_GO: &str = r#"
             )
         )
         right: (expression_list
-            (interpreted_string_literal) @val
+            [(interpreted_string_literal)(raw_string_literal)] @val
         )
     )
 
@@ -637,7 +632,7 @@ pub const QUERIES_GO: &str = r#"
             (selector_expression) @key
         )
         right: (expression_list
-            (interpreted_string_literal) @val
+            [(interpreted_string_literal)(raw_string_literal)] @val
         )
     )
 
@@ -647,7 +642,7 @@ pub const QUERIES_GO: &str = r#"
         (type_identifier)?
         "="
         (expression_list
-          (interpreted_string_literal) @val
+          [(interpreted_string_literal)(raw_string_literal)] @val
         )+
     )
 "#;
@@ -673,127 +668,55 @@ pub const QUERIES_HTML: &str = r#"
     )
 "#;
 pub const QUERIES_JAVA: &str = r#"
-    ; Query 1: Matches variable declarations with cast expressions
-    declarator: (variable_declarator
-        name: (identifier) @key
-        value: (parenthesized_expression
-            (cast_expression
-                value: [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-            )
+    ; Query 1: Local variable declarations with direct string assignments
+    (local_variable_declaration
+        declarator: (variable_declarator
+            name: (identifier) @key
+            value: (string_literal) @val
         )
     )
 
-    ; Query 2: Matches variable declarations with object creation or literal values
-    declarator: (variable_declarator
-        name: (identifier) @key
-        value: [(object_creation_expression
-            arguments: (argument_list
-                [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-            )
-        )[(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val]
-    )
-
-    ; Query 3: Matches variable declarations with method invocations
-    declarator: (variable_declarator
-        name: (identifier) @key
-        value: (method_invocation
-            arguments: (argument_list
-                [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-            )
+    ; Query 2: Field declarations with direct string assignments
+    (field_declaration
+        declarator: (variable_declarator
+            name: (identifier) @key
+            value: (string_literal) @val
         )
     )
 
-    ; Query 4: Matches variable declarations with lambda expressions
-    declarator: (variable_declarator
-        name: (identifier) @key
-        value: (lambda_expression
-            body: (
-                    (_
-                        object: (string_literal) @val
-                    )
-            )
-        )
-    )
-
-    ; Query 5: Matches assignment expressions with object creation
+    ; Query 3: Identifier assignment with direct string literal
     (assignment_expression
         left: (identifier) @key
-        right: (object_creation_expression
-            arguments: (argument_list
-                [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-            )
-        )
+        right: (string_literal) @val
     )
 
-    ; Query 6: Matches assignment expressions with field access
+    ; Query 4: Field assignment with direct string literal
     (assignment_expression
         left: (field_access
             field: (identifier) @key
         )
-        right: [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
+        right: (string_literal) @val
     )
 
-    ; Query 7: Matches simple assignment expressions
-    (assignment_expression
-        left: (identifier) @key
-        right: [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-    )
-
-    ; Query 8: Matches field declarations
-    (field_declaration
+    ; Query 5: Local variable assignment from constructor call containing a string
+    (local_variable_declaration
         declarator: (variable_declarator
             name: (identifier) @key
-            value: [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-        )
-    )
-
-    ; Query 9: Matches element value pairs in annotations
-    (element_value_pair
-        key: (identifier) @key
-        value: [(string_literal)(decimal_integer_literal)(decimal_floating_point_literal)(hex_integer_literal)(hex_floating_point_literal)(binary_integer_literal)] @val
-    )
-
-    ; Query 10: Matches method arguments with field access and string literals
-    arguments: (argument_list
-        (field_access
-            field: (identifier) @key
-        )
-        (string_literal) @val
-    )
-
-    ; Query 11: Matches local variable declarations with string literals
-    (local_variable_declaration
-        declarator: (_
-            name: (identifier) @key
-            value: (_
-                (string_literal
-                    (string_fragment) @val
+            value: (object_creation_expression
+                arguments: (argument_list
+                    (string_literal) @val
                 )
             )
         )
     )
 
-    ; Query 12: Matches nested local variable declarations with string literals
+    ; Query 6: Local variable assignment from method call containing a string
     (local_variable_declaration
-        declarator: (_
+        declarator: (variable_declarator
             name: (identifier) @key
-            value: (_
-              value: (_
-                  (string_literal
-                      (string_fragment) @val
-                  )
-              )
-            )
-        )
-    )
-
-    ; Query 13: Matches method invocations with string literal arguments
-    (expression_statement
-        (method_invocation
-            name: (identifier) @key
-            arguments: (_
-                (string_literal
-                    (string_fragment) @val
+            value: (method_invocation
+                arguments: (argument_list
+                    (string_literal) @val
                 )
             )
         )
@@ -805,13 +728,19 @@ pub const QUERIES_JAVASCRIPT: &str = r#"
         left: (member_expression
             property: (property_identifier) @key
         )
-        right: (string (string_fragment) @val)
+        right: [
+            (string (string_fragment) @val)
+            (template_string) @val
+        ]
     )
 
     ; Query 2: Matches variable declarations with literal values
     (variable_declarator
         name: (identifier) @key
-        value: (string (string_fragment) @val)
+        value: [
+            (string (string_fragment) @val)
+            (template_string) @val
+        ]
     )
 
     ; Query 3: Matches variable declarations with object literals
@@ -820,7 +749,10 @@ pub const QUERIES_JAVASCRIPT: &str = r#"
         value: (object
             (pair
                 key: (property_identifier) @key
-                value: (string (string_fragment) @val)
+                value: [
+                    (string (string_fragment) @val)
+                    (template_string) @val
+                ]
             )
         )
     )
@@ -829,14 +761,20 @@ pub const QUERIES_JAVASCRIPT: &str = r#"
     (call_expression
         arguments: (arguments
             (identifier) @key
-            (string (string_fragment) @val)
+            [
+                (string (string_fragment) @val)
+                (template_string) @val
+            ]
         )
     )
 
     ; Query 5: Matches object literal key-value pairs
     (pair
         key: (property_identifier) @key
-        value: (string (string_fragment) @val)
+        value: [
+            (string (string_fragment) @val)
+            (template_string) @val
+        ]
     )
 
     ; Query 6: Matches assignments to array or object elements
@@ -844,7 +782,10 @@ pub const QUERIES_JAVASCRIPT: &str = r#"
         left: (subscript_expression
             index: [(string)(identifier)] @key
         )
-        right: (string (string_fragment) @val)
+        right: [
+            (string (string_fragment) @val)
+            (template_string) @val
+        ]
     )
 
     ; Query 7: Matches method calls on objects with string arguments
@@ -853,86 +794,12 @@ pub const QUERIES_JAVASCRIPT: &str = r#"
             object: (identifier) @key
         )
         arguments: (arguments
-            (string
-                (string_fragment) @val
-            )
-        )
-    )
-"#;
-pub const QUERIES_KOTLIN: &str = r#"
-    ; Query 1: Matches property declarations with string literals
-    (property_declaration
-        (variable_declaration
-            (simple_identifier) @key
-        ) 
-        (string_literal) @val
-    )
-
-    ; Query 2: Matches property declarations with call expressions and string literals
-    (property_declaration
-        (variable_declaration
-            (simple_identifier) @key
-        ) 
-        (call_expression
-            (navigation_expression
-                (string_literal) @val
-            )
-        )
-    )
-
-    ; Query 3: Matches property declarations with call expressions and value arguments
-    (property_declaration
-        (variable_declaration
-            (simple_identifier) @key
-        ) 
-        (call_expression
-            (call_suffix
-                (value_arguments
-                    (value_argument) @val
+            [
+                (string
+                    (string_fragment) @val
                 )
-            )
-        )
-    )
-
-    ; Query 4: Matches assignments with string literals
-    (assignment
-        (directly_assignable_expression
-            (simple_identifier) @key
-        )
-        (string_literal) @val
-    )
-
-    ; Query 5: Matches property declarations with property delegates and string literals
-    (property_declaration
-        (variable_declaration
-            (simple_identifier) @key
-        ) 
-        (property_delegate
-            (_
-                (call_suffix
-                    (_
-                        (_
-                            (_
-                                (string_literal) @val
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
-
-    ; Query 6: Matches secondary constructor assignments with string literals
-    (secondary_constructor
-        (statements
-            (assignment
-                (directly_assignable_expression
-                    (navigation_suffix
-                        (simple_identifier) @key
-                    )
-                )
-                (string_literal) @val
-            )
+                (template_string) @val
+            ]
         )
     )
 "#;
@@ -1175,13 +1042,13 @@ pub const QUERIES_TYPESCRIPT: &str = r#"
     ; Query 1: Matches variable declarations with string or number values
     (variable_declarator
         name: (identifier) @key
-        value: [(string)(number)] @val
+        value: [(string)(template_string)(number)] @val
     )
 
     ; Query 2: Matches assignments to variables or object properties
     (assignment_expression
         left: [(member_expression)(identifier)] @key
-        right: [(string)(number)] @val
+        right: [(string)(template_string)(number)] @val
     )
 
     ; Query 3: Matches variable declarations with string literal type annotations
@@ -1199,7 +1066,7 @@ pub const QUERIES_TYPESCRIPT: &str = r#"
         key: (property_identifier) @key
         value: (
             (array
-                (string) @val
+                [(string)(template_string)] @val
             )
         )
     )
@@ -1207,7 +1074,7 @@ pub const QUERIES_TYPESCRIPT: &str = r#"
     ; Query 5: Matches object property definitions with string or number values
     (pair
         key: (property_identifier) @key
-        value: [(string)(number)] @val
+        value: [(string)(template_string)(number)] @val
     )
 
     ; Query 6: Matches property signatures with literal types
@@ -1232,7 +1099,7 @@ pub const QUERIES_TYPESCRIPT: &str = r#"
             property: (property_identifier) @key
         )
         arguments: (arguments
-            (string) @val
+            [(string)(template_string)] @val
         )
     )
 "#;

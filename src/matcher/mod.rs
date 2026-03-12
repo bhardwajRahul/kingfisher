@@ -27,7 +27,7 @@ use crate::{
     parser::{Checker, Language},
     rule_profiling::{ConcurrentRuleProfiler, RuleStats},
     rules::rule::Rule,
-    rules_database::{RuleDetectionProfileKind, RulesDatabase, TreeSitterFallbackPolicy},
+    rules_database::{RuleDetectionProfileKind, RulesDatabase},
     scanner_pool::ScannerPool,
     validation_body::ValidationResponseBody,
 };
@@ -446,7 +446,6 @@ fn maybe_apply_tree_sitter_verification<'a>(
         let Some(rule_idx) = match_rule_indices.get(idx).copied() else {
             continue;
         };
-        let profile = &profiles[rule_idx];
         let match_secret = matches[idx].matching_input;
         let re = &rules_db.anchored_regexes()[rule_idx];
 
@@ -460,9 +459,8 @@ fn maybe_apply_tree_sitter_verification<'a>(
                 }
             }
             None => {
-                if profile.fallback_policy == TreeSitterFallbackPolicy::SuppressWhenUnavailable {
-                    keep[idx] = false;
-                }
+                // Tree-sitter is an optional precision layer. If parser context
+                // is unavailable, always fall back to the original regex match.
             }
         }
     }
@@ -1169,7 +1167,7 @@ line2
     }
 
     #[test]
-    fn strict_context_rule_suppresses_when_tree_sitter_unavailable() -> Result<()> {
+    fn strict_context_rule_keeps_raw_when_tree_sitter_unavailable() -> Result<()> {
         let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
         let rule = Rule::new(RuleSyntax {
             id: "kingfisher.auth0.2".into(),
@@ -1202,9 +1200,10 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert!(
-            found.is_empty(),
-            "strict contextual rules should suppress when tree-sitter is unavailable for verification"
+        assert_eq!(
+            found.len(),
+            1,
+            "strict contextual rules should fall back to raw regex findings when tree-sitter is unavailable"
         );
         Ok(())
     }

@@ -8,12 +8,6 @@ use vectorscan_rs::{BlockDatabase, Flag, Pattern};
 use crate::rule::{Rule, RULE_COMMENTS_PATTERN};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TreeSitterFallbackPolicy {
-    KeepRawWhenUnavailable,
-    SuppressWhenUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleDetectionProfileKind {
     SelfIdentifying,
     ContextDependent,
@@ -22,7 +16,6 @@ pub enum RuleDetectionProfileKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuleMatchProfile {
     pub kind: RuleDetectionProfileKind,
-    pub fallback_policy: TreeSitterFallbackPolicy,
     pub reason_codes: Vec<&'static str>,
 }
 
@@ -86,7 +79,6 @@ impl RulesDatabase {
             reason_codes.push("self_identifying_prefix");
             return RuleMatchProfile {
                 kind: RuleDetectionProfileKind::SelfIdentifying,
-                fallback_policy: TreeSitterFallbackPolicy::KeepRawWhenUnavailable,
                 reason_codes,
             };
         }
@@ -133,24 +125,14 @@ impl RulesDatabase {
         if !is_context_dependent {
             return RuleMatchProfile {
                 kind: RuleDetectionProfileKind::SelfIdentifying,
-                fallback_policy: TreeSitterFallbackPolicy::KeepRawWhenUnavailable,
                 reason_codes,
             };
         }
-
-        let fallback_policy = if looks_generic_token && has_distance_operator {
-            reason_codes.push("strict_fallback_suppress_when_unavailable");
-            TreeSitterFallbackPolicy::SuppressWhenUnavailable
-        } else {
-            reason_codes.push("fallback_keep_when_unavailable");
-            TreeSitterFallbackPolicy::KeepRawWhenUnavailable
-        };
-
-        RuleMatchProfile {
-            kind: RuleDetectionProfileKind::ContextDependent,
-            fallback_policy,
-            reason_codes,
+        if looks_generic_token && has_distance_operator {
+            reason_codes.push("strict_contextual_shape");
         }
+
+        RuleMatchProfile { kind: RuleDetectionProfileKind::ContextDependent, reason_codes }
     }
 
     pub fn get_rule_by_finding_fingerprint(&self, finding_fingerprint: &str) -> Option<Arc<Rule>> {
@@ -451,7 +433,6 @@ mod test_rule_match_profiles {
             mk_rule("kingfisher.circleci.1", r"(?x)\b(CCIPAT_[A-Za-z0-9]{22}_[a-z0-9]{40})\b");
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::KeepRawWhenUnavailable);
         assert!(profile.reason_codes.contains(&"self_identifying_prefix"));
     }
 
@@ -463,8 +444,8 @@ mod test_rule_match_profiles {
         );
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-        assert_eq!(profile.fallback_policy, TreeSitterFallbackPolicy::SuppressWhenUnavailable);
         assert!(profile.reason_codes.contains(&"generic_token_shape"));
+        assert!(profile.reason_codes.contains(&"strict_contextual_shape"));
     }
 
     #[test]
@@ -475,5 +456,34 @@ mod test_rule_match_profiles {
         );
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
+    }
+
+    #[test]
+    fn depends_on_rules_keep_raw_when_parser_unavailable() {
+        use crate::rule::DependsOnRule;
+
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.algolia.1".to_string(),
+            name: "algolia".to_string(),
+            pattern: r"(?xi)algolia(?:.|[\n\r]){0,32}?([a-z0-9]{32})".to_string(),
+            confidence: Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![Some(DependsOnRule {
+                rule_id: "kingfisher.algolia.2".to_string(),
+                variable: "APPID".to_string(),
+            })],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
+        assert!(profile.reason_codes.contains(&"depends_on_rule"));
     }
 }
