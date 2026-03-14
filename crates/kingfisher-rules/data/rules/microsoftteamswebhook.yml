@@ -19,7 +19,7 @@ rules:
       )
       \b
     pattern_requirements:
-      min_digits: 2
+      min_digits: 8
     min_entropy: 3.3
     confidence: medium
     examples:
