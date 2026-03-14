@@ -18,6 +18,7 @@ This guide covers all scan targets and usage patterns for Kingfisher.
   - [Jira](#jira)
   - [Confluence](#confluence)
   - [Slack](#slack)
+  - [Microsoft Teams](#microsoft-teams)
 - [TLS Certificate Validation](#tls-certificate-validation)
 - [Understanding the Scan Summary](#understanding-the-scan-summary)
 - [Environment Variables](#environment-variables)
@@ -910,6 +911,30 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan slack "akia" \
 
 ---
 
+## Microsoft Teams
+
+### Scan Teams messages matching a search query
+
+```bash
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key" \
+    --max-results 1000
+
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "akia" \
+    --max-results 1000
+```
+
+The token must be a Microsoft Graph API access token with `ChannelMessage.Read.All` (application) or `Chat.Read` (delegated) permissions. You can obtain one via Azure AD app registration or the Azure CLI:
+
+```bash
+az login
+KF_TEAMS_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+kingfisher scan teams "secret OR password"
+```
+
+**Note:** Microsoft Graph does not support personal Microsoft accounts for Teams chat operations. Teams scanning requires a **Microsoft 365 work or school account**; free/personal Teams accounts are not supported by the Graph API.
+
+---
+
 ## TLS Certificate Validation
 
 Kingfisher validates TLS certificates when connecting to endpoints during secret validation (database connections, API calls, JWKS fetching, etc.). The `--tls-mode` flag controls this behavior:
@@ -1011,6 +1036,7 @@ This distinction helps you understand validation coverage: **Failed Validations*
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
+| `KF_TEAMS_TOKEN`  | Microsoft Graph API token for Teams message search |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY`, `KF_AWS_SECRET`, and `KF_AWS_SESSION_TOKEN` | AWS credentials for S3 bucket scanning. Session token is optional, for temporary credentials |
 

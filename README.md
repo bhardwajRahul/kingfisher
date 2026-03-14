@@ -22,7 +22,7 @@ Designed for offensive security engineers and blue-team defenders alike, Kingfis
 
 Kingfisher is a high-performance, open source secret detection tool for source code and developer platforms. If you are searching for a "GitHub secret scanner," "API key scanner," "token leak detection," or "Git secrets scanner," this project is built for that workflow.
 
-- Scan code, Git history, and integrated platforms (GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, Jira, Confluence, Slack, Docker, AWS S3, and Google Cloud Storage)
+- Scan code, Git history, and integrated platforms (GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, Jira, Confluence, Slack, Microsoft Teams, Docker, AWS S3, and Google Cloud Storage)
 - Validate discovered credentials against provider APIs to reduce false positives
 - Revoke supported secrets directly from the CLI
 - Generate JSON, SARIF, and HTML outputs for security teams, compliance, and CI
@@ -36,9 +36,9 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 |:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|:-------------:|
 | <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure Repos"/><br/><sub>Azure Repos</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |<img src="./docs/assets/icons/huggingface.svg" height="40" width="40" alt="Hugging Face"/><br/><sub>Hugging Face</sub> |
 
-| Docker | Jira | Confluence | Slack | AWS S3 | Google Cloud |
-|:------:|:----:|:-----------:|:-----:|:------:|:---:|
-| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |  <img src="./docs/assets/icons/gcs.svg" height="40" alt="Google Cloud Storage"/><br/><sub>Cloud Storage</sub> |
+| Docker | Jira | Confluence | Slack | Teams | AWS S3 | Google Cloud |
+|:------:|:----:|:-----------:|:-----:|:-----:|:------:|:---:|
+| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/teams.svg" height="40" alt="Microsoft Teams"/><br/><sub>Teams</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |  <img src="./docs/assets/icons/gcs.svg" height="40" alt="Google Cloud Storage"/><br/><sub>Cloud Storage</sub> |
 
 </div>
 
@@ -503,6 +503,7 @@ Kingfisher can scan multiple platforms and services directly:
 - Jira (issues via JQL queries)
 - Confluence (pages via CQL queries)
 - Slack (messages via search queries)
+- Microsoft Teams (messages via Microsoft Graph search)
 
 See **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)** for complete integration documentation and authentication setup.
 
@@ -543,6 +544,9 @@ KF_CONFLUENCE_TOKEN="token" kingfisher scan confluence --url https://confluence.
 
 # Scan Slack messages
 KF_SLACK_TOKEN="xoxp-..." kingfisher scan slack "from:username has:link"
+
+# Scan Microsoft Teams messages
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key"
 ```
 
 **For detailed integration instructions and authentication setup, see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).**
@@ -566,6 +570,7 @@ KF_SLACK_TOKEN="xoxp-..." kingfisher scan slack "from:username has:link"
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
+| `KF_TEAMS_TOKEN`  | Microsoft Graph API token for Teams message search |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY`, `KF_AWS_SECRET`, and `KF_AWS_SESSION_TOKEN` | AWS credentials for S3 bucket scanning. Session token is optional, for temporary credentials |
 
@@ -672,7 +677,7 @@ Since then it has evolved far beyond that starting point, introducing live valid
 - **Hundreds of new built-in rules** and an expanded YAML rule schema  
 - **Baseline management** to suppress known findings over time  
 - **Tree-sitter parsing** layered on Hyperscan for language-aware detection  
-- **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, S3, GCS, Docker, Hugging Face, etc.)  
+- **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, Microsoft Teams, S3, GCS, Docker, Hugging Face, etc.)  
 - **Compressed Files**, **SQLite database**, and **Python bytecode (.pyc)** scanning support
 - **New storage model** (in-memory + Bloom filter, replacing SQLite)  
 - **Unified workflow** with JSON/BSON/SARIF outputs  

@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    sync::{Arc, LazyLock, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use kingfisher::{
@@ -23,57 +20,68 @@ use kingfisher::{
     findings_store::FindingsStore,
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
-    safe_list,
     scanner::run_async_scan,
     update::UpdateStatus,
 };
 use tempfile::TempDir;
-use tokio::runtime::Runtime;
 use url::Url;
+use wiremock::{
+    matchers::{method, path},
+    Mock, MockServer, ResponseTemplate,
+};
 
-static USER_FILTER_TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+#[tokio::test]
+async fn test_scan_teams_messages() -> Result<()> {
+    use std::env;
 
-struct UserFilterReset;
+    let server = MockServer::start().await;
 
-impl Drop for UserFilterReset {
-    fn drop(&mut self) {
-        safe_list::clear_user_filters_for_tests();
-    }
-}
+    let response = serde_json::json!({
+        "value": [{
+            "searchTerms": ["secret"],
+            "hitsContainers": [{
+                "hits": [{
+                    "hitId": "msg-001",
+                    "rank": 1,
+                    "resource": {
+                        "@odata.type": "#microsoft.graph.chatMessage",
+                        "webUrl": "https://teams.microsoft.com/l/message/19:abc123/1234567890",
+                        "body": {
+                            "contentType": "text",
+                            "content": "Here is the github token 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"
+                        },
+                        "createdDateTime": "2025-01-15T10:30:00Z",
+                        "channelIdentity": {
+                            "channelId": "19:abc123"
+                        }
+                    }
+                }],
+                "total": 1,
+                "moreResultsAvailable": false
+            }]
+        }]
+    });
 
-fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<usize> {
-    let _test_lock = USER_FILTER_TEST_LOCK.lock().unwrap();
-    safe_list::clear_user_filters_for_tests();
-    let _reset = UserFilterReset;
+    Mock::given(method("POST"))
+        .and(path("/v1.0/search/query"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(response))
+        .mount(&server)
+        .await;
 
-    let rt = Runtime::new().unwrap();
-    let work = TempDir::new()?;
-    let rules_dir = work.path().join("rules");
-    fs::create_dir_all(&rules_dir)?;
-    let inputs_dir = work.path().join("in");
-    fs::create_dir_all(&inputs_dir)?;
+    env::set_var("KF_TEAMS_TOKEN", "test-token");
 
-    fs::write(
-        rules_dir.join("demo.yml"),
-        r#"rules:
-  - id: demo.token
-    name: Demo token
-    pattern: 'token_(\w+)'
-    confidence: low
-"#,
-    )?;
-
-    fs::write(inputs_dir.join("a.txt"), "token_realvalue\ntoken_testvalue\n")?;
+    let temp_dir = TempDir::new()?;
+    let clone_dir = temp_dir.path().to_path_buf();
 
     let scan_args = ScanArgs {
         num_jobs: 2,
         rules: RuleSpecifierArgs {
-            rules_path: vec![rules_dir.clone()],
+            rules_path: Vec::new(),
             rule: vec!["all".into()],
-            load_builtins: false,
+            load_builtins: true,
         },
         input_specifier_args: InputSpecifierArgs {
-            path_inputs: vec![inputs_dir.join("a.txt")],
+            path_inputs: Vec::new(),
             git_url: Vec::new(),
             git_clone_dir: None,
             keep_clones: false,
@@ -126,9 +134,9 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
             cql: None,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
-            teams_query: None,
-            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
-            max_results: 100,
+            teams_query: Some("secret".into()),
+            teams_api_url: Url::parse(&format!("{}/", server.uri()))?,
+            max_results: 10,
             s3_bucket: None,
             s3_prefix: None,
             role_arn: None,
@@ -148,13 +156,12 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
             branch_root_commit: None,
             staged: false,
         },
-        extra_ignore_comments: Vec::new(),
         content_filtering_args: ContentFilteringArgs {
-            max_file_size_mb: 5.0,
-            exclude: Vec::new(),
-            no_extract_archives: false,
-            extraction_depth: 1,
+            max_file_size_mb: 25.0,
+            extraction_depth: 2,
             no_binary: true,
+            no_extract_archives: false,
+            exclude: Vec::new(),
         },
         confidence: ConfidenceLevel::Low,
         no_validate: true,
@@ -165,18 +172,19 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         redact: false,
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
-        no_dedup: false,
-        view_report: false,
+        no_dedup: true,
         baseline_file: None,
         manage_baseline: false,
-        skip_regex: skip_regex,
-        skip_word: skip_skipword,
+        skip_regex: Vec::new(),
+        skip_word: Vec::new(),
         skip_aws_account: Vec::new(),
         skip_aws_account_file: None,
         no_base64: false,
         turbo: false,
+        extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        view_report: false,
         view_report_port: 7890,
         view_report_address: "127.0.0.1".to_string(),
         validation_retries: 1,
@@ -189,10 +197,10 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
     let global_args = GlobalArgs {
         verbose: 0,
         quiet: true,
-        color: Mode::Never,
-        progress: Mode::Never,
-        no_update_check: true,
+        color: Mode::Auto,
+        no_update_check: false,
         self_update: false,
+        progress: Mode::Never,
         ignore_certs: false,
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
@@ -201,32 +209,17 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
     let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
     let resolved = loaded.resolve_enabled_rules()?;
     let rules_db = Arc::new(RulesDatabase::from_rules(resolved.into_iter().cloned().collect())?);
+
+    let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
     let update_status = UpdateStatus::default();
 
-    let datastore = Arc::new(Mutex::new(FindingsStore::new(work.path().join("store"))));
+    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db, &update_status)
+        .await?;
 
-    rt.block_on(run_async_scan(
-        &global_args,
-        &scan_args,
-        Arc::clone(&datastore),
-        &rules_db,
-        &update_status,
-    ))?;
-
-    let x = Ok(datastore.lock().unwrap().get_matches().len());
-    x
-}
-
-#[test]
-fn skip_regex_filters_match() -> Result<()> {
-    let count = run_skiplist(vec!["token_realvalue".into()], Vec::new())?;
-    assert_eq!(count, 1);
-    Ok(())
-}
-
-#[test]
-fn skip_skipword_filters_match() -> Result<()> {
-    let count = run_skiplist(Vec::new(), vec!["test".into()])?;
-    assert_eq!(count, 1);
+    let findings = {
+        let ds = datastore.lock().unwrap();
+        ds.get_matches().len()
+    };
+    assert!(findings > 0, "expected at least one finding from Teams message scan");
     Ok(())
 }

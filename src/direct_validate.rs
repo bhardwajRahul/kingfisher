@@ -925,6 +925,8 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
             gcs_service_account: None,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+            teams_query: None,
+            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
             docker_image: Vec::new(),
             git_clone: GitCloneMode::Bare,
             git_history: GitHistoryMode::Full,

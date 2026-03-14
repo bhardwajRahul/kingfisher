@@ -542,6 +542,9 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             // Slack query
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+            // Teams query
+            teams_query: None,
+            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
 
             // Docker image scanning
             docker_image: Vec::new(),

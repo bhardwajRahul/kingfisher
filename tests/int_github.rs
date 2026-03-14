@@ -116,6 +116,8 @@ fn test_github_remote_scan() -> Result<()> {
             max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+            teams_query: None,
+            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
             // s3
             s3_bucket: None,
             s3_prefix: None,

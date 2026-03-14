@@ -29,7 +29,7 @@ use crate::{
     s3,
     scanner::processing::BlobProcessor,
     scanner_pool::ScannerPool,
-    slack, PathBuf,
+    slack, teams, PathBuf,
 };
 
 pub type DatastoreMessage = (OriginSet, BlobMetadata, Vec<(Option<f64>, Match)>);
@@ -736,6 +736,38 @@ pub async fn fetch_slack_messages(
         let mut ds = datastore.lock().unwrap();
         for (path, link) in &paths {
             ds.register_slack_message(path.clone(), link.clone());
+        }
+    }
+    Ok(vec![output_dir])
+}
+
+pub async fn fetch_teams_messages(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<findings_store::FindingsStore>>,
+) -> Result<Vec<PathBuf>> {
+    let Some(query) = args.input_specifier_args.teams_query.as_deref() else {
+        return Ok(Vec::new());
+    };
+    let api_url = args.input_specifier_args.teams_api_url.clone();
+    let max_results = args.input_specifier_args.max_results;
+    let output_root = {
+        let ds = datastore.lock().unwrap();
+        ds.clone_root()
+    };
+    let output_dir = output_root.join("teams_messages");
+    let paths = teams::download_messages_to_dir(
+        api_url,
+        query,
+        max_results,
+        global_args.ignore_certs,
+        &output_dir,
+    )
+    .await?;
+    {
+        let mut ds = datastore.lock().unwrap();
+        for (path, link) in &paths {
+            ds.register_teams_message(path.clone(), link.clone());
         }
     }
     Ok(vec![output_dir])

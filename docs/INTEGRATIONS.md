@@ -18,6 +18,7 @@ This guide covers how to scan various platforms and services with Kingfisher.
 - [Jira](#jira)
 - [Confluence](#confluence)
 - [Slack](#slack)
+- [Microsoft Teams](#microsoft-teams)
 - [Environment Variables](#environment-variables)
 
 ## AWS S3
@@ -572,6 +573,31 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan slack "akia" \
 
 *The Slack token must be a user token with the `search:read` scope. Bot tokens (those beginning with `xoxb-`) cannot call the Slack search API.*
 
+## Microsoft Teams
+
+### Scan Teams messages matching a search query
+
+```bash
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key" \
+    --max-results 1000
+
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "akia" \
+    --max-results 1000
+```
+
+The token must be a Microsoft Graph API access token with `ChannelMessage.Read.All` (application) or `Chat.Read` (delegated) permissions.
+
+**Note:** Microsoft Graph does not support personal Microsoft accounts for Teams chat operations. Teams scanning requires a **Microsoft 365 work or school account**; free/personal Teams accounts are not supported by the Graph API.
+
+**Obtaining a token:**
+
+1. Register an application in Azure Active Directory (Microsoft Entra ID)
+2. Grant `ChannelMessage.Read.All` (application) or `Chat.Read` (delegated) API permission
+3. Obtain an access token using one of:
+   - Azure CLI: `az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv`
+   - Client credentials flow for application permissions
+   - Authorization code flow for delegated permissions
+
 ## Environment Variables
 
 | Variable          | Purpose                      |
@@ -591,6 +617,7 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan slack "akia" \
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
+| `KF_TEAMS_TOKEN`  | Microsoft Graph API token for Teams message search |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY`, `KF_AWS_SECRET`, and `KF_AWS_SESSION_TOKEN` | AWS credentials for S3 bucket scanning. Session token is optional, for temporary credentials |
 

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.89.0]
+- Added Microsoft Teams scan target: `kingfisher scan teams "QUERY"` searches Teams messages via Microsoft Graph Search API and scans them for secrets, mirroring the Slack integration.
+- Requires `KF_TEAMS_TOKEN` environment variable (Microsoft Graph access token with `ChannelMessage.Read.All` or `Chat.Read` permissions).
+- Findings reference Teams message URLs in reports; see `docs/USAGE.md` and `docs/INTEGRATIONS.md` for authentication setup.
+
 ## [v1.88.0]
 - Tree-sitter fallback behavior changed to be strictly additive: when parser context is unavailable, findings now fall back to Hyperscan/Vectorscan matches instead of being suppressed.
 - Fixed dependent-rule reporting gaps (for example Algolia API keys) by preserving regex findings when tree-sitter is unavailable, while still marking validation as skipped when dependency inputs are missing.

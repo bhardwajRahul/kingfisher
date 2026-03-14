@@ -21,6 +21,7 @@ const DEFAULT_GITEA_API_URL: &str = "https://gitea.com/api/v1/";
 const DEFAULT_BITBUCKET_API_URL: &str = "https://api.bitbucket.org/2.0/";
 const DEFAULT_AZURE_BASE_URL: &str = "https://dev.azure.com/";
 const DEFAULT_SLACK_API_URL: &str = "https://slack.com/api/";
+const DEFAULT_TEAMS_API_URL: &str = "https://graph.microsoft.com/";
 
 // -----------------------------------------------------------------------------
 // Inputs
@@ -286,7 +287,15 @@ pub struct InputSpecifierArgs {
     #[arg(long, default_value = "https://slack.com/api/", value_hint = ValueHint::Url, hide = true)]
     pub slack_api_url: Url,
 
-    /// Maximum number of Slack, Jira, or Confluence results to fetch
+    /// Microsoft Teams search query
+    #[arg(long, hide = true)]
+    pub teams_query: Option<String>,
+
+    /// Use the specified URL for Microsoft Graph API access
+    #[arg(long, default_value = "https://graph.microsoft.com/", value_hint = ValueHint::Url, hide = true)]
+    pub teams_api_url: Url,
+
+    /// Maximum number of Slack, Teams, Jira, or Confluence results to fetch
     #[arg(long, default_value_t = 100, hide = true)]
     pub max_results: usize,
 
@@ -423,6 +432,7 @@ impl InputSpecifierArgs {
             || self.jira_url.is_some()
             || self.confluence_url.is_some()
             || self.slack_query.is_some()
+            || self.teams_query.is_some()
             || self.s3_bucket.is_some()
             || self.gcs_bucket.is_some()
             || !self.docker_image.is_empty()
@@ -483,6 +493,13 @@ impl InputSpecifierArgs {
             warn_deprecated_provider(
                 "Slack",
                 "Use `kingfisher scan slack …` instead of the legacy `--slack-*` flags.",
+            );
+        }
+
+        if self.teams_query.is_some() || self.teams_api_url.as_str() != DEFAULT_TEAMS_API_URL {
+            warn_deprecated_provider(
+                "Microsoft Teams",
+                "Use `kingfisher scan teams …` instead of the legacy `--teams-*` flags.",
             );
         }
 
