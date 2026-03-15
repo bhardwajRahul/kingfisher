@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.90.0]
+- Expanded built-in revocation support with new YAML revocation flows for Cloudflare, Confluent, Doppler, Mapbox, Particle.io, Twitch, and additional Vercel token formats.
+- Added revocation coverage documentation: new `docs/REVOCATION_PROVIDERS.md` matrix and README links highlighting supported revocation providers/rule IDs.
+
 ## [v1.89.0]
 - Access Map: added Microsoft Teams provider. Parses Incoming Webhook URLs (legacy and workflow-based) to extract tenant and webhook identity, probes for active status, and reports channel-level blast radius. Supports standalone `access-map microsoftteams` (alias `msteams`) and automatic mapping for validated `kingfisher.msteams.*` and `kingfisher.microsoftteamswebhook.*` findings.
 - Added Microsoft Teams scan target: `kingfisher scan teams "QUERY"` searches Teams messages via Microsoft Graph Search API and scans them for secrets, mirroring the Slack integration.

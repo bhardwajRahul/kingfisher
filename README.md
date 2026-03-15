@@ -46,6 +46,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
+- **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
 - **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports AWS, GCP, Azure, GitHub, GitLab, Slack, Microsoft Teams, and more.
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
@@ -645,6 +646,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
 | [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (GitHub/GitLab/Slack/AWS/GCP/Azure Storage/Postgres/MongoDB/Microsoft Teams) |
 | [ADVANCED.md](docs/ADVANCED.md) | Advanced features: baselines, confidence levels, validation tuning, CI scanning, and more |
 | [RULES.md](docs/RULES.md) | Writing custom detection rules, pattern requirements, and checksum intelligence |
+| [REVOCATION_PROVIDERS.md](docs/REVOCATION_PROVIDERS.md) | Built-in revocation coverage by provider and rule ID |
 | [BASELINE.md](docs/BASELINE.md) | Baseline management for tracking known secrets and detecting new ones |
 | [LIBRARY.md](docs/LIBRARY.md) | Using Kingfisher as a Rust library in your own applications |
 | [FINGERPRINT.md](docs/FINGERPRINT.md) | Understanding finding fingerprints and deduplication |

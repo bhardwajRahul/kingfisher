@@ -24,6 +24,7 @@ rules:
         cloudflare_key="y3u7gjcxzpboe2hs50hvuewsx10koco3z327z_1i"
     references:
       - https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/verify/
+      - https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/delete/
     validation:
       type: Http
       content:
@@ -38,6 +39,40 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.cloudflare.com/client/v4/user/tokens/verify
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.cloudflare.com/client/v4/user/tokens/verify
+              headers:
+                Authorization: Bearer {{ TOKEN }}
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              TOKEN_ID:
+                type: JsonPath
+                path: "$.result.id"
+
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://api.cloudflare.com/client/v4/user/tokens/{{ TOKEN_ID }}
+              headers:
+                Authorization: Bearer {{ TOKEN }}
+                Accept: application/json
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200]
+                - type: WordMatch
+                  words: ['"success":true']
+                  match_all_words: true
 
   - name: Cloudflare CA Key
     id: kingfisher.cloudflare.2

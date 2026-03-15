@@ -39,6 +39,19 @@ rules:
             - type: WordMatch
               match_all_words: true
               words: ['"username":']
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: https://api.particle.io/v1/access_tokens/current?access_token={{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              match_all_words: true
+              words: ['"ok":']
 
   - name: particle.io Access Token
     id: kingfisher.particleio.2
@@ -74,3 +87,16 @@ rules:
             - type: WordMatch
               match_all_words: true
               words: ['"username":']
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: https://api.particle.io/v1/access_tokens/current?access_token={{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              match_all_words: true
+              words: ['"ok":']
