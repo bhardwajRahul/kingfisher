@@ -112,6 +112,7 @@ hex = "0.4.3"
 vectorscan-rs = "0.0.5"
 regex = "1.12.2"
 serde_json = "1.0.145"
+toon-format = { version = "0.4.4", default-features = false }
 lazy_static = "1.5.0"
 url = "2.5.7"
 include_dir = { version = "0.7", features = ["glob"] }

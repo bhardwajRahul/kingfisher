@@ -15,7 +15,7 @@ pub struct OutputArgs<Format: ValueEnum + Send + Sync + 'static> {
     #[arg(global = true, long, short, value_hint = ValueHint::FilePath)]
     pub output: Option<PathBuf>,
 
-    /// Output format (defaults to `pretty` if not specified)
+    /// Output format (defaults to `pretty`; use `toon` for LLM/agent integrations)
     #[arg(global = true, long, short, default_value = "pretty")]
     pub format: Format,
 }
@@ -49,6 +49,9 @@ pub enum ReportOutputFormat {
 
     /// BSON (binary JSON) format
     Bson,
+
+    /// TOON format optimized for LLMs and agents
+    Toon,
 
     /// SARIF format (experimental)
     Sarif,

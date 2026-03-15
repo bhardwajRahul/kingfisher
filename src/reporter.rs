@@ -31,6 +31,7 @@ mod json_format;
 mod pretty_format;
 mod sarif_format;
 pub mod styles;
+mod toon_format;
 use std::io::IsTerminal;
 
 use styles::{StyledObject, Styles};
@@ -1379,6 +1380,7 @@ impl Reportable for DetailsReporter {
             ReportOutputFormat::Json => self.json_format(writer, args),
             ReportOutputFormat::Jsonl => self.jsonl_format(writer, args),
             ReportOutputFormat::Bson => self.bson_format(writer, args),
+            ReportOutputFormat::Toon => self.toon_format(writer, args),
             ReportOutputFormat::Sarif => self.sarif_format(writer, args.no_dedup, args),
             ReportOutputFormat::Html => self.html_format(writer, args),
         }

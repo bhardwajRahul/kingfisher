@@ -54,6 +54,7 @@ pub mod slack;
 pub mod snippet;
 pub mod sqlite;
 pub mod teams;
+pub mod toon;
 pub mod update;
 pub mod util;
 pub mod validation;
