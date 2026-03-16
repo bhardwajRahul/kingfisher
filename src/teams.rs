@@ -60,6 +60,24 @@ struct ChannelIdentity {
 
 const PAGE_SIZE: usize = 25;
 
+fn sanitize_filename_component(value: &str) -> String {
+    let sanitized: String = value
+        .chars()
+        .map(|ch| match ch {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+            c if c.is_control() => '_',
+            c => c,
+        })
+        .collect();
+
+    let trimmed = sanitized.trim_matches([' ', '.']);
+    if trimmed.is_empty() {
+        "unknown".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
 pub async fn search_messages(
     api_url: Url,
     query: &str,
@@ -167,10 +185,21 @@ pub async fn download_messages_to_dir(
     let mut paths = Vec::new();
     for (idx, msg) in messages.into_iter().enumerate() {
         let ts = msg.created_date_time.replace([':', '.', '-'], "_");
-        let chan = msg.channel_id.as_deref().unwrap_or("unknown");
+        let chan = sanitize_filename_component(msg.channel_id.as_deref().unwrap_or("unknown"));
         let file = output_dir.join(format!("{}_{}_{}.json", chan, ts, idx));
         std::fs::write(&file, serde_json::to_vec(&msg)?)?;
         paths.push((file, msg.web_url));
     }
     Ok(paths)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_filename_component;
+
+    #[test]
+    fn sanitize_filename_component_replaces_windows_invalid_characters() {
+        assert_eq!(sanitize_filename_component("19:abc/def\\ghi"), "19_abc_def_ghi");
+        assert_eq!(sanitize_filename_component(".."), "unknown");
+    }
 }
