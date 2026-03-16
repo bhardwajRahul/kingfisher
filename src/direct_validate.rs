@@ -925,6 +925,8 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
             gcs_service_account: None,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+            teams_query: None,
+            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
             docker_image: Vec::new(),
             git_clone: GitCloneMode::Bare,
             git_history: GitHistoryMode::Full,
@@ -985,6 +987,14 @@ pub fn print_results(results: &[DirectValidationResult], format: &str, use_color
             } else {
                 println!("{}", serde_json::to_string_pretty(results).unwrap());
             }
+        }
+        "toon" => {
+            let value = if results.len() == 1 {
+                serde_json::to_value(&results[0]).unwrap()
+            } else {
+                serde_json::to_value(results).unwrap()
+            };
+            println!("{}", crate::toon::encode_llm_friendly(&value).unwrap());
         }
         _ => {
             for (i, result) in results.iter().enumerate() {

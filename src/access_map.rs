@@ -16,6 +16,7 @@ mod github;
 mod gitlab;
 mod harness;
 mod huggingface;
+mod microsoft_teams;
 pub(crate) mod mongodb;
 mod openai;
 pub(crate) mod postgres;
@@ -60,6 +61,7 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Anthropic => anthropic::map_access(&args).await?,
         AccessMapProvider::Salesforce => salesforce::map_access(&args).await?,
         AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
+        AccessMapProvider::Microsoftteams => microsoft_teams::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -120,6 +122,8 @@ pub enum AccessMapRequest {
     Salesforce { token: String, instance: String, fingerprint: String },
     /// A Weights & Biases API token.
     WeightsAndBiases { token: String, fingerprint: String },
+    /// A Microsoft Teams Incoming Webhook URL.
+    MicrosoftTeams { webhook_url: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -335,6 +339,12 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
             AccessMapRequest::WeightsAndBiases { token, fingerprint } => {
                 (map_token(&WeightsAndBiasesMapper, &token).await, fingerprint)
             }
+            AccessMapRequest::MicrosoftTeams { webhook_url, fingerprint } => (
+                microsoft_teams::map_access_from_webhook_url(&webhook_url)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("microsoft_teams", "webhook", err)),
+                fingerprint,
+            ),
         };
 
         mapped.fingerprint = Some(fp);

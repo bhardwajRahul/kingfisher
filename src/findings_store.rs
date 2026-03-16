@@ -57,6 +57,7 @@ pub struct FindingsStore {
     origin_meta: FxHashMap<u64, Arc<OriginSet>>,
     docker_images: FxHashMap<PathBuf, String>,
     slack_links: FxHashMap<PathBuf, String>,
+    teams_links: FxHashMap<PathBuf, String>,
     confluence_links: FxHashMap<PathBuf, String>,
     s3_buckets: FxHashMap<PathBuf, String>,
     repo_links: FxHashMap<PathBuf, String>,
@@ -82,6 +83,7 @@ impl FindingsStore {
             dependent_rule_ids: FxHashSet::default(),
             docker_images: FxHashMap::default(),
             slack_links: FxHashMap::default(),
+            teams_links: FxHashMap::default(),
             confluence_links: FxHashMap::default(),
             s3_buckets: FxHashMap::default(),
             repo_links: FxHashMap::default(),
@@ -347,6 +349,14 @@ impl FindingsStore {
         &self.slack_links
     }
 
+    pub fn register_teams_message(&mut self, path: PathBuf, url: String) {
+        self.teams_links.insert(path, url);
+    }
+
+    pub fn teams_links(&self) -> &FxHashMap<PathBuf, String> {
+        &self.teams_links
+    }
+
     pub fn register_confluence_page(&mut self, path: PathBuf, link: String) {
         self.confluence_links.insert(path, link);
     }
@@ -386,6 +396,10 @@ impl FindingsStore {
 
         for (dir, link) in other.slack_links() {
             self.slack_links.entry(dir.clone()).or_insert_with(|| link.clone());
+        }
+
+        for (dir, link) in other.teams_links() {
+            self.teams_links.entry(dir.clone()).or_insert_with(|| link.clone());
         }
 
         for (dir, link) in other.confluence_links() {

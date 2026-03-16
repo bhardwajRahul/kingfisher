@@ -3,6 +3,7 @@ rules:
     id: kingfisher.msteams.1
     pattern: |
       (?xi)
+      \b
       (
         https://
         .*\.office\.com/webhook/

@@ -478,6 +478,12 @@ impl ScanCommandArgs {
                     scan_args.input_specifier_args.max_results = args.max_results;
                     None
                 }
+                ScanInputCommand::Teams(args) => {
+                    scan_args.input_specifier_args.teams_query = Some(args.query);
+                    scan_args.input_specifier_args.teams_api_url = args.api_url;
+                    scan_args.input_specifier_args.max_results = args.max_results;
+                    None
+                }
                 ScanInputCommand::Jira(args) => {
                     scan_args.input_specifier_args.jira_url = Some(args.url);
                     scan_args.input_specifier_args.jql = Some(args.jql);
@@ -623,6 +629,9 @@ pub enum ScanInputCommand {
 
     /// Scan Slack search results
     Slack(SlackScanArgs),
+
+    /// Scan Microsoft Teams messages via Microsoft Graph
+    Teams(TeamsScanArgs),
 
     /// Scan Jira issues using JQL
     Jira(JiraScanArgs),
@@ -783,6 +792,26 @@ pub struct SlackScanArgs {
         long = "api-url",
         alias = "slack-api-url",
         default_value = "https://slack.com/api/",
+        value_hint = ValueHint::Url
+    )]
+    pub api_url: Url,
+
+    /// Maximum number of results to fetch
+    #[arg(long = "max-results", default_value_t = 100)]
+    pub max_results: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct TeamsScanArgs {
+    /// Microsoft Teams search query
+    #[arg(value_name = "QUERY")]
+    pub query: String,
+
+    /// Override the Microsoft Graph API URL
+    #[arg(
+        long = "api-url",
+        alias = "teams-api-url",
+        default_value = "https://graph.microsoft.com/",
         value_hint = ValueHint::Url
     )]
     pub api_url: Url,

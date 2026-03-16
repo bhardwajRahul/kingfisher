@@ -31,6 +31,7 @@ mod json_format;
 mod pretty_format;
 mod sarif_format;
 pub mod styles;
+mod toon_format;
 use std::io::IsTerminal;
 
 use styles::{StyledObject, Styles};
@@ -736,6 +737,11 @@ impl DetailsReporter {
         ds.slack_links().get(path).cloned()
     }
 
+    fn teams_message_url(&self, path: &std::path::Path) -> Option<String> {
+        let ds = self.datastore.lock().ok()?;
+        ds.teams_links().get(path).cloned()
+    }
+
     fn repo_artifact_url(&self, path: &std::path::Path) -> Option<String> {
         let ds = self.datastore.lock().ok()?;
         ds.repo_links().get(path).cloned()
@@ -1088,6 +1094,7 @@ impl DetailsReporter {
                 .or_else(|| self.jira_issue_url(&e.path, args).and_then(Self::non_empty_string))
                 .or_else(|| self.confluence_page_url(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.slack_message_url(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| self.teams_message_url(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.s3_display_path(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.docker_display_path(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| Self::non_empty_string(e.path.display().to_string())),
@@ -1373,6 +1380,7 @@ impl Reportable for DetailsReporter {
             ReportOutputFormat::Json => self.json_format(writer, args),
             ReportOutputFormat::Jsonl => self.jsonl_format(writer, args),
             ReportOutputFormat::Bson => self.bson_format(writer, args),
+            ReportOutputFormat::Toon => self.toon_format(writer, args),
             ReportOutputFormat::Sarif => self.sarif_format(writer, args.no_dedup, args),
             ReportOutputFormat::Html => self.html_format(writer, args),
         }
@@ -1756,6 +1764,8 @@ mod tests {
                 cql: None,
                 slack_query: None,
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+                teams_query: None,
+                teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
                 max_results: 100,
                 s3_bucket: None,
                 s3_prefix: None,

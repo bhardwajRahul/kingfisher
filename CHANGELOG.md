@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.89.0]
+- Added TOON output for `scan`, `validate`, and `revoke`, optimized for LLM/agent workflows; prefer `--format toon` when calling Kingfisher from an LLM.
+- Expanded built-in revocation support with new YAML revocation flows for Cloudflare, Confluent, Doppler, Mapbox, Particle.io, Twitch, and additional Vercel token formats.
+- Added revocation coverage documentation: new `docs/REVOCATION_PROVIDERS.md` matrix and README links highlighting supported revocation providers/rule IDs.
+- Access Map: added Microsoft Teams provider. Parses Incoming Webhook URLs (legacy and workflow-based) to extract tenant and webhook identity, probes for active status, and reports channel-level blast radius. Supports standalone `access-map microsoftteams` (alias `msteams`) and automatic mapping for validated `kingfisher.msteams.*` and `kingfisher.microsoftteamswebhook.*` findings.
+- Added Microsoft Teams scan target: `kingfisher scan teams "QUERY"` searches Teams messages via Microsoft Graph Search API and scans them for secrets, mirroring the Slack integration.
+- Requires `KF_TEAMS_TOKEN` environment variable (Microsoft Graph access token with `ChannelMessage.Read.All` or `Chat.Read` permissions).
+- Findings reference Teams message URLs in reports; see `docs/USAGE.md` and `docs/INTEGRATIONS.md` for authentication setup.
+
 ## [v1.88.0]
 - Tree-sitter fallback behavior changed to be strictly additive: when parser context is unavailable, findings now fall back to Hyperscan/Vectorscan matches instead of being suppressed.
 - Fixed dependent-rule reporting gaps (for example Algolia API keys) by preserving regex findings when tree-sitter is unavailable, while still marking validation as skipped when dependency inputs are missing.

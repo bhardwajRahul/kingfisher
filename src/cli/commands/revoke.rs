@@ -50,7 +50,7 @@ pub struct RevokeArgs {
     #[arg(long = "no-builtins", default_value_t = false)]
     pub no_builtins: bool,
 
-    /// Output format: text or json
-    #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+    /// Output format: text, json, or toon (`toon` is recommended for LLMs)
+    #[arg(long, default_value = "text", value_parser = ["text", "json", "toon"])]
     pub format: String,
 }

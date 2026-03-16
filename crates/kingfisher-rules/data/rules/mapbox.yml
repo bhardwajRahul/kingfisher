@@ -44,6 +44,8 @@ rules:
       - 'export MAPBOX_SECRET_TOKEN=sk.eyJ1IjoiY2FwcGVsYWVyZSIsImEicf99c1BaTkZnIn0.P4lD1eHeSEx7AsBq1zbJ4g'
     references:
       - https://docs.mapbox.com/api/accounts/tokens/#token-format
+      - https://docs.mapbox.com/api/accounts/tokens/#retrieve-a-token
+      - https://docs.mapbox.com/api/accounts/tokens/#delete-a-token
       - https://docs.mapbox.com/help/getting-started/access-tokens/
       - https://docs.mapbox.com/help/troubleshooting/how-to-use-mapbox-securely
     validation:
@@ -57,6 +59,34 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: JsonValid
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_metadata
+            request:
+              method: GET
+              url: https://api.mapbox.com/tokens/v2?access_token={{ TOKEN }}
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+                - type: JsonValid
+            extract:
+              TOKEN_USER:
+                type: JsonPath
+                path: "$.user"
+              TOKEN_AUTHORIZATION:
+                type: JsonPath
+                path: "$.authorization"
+
+          - name: revoke_token
+            request:
+              method: DELETE
+              url: https://api.mapbox.com/tokens/v2/{{ TOKEN_USER }}/{{ TOKEN_AUTHORIZATION }}?access_token={{ TOKEN }}
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]
 
   - name: Mapbox Temporary Access Token
     id: kingfisher.mapbox.3

@@ -35,7 +35,7 @@ use crate::{
         repos::{
             enumerate_gitea_repos, enumerate_gitlab_repos, fetch_confluence_pages,
             fetch_gcs_objects, fetch_git_host_artifacts, fetch_jira_issues, fetch_s3_objects,
-            fetch_slack_messages,
+            fetch_slack_messages, fetch_teams_messages,
         },
         run_secret_validation, save_docker_images,
         summary::{compute_scan_totals, print_scan_summary},
@@ -367,6 +367,10 @@ async fn fetch_all_artifacts(
     // Fetch Slack messages if requested
     let slack_dirs = fetch_slack_messages(args, global_args, datastore).await?;
     input_roots.extend(slack_dirs);
+
+    // Fetch Teams messages if requested
+    let teams_dirs = fetch_teams_messages(args, global_args, datastore).await?;
+    input_roots.extend(teams_dirs);
 
     // Save Docker images if specified
     if !args.input_specifier_args.docker_image.is_empty() {

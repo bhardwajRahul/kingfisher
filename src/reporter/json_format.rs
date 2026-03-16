@@ -149,6 +149,8 @@ mod tests {
                 // Slack options
                 slack_query: None,
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+                teams_query: None,
+                teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
                 // s3
                 s3_bucket: None,
                 s3_prefix: None,

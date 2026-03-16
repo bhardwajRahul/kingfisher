@@ -99,6 +99,8 @@ impl TestContext {
                 cql: None,
                 slack_query: None,
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
+                teams_query: None,
+                teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
                 s3_bucket: None,
                 s3_prefix: None,
                 role_arn: None,
@@ -256,6 +258,8 @@ async fn test_scan_slack_messages() -> Result<()> {
             cql: None,
             slack_query: Some("test".into()),
             slack_api_url: Url::parse(&format!("{}/", server.uri()))?,
+            teams_query: None,
+            teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
             max_results: 10,
             // s3
             s3_bucket: None,

@@ -184,6 +184,14 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_microsoft_teams(&self, webhook_url: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("microsoft_teams|{webhook_url}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::MicrosoftTeams {
+            webhook_url: webhook_url.to_string(),
+            fingerprint,
+        });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -863,6 +871,15 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
                     if !value.is_empty() {
                         collector.record_weightsandbiases(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.msteams.")
+                || om.rule.id().starts_with("kingfisher.microsoftteamswebhook.")
+            {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_microsoft_teams(value, fp.clone());
                     }
                 }
             }

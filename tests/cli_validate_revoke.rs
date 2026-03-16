@@ -6,6 +6,7 @@
 
 use assert_cmd::Command;
 use predicates::{prelude::PredicateBooleanExt, str::contains};
+use serde_json::Value;
 use std::fs;
 use tempfile::TempDir;
 
@@ -138,6 +139,29 @@ mod validate {
                     .and(contains("is_valid"))
                     .and(contains("message")),
             );
+    }
+
+    #[test]
+    fn validate_toon_output() {
+        let assert = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
+            .args([
+                "validate",
+                "--rule",
+                "kingfisher.opsgenie.1",
+                "fake-api-key-12345",
+                "--format",
+                "toon",
+                "--no-update-check",
+            ])
+            .assert();
+
+        let output = assert.get_output();
+        assert!(output.status.code().is_some_and(|code| code == 0 || code == 1));
+        let toon = String::from_utf8(output.stdout.clone()).expect("stdout should be UTF-8");
+        let decoded: Value = toon_format::decode_default(&toon).expect("toon should decode");
+        assert!(decoded.get("rule_id").is_some());
+        assert!(decoded.get("rule_name").is_some());
+        assert!(decoded.get("message").is_some());
     }
 
     #[test]
@@ -584,6 +608,29 @@ mod revoke {
                     .and(contains("revoked"))
                     .and(contains("message")),
             );
+    }
+
+    #[test]
+    fn revoke_toon_output() {
+        let assert = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
+            .args([
+                "revoke",
+                "--rule",
+                "kingfisher.slack.1",
+                "xoxb-fake-token",
+                "--format",
+                "toon",
+                "--no-update-check",
+            ])
+            .assert();
+
+        let output = assert.get_output();
+        assert!(output.status.code().is_some_and(|code| code == 0 || code == 1));
+        let toon = String::from_utf8(output.stdout.clone()).expect("stdout should be UTF-8");
+        let decoded: Value = toon_format::decode_default(&toon).expect("toon should decode");
+        assert!(decoded.get("rule_id").is_some());
+        assert!(decoded.get("rule_name").is_some());
+        assert!(decoded.get("message").is_some());
     }
 
     #[test]

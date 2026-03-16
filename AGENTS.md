@@ -11,7 +11,7 @@ Key capabilities:
 - Live credential validation against provider APIs
 - Direct secret revocation from CLI
 - Blast radius mapping (AWS, GCP, Azure, GitHub, GitLab, Slack)
-- Output formats: JSON, SARIF, interactive HTML
+- Output formats: TOON, JSON, SARIF, interactive HTML
 - Platform integrations: GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, S3, GCS, Docker, Jira, Confluence, Slack
 
 ## Scope
@@ -26,7 +26,7 @@ Key capabilities:
 - `src/matcher/`: pattern matching engine
 - `src/scanner/`: core scanning logic
 - `src/parser/`: language-aware parsing (`tree-sitter`)
-- `src/reporter/`: JSON/SARIF/HTML report generation
+- `src/reporter/`: TOON/JSON/SARIF/HTML report generation
 - `src/access_map/`: access mapping analysis
 - `crates/kingfisher-core/`: shared types and core logic
 - `crates/kingfisher-rules/`: rule loading and rule data
@@ -130,6 +130,7 @@ Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/
 - Prefer targeted patches.
 - After changes, run the narrowest relevant tests first, then broader checks when practical.
 - If validation commands cannot be run, report exactly what was skipped and why.
+- Prefer `kingfisher scan --format toon` when invoking Kingfisher from an LLM or agent workflow; keep `pretty` for interactive human CLI use unless the task explicitly calls for a different format.
 
 ## Documentation Pointers
 - `docs/USAGE.md`

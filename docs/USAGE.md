@@ -18,6 +18,7 @@ This guide covers all scan targets and usage patterns for Kingfisher.
   - [Jira](#jira)
   - [Confluence](#confluence)
   - [Slack](#slack)
+  - [Microsoft Teams](#microsoft-teams)
 - [TLS Certificate Validation](#tls-certificate-validation)
 - [Understanding the Scan Summary](#understanding-the-scan-summary)
 - [Environment Variables](#environment-variables)
@@ -66,6 +67,14 @@ kingfisher scan /path/to/repo --only-valid
 kingfisher scan . --format json | tee kingfisher.json
 ```
 
+### Output TOON for LLM and agent workflows
+
+```bash
+kingfisher scan . --format toon
+```
+
+Use `--format toon` when Kingfisher is being called by an LLM or agent runtime. The TOON report is optimized for token efficiency, keeps the scan summary up front, and flattens each finding into an easier-to-reason-about row.
+
 ### Output SARIF directly to disk
 
 ```bash
@@ -86,13 +95,13 @@ The HTML audit report is standalone and includes scan metadata designed for evid
 
 Finding a leaked credential is only the first step. The critical question isn't just "Is this a secret?"—it's "What can an attacker do with it?"
 
-Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, GitLab, or Slack) to map the full extent of the credential's power. 
+Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, GitLab, Slack, or Microsoft Teams) to map the full extent of the credential's power. 
 
 * Instant Identity Resolution: Immediately identify who the key belongs to—whether it's a specific IAM user, an assumed role, or a service account.
 * Visualize the Blast Radius: See exactly which resources (S3 buckets, EC2 instances, projects, storage containers) are exposed and at risk.
  
 
-Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` containing the resources and the permissions that the key can access - for each resource (grouped when identical).
+Add `--access-map` to enrich TOON, JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` containing the resources and the permissions that the key can access - for each resource (grouped when identical).
 - If you validated cloud credentials without `--access-map`, Kingfisher will remind you on stderr to rerun with the flag so the access map appears in the output.
 - Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI (opens your browser automatically when a report is provided).
 - Or use `kingfisher scan --view-report ...` to generate a JSON report, start the viewer at `http://127.0.0.1:7890`, and open it in your browser.
@@ -152,6 +161,9 @@ kingfisher validate --rule opsgenie "12345678-9abc-def0-1234-56789abcdef0"
 
 # Validate from stdin
 echo "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | kingfisher validate --rule github -
+
+# TOON output for LLMs and agent tooling
+kingfisher validate --rule slack "xoxb-..." --format toon
 
 # JSON output for scripting
 kingfisher validate --rule slack "xoxb-..." --format json
@@ -240,6 +252,9 @@ kingfisher revoke --rule gcp "$(cat service-account.json)"
 
 # JSON output for scripting
 kingfisher revoke --rule slack "xoxb-..." --format json
+
+# TOON output for LLMs and agent tooling
+kingfisher revoke --rule slack "xoxb-..." --format toon
 ```
 
 **Exit codes:** Returns `0` if any matching rule reports a successful revocation, `1` if all are failures or an error occurred.
@@ -910,6 +925,30 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan slack "akia" \
 
 ---
 
+## Microsoft Teams
+
+### Scan Teams messages matching a search query
+
+```bash
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key" \
+    --max-results 1000
+
+KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "akia" \
+    --max-results 1000
+```
+
+The token must be a Microsoft Graph API access token with `ChannelMessage.Read.All` (application) or `Chat.Read` (delegated) permissions. You can obtain one via Azure AD app registration or the Azure CLI:
+
+```bash
+az login
+KF_TEAMS_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+kingfisher scan teams "secret OR password"
+```
+
+**Note:** Microsoft Graph does not support personal Microsoft accounts for Teams chat operations. Teams scanning requires a **Microsoft 365 work or school account**; free/personal Teams accounts are not supported by the Graph API.
+
+---
+
 ## TLS Certificate Validation
 
 Kingfisher validates TLS certificates when connecting to endpoints during secret validation (database connections, API calls, JWKS fetching, etc.). The `--tls-mode` flag controls this behavior:
@@ -1011,6 +1050,7 @@ This distinction helps you understand validation coverage: **Failed Validations*
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
+| `KF_TEAMS_TOKEN`  | Microsoft Graph API token for Teams message search |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY`, `KF_AWS_SECRET`, and `KF_AWS_SESSION_TOKEN` | AWS credentials for S3 bucket scanning. Session token is optional, for temporary credentials |
 

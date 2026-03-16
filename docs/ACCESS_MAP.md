@@ -339,8 +339,30 @@ kingfisher access-map weightsandbiases ./wandb.token --json-out wandb.access-map
 - Access map uses `https://api.wandb.ai/graphql` as the API endpoint.
 - W&B key introspection does not currently expose fine-grained scopes in this workflow, so risk is reported conservatively.
 
+### Microsoft Teams (`microsoftteams` / `msteams`)
+
+- **Credential**: a Microsoft Teams Incoming Webhook URL (read from a file for `kingfisher access-map microsoftteams <FILE>`).
+- **Webhook types supported**:
+  - Legacy Incoming Webhooks (`*.office.com/webhook/...`)
+  - Workflow-based webhooks (`*.webhook.office.com/webhookb2/...`)
+
+Kingfisher parses the webhook URL to extract the tenant ID and webhook identity, then sends a benign probe (`{"text":""}`) to determine whether the webhook is still active. Active webhooks can post messages to the configured Teams channel.
+
+#### Standalone example (Microsoft Teams)
+
+```bash
+printf '%s' 'https://contoso.webhook.office.com/webhookb2/...' > ./teams.webhook
+kingfisher access-map microsoftteams ./teams.webhook --json-out teams.access-map.json
+```
+
+#### Notes (Microsoft Teams)
+
+- The webhook URL is the credential — it contains the tenant ID and grants write access to a single Teams channel.
+- Access map severity is Medium for active webhooks (write-only to one channel) and Low for inactive/removed webhooks.
+- The probe request does not post any visible message; Teams responds with HTTP 400 "Text is required" for valid endpoints.
+
 ## Notes on access-map generation during `scan --access-map`
 
 - Access-map entries are only recorded for **validated** findings.
 - Some providers require extra context that Kingfisher infers from the finding context or validation response (for example, Azure DevOps organization name).
-- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, and Weights & Biases credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.
+- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, Weights & Biases, and Microsoft Teams credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.

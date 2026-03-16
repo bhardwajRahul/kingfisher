@@ -3,7 +3,7 @@ use predicates::prelude::*;
 use std::{fs, time::Duration};
 use tempfile::TempDir;
 
-const FORMATS: [&str; 4] = ["pretty", "json", "jsonl", "bson"];
+const FORMATS: [&str; 5] = ["pretty", "json", "jsonl", "bson", "toon"];
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.windows(needle.len()).any(|window| window == needle)
