@@ -232,6 +232,7 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         validation_rps_rule: Vec::new(),
         validation_timeout: 10,
         full_validation_response: false,
+        max_validation_response_length: 2048,
     };
 
     /* --------------------------------------------------------- *

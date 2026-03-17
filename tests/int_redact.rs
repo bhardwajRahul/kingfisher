@@ -152,6 +152,7 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         validation_rps_rule: Vec::new(),
         validation_timeout: 10,
         full_validation_response: false,
+        max_validation_response_length: 2048,
     };
 
     let global_args = GlobalArgs {

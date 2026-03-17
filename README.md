@@ -4,7 +4,7 @@
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-540-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
+[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-544-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
 [![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)<br>
 
 
@@ -25,7 +25,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - Scan code, Git history, and integrated platforms (GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, Jira, Confluence, Slack, Microsoft Teams, Docker, AWS S3, and Google Cloud Storage)
 - Validate discovered credentials against provider APIs to reduce false positives
 - Revoke supported secrets directly from the CLI
-- Generate JSON, SARIF, and HTML outputs for security teams, compliance, and CI
+- Generate JSON, SARIF, TOON, and HTML outputs for security teams, compliance, and CI
 
 ## Key Features
 
@@ -464,7 +464,13 @@ kingfisher scan /path/to/repo \
   --validation-rps-rule github=2 \
   --validation-rps-rule pypi=0.5
 
-# Include full validation response bodies (not truncated to 512 characters)
+# Increase validation response storage limit (default: 2048 bytes)
+kingfisher scan /path/to/repo --max-validation-response-length 8192
+
+# Disable validation response storage truncation entirely (0 = unlimited)
+kingfisher scan /path/to/repo --max-validation-response-length 0
+
+# Include full validation response bodies end-to-end (no validation or reporter truncation)
 # Useful for parsing complete validation responses (e.g., GitHub token metadata)
 kingfisher scan /path/to/repo --full-validation-response
 

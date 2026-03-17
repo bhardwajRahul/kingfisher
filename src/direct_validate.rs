@@ -975,6 +975,7 @@ pub(crate) fn create_minimal_scan_args() -> crate::cli::commands::scan::ScanArgs
         validation_rps: None,
         validation_rps_rule: Vec::new(),
         full_validation_response: false,
+        max_validation_response_length: 2048,
     }
 }
 

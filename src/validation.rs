@@ -42,7 +42,6 @@ pub use kingfisher_scanner::validation::{
 pub mod utils;
 
 const VALIDATION_CACHE_SECONDS: u64 = 1200; // 20 minutes
-const MAX_VALIDATION_BODY_LEN: usize = 2048;
 
 fn truncate_to_char_boundary(s: &mut String, max_len: usize) {
     if s.len() <= max_len {
@@ -333,6 +332,7 @@ pub async fn validate_single_match(
     validation_timeout: Duration,
     validation_retries: u32,
     rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
+    max_body_len: usize,
 ) {
     let fp = validation_dedup_key(m);
     let timeout_result = time::timeout(validation_timeout, async {
@@ -346,6 +346,7 @@ pub async fn validate_single_match(
             validation_timeout,
             validation_retries,
             rate_limiter,
+            max_body_len,
         )
         .await
     })
@@ -388,6 +389,7 @@ async fn timed_validate_single_match<'a>(
     validation_timeout: Duration,
     validation_retries: u32,
     rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
+    max_body_len: usize,
 ) {
     // Select the appropriate HTTP client based on rule's TLS mode preference
     let rule_tls_mode = m.rule.tls_mode();
@@ -715,10 +717,10 @@ async fn timed_validate_single_match<'a>(
                             return;
                         }
                     };
-                    // Validate against the full response body, but keep a truncated preview for
-                    // reporting/storage to avoid huge outputs.
                     let mut display_body = body.clone();
-                    truncate_to_char_boundary(&mut display_body, MAX_VALIDATION_BODY_LEN);
+                    if max_body_len > 0 {
+                        truncate_to_char_boundary(&mut display_body, max_body_len);
+                    }
 
                     m.validation_response_status = status;
                     let body_opt = validation_body::from_string(display_body.clone());
@@ -836,7 +838,9 @@ async fn timed_validate_single_match<'a>(
             } else if body.as_bytes().contains(&0) {
                 body = format!("grpc-status={grpc_status} grpc-message={grpc_message}");
             }
-            truncate_to_char_boundary(&mut body, MAX_VALIDATION_BODY_LEN);
+            if max_body_len > 0 {
+                truncate_to_char_boundary(&mut body, max_body_len);
+            }
 
             m.validation_response_status = status;
             m.validation_response_body = validation_body::from_string(body.clone());
@@ -1445,14 +1449,40 @@ mod tests {
 
     #[test]
     fn truncate_to_char_boundary_handles_multibyte_characters() {
-        let mut body = "a".repeat(MAX_VALIDATION_BODY_LEN);
+        let max_len = 2048;
+        let mut body = "a".repeat(max_len);
         body.push('é');
 
-        truncate_to_char_boundary(&mut body, MAX_VALIDATION_BODY_LEN);
+        truncate_to_char_boundary(&mut body, max_len);
 
-        assert_eq!(body.len(), MAX_VALIDATION_BODY_LEN);
+        assert_eq!(body.len(), max_len);
         assert!(body.is_char_boundary(body.len()));
         assert!(body.ends_with('a'));
+    }
+
+    #[test]
+    fn truncate_skipped_when_max_body_len_is_zero() {
+        let original_len = 4096;
+        let mut body = "x".repeat(original_len);
+        let max_body_len: usize = 0;
+
+        if max_body_len > 0 {
+            truncate_to_char_boundary(&mut body, max_body_len);
+        }
+
+        assert_eq!(body.len(), original_len);
+    }
+
+    #[test]
+    fn truncate_applies_custom_max_body_len() {
+        let mut body = "y".repeat(5000);
+        let max_body_len: usize = 1024;
+
+        if max_body_len > 0 {
+            truncate_to_char_boundary(&mut body, max_body_len);
+        }
+
+        assert_eq!(body.len(), 1024);
     }
 
     mod tls_mode_tests {
