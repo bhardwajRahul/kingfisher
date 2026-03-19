@@ -209,6 +209,7 @@ pub async fn run_secret_validation(
     rate_limiter: Option<Arc<ValidationRateLimiter>>,
     validation_timeout: Duration,
     validation_retries: u32,
+    max_body_len: usize,
 ) -> Result<()> {
     // ── 1. Concurrency & counters ───────────────────────────────────────────
     let concurrency = if num_jobs > 0 { num_jobs } else { num_cpus::get() };
@@ -348,6 +349,7 @@ pub async fn run_secret_validation(
                     rate_limiter.as_deref(),
                     validation_timeout,
                     validation_retries,
+                    max_body_len,
                 )
                 .await;
 
@@ -475,6 +477,7 @@ pub async fn run_secret_validation(
                                         rate_limiter.as_deref(),
                                         validation_timeout,
                                         validation_retries,
+                                        max_body_len,
                                     )
                                     .await;
                                     for d in &mut dups {
@@ -563,6 +566,7 @@ async fn validate_single(
     rate_limiter: Option<&ValidationRateLimiter>,
     validation_timeout: Duration,
     validation_retries: u32,
+    max_body_len: usize,
 ) {
     // Build key
     let dep_vars_str = dep_vars
@@ -624,6 +628,7 @@ async fn validate_single(
             validation_timeout,
             validation_retries,
             rate_limiter,
+            max_body_len,
         )
         .await
     })

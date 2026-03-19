@@ -500,6 +500,14 @@ fn apply_baseline_if_configured(
     Ok(())
 }
 
+fn effective_max_validation_body_len(args: &scan::ScanArgs) -> usize {
+    if args.full_validation_response {
+        0
+    } else {
+        args.max_validation_response_length
+    }
+}
+
 /// Runs the validation phase on matches in the datastore.
 #[allow(clippy::too_many_arguments)]
 async fn run_validation_phase(
@@ -523,6 +531,7 @@ async fn run_validation_phase(
             rate_limiter.clone(),
             Duration::from_secs(args.validation_timeout),
             args.validation_retries,
+            effective_max_validation_body_len(args),
         )
         .await?;
     }
@@ -668,6 +677,7 @@ async fn run_parallel_scan(
                 rate_limiter.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
+                effective_max_validation_body_len(args),
             )
             .await?;
         }
@@ -756,6 +766,7 @@ async fn run_parallel_scan(
                                     rate_limiter.clone(),
                                     Duration::from_secs(args.validation_timeout),
                                     args.validation_retries,
+                                    effective_max_validation_body_len(&args),
                                 ))?;
                             }
                         }

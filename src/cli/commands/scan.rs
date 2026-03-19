@@ -119,6 +119,16 @@ pub struct ScanArgs {
     #[arg(global = true, long, default_value_t = false)]
     pub full_validation_response: bool,
 
+    /// Maximum bytes to store from validation response bodies (0 = unlimited).
+    /// Overridden by --full-validation-response which forces unlimited storage.
+    #[arg(
+        global = true,
+        long = "max-validation-response-length",
+        default_value_t = 2048,
+        value_name = "BYTES"
+    )]
+    pub max_validation_response_length: usize,
+
     /// Map validated cloud credentials to their effective identities; use only when
     /// authorized for the target account because this triggers additional network
     /// requests to determine granted access

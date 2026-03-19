@@ -597,6 +597,7 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         validation_rps: None,
         validation_rps_rule: Vec::new(),
         full_validation_response: false,
+        max_validation_response_length: 2048,
     }
 }
 /// Run the rules check command

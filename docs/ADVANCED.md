@@ -171,19 +171,26 @@ kingfisher scan /path/to/code --validation-timeout 15
 # Set number of retry attempts (default: 1, range: 0-5)
 kingfisher scan /path/to/code --validation-retries 2
 
-# Include full validation response bodies without truncation
+# Increase validation response storage limit (default: 2048 bytes)
+kingfisher scan /path/to/code --max-validation-response-length 8192
+
+# Disable validation response storage truncation entirely (0 = unlimited)
+kingfisher scan /path/to/code --max-validation-response-length 0
+
+# Include full validation response bodies end-to-end (no validation or reporter truncation)
 kingfisher scan /path/to/code --full-validation-response
 
 # Combine options
 kingfisher scan /path/to/code \
   --validation-timeout 20 \
   --validation-retries 3 \
-  --full-validation-response
+  --max-validation-response-length 8192
 ```
 
 - `--validation-timeout SECONDS`: per-request and per-match timeout for validation (default: 10, range: 1-60).
 - `--validation-retries N`: number of retry attempts for validation requests (default: 1, range: 0-5).
-- `--full-validation-response`: include complete validation response bodies without truncation. By default, validation responses are truncated to 512 characters for readability. This flag is useful when you need to parse full validation responses (e.g., GitHub token validation responses that include user metadata beyond the first 512 characters).
+- `--max-validation-response-length BYTES`: maximum bytes stored from validation response bodies (default: 2048; `0` disables truncation at storage time).
+- `--full-validation-response`: include complete validation response bodies end-to-end. This bypasses both storage-time truncation and reporter display truncation, and takes precedence over `--max-validation-response-length`.
 
 ## Scanning in CI Pipelines
 
@@ -358,6 +365,8 @@ kingfisher scan /path/to/repo --rule-stats
 - `--no-ignore-if-contains`: Ignore the `ignore_if_contains` filter in rules so placeholder words still produce findings
 - `--validation-timeout SECONDS`: per-request and per-match timeout for validation (default: 10, range: 1-60).
 - `--validation-retries N`: number of retry attempts for validation requests (default: 1, range: 0-5).
+- `--max-validation-response-length BYTES`: maximum bytes stored from validation response bodies (default: 2048; `0` disables truncation at storage time).
+- `--full-validation-response`: include complete validation response bodies end-to-end (bypasses storage and reporter truncation).
 
 ### Exclude specific paths
 

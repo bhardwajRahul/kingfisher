@@ -157,6 +157,7 @@ impl TestContext {
             validation_rps_rule: Vec::new(),
             validation_timeout: 10,
             full_validation_response: false,
+            max_validation_response_length: 2048,
         };
 
         let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
@@ -317,6 +318,7 @@ async fn test_scan_slack_messages() -> Result<()> {
         validation_rps_rule: Vec::new(),
         validation_timeout: 10,
         full_validation_response: false,
+        max_validation_response_length: 2048,
     };
 
     let global_args = GlobalArgs {

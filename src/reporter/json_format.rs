@@ -207,6 +207,7 @@ mod tests {
             validation_rps: None,
             validation_rps_rule: Vec::new(),
             full_validation_response: false,
+            max_validation_response_length: 2048,
         }
     }
 
