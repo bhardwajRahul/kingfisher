@@ -56,6 +56,19 @@ fn truncate_to_char_boundary(s: &mut String, max_len: usize) {
     s.truncate(new_len);
 }
 
+/// Build a truncated preview from `body` without cloning the full string.
+/// When `max_len` is 0, truncation is disabled and the full body is returned.
+fn truncate_preview(body: &str, max_len: usize) -> String {
+    if max_len == 0 || body.len() <= max_len {
+        return body.to_string();
+    }
+    let mut end = max_len;
+    while end > 0 && !body.is_char_boundary(end) {
+        end -= 1;
+    }
+    body[..end].to_string()
+}
+
 static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
 
 const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
@@ -717,10 +730,7 @@ async fn timed_validate_single_match<'a>(
                             return;
                         }
                     };
-                    let mut display_body = body.clone();
-                    if max_body_len > 0 {
-                        truncate_to_char_boundary(&mut display_body, max_body_len);
-                    }
+                    let display_body = truncate_preview(&body, max_body_len);
 
                     m.validation_response_status = status;
                     let body_opt = validation_body::from_string(display_body.clone());
@@ -1463,26 +1473,20 @@ mod tests {
     #[test]
     fn truncate_skipped_when_max_body_len_is_zero() {
         let original_len = 4096;
-        let mut body = "x".repeat(original_len);
-        let max_body_len: usize = 0;
+        let body = "x".repeat(original_len);
 
-        if max_body_len > 0 {
-            truncate_to_char_boundary(&mut body, max_body_len);
-        }
+        let preview = truncate_preview(&body, 0);
 
-        assert_eq!(body.len(), original_len);
+        assert_eq!(preview.len(), original_len);
     }
 
     #[test]
     fn truncate_applies_custom_max_body_len() {
-        let mut body = "y".repeat(5000);
-        let max_body_len: usize = 1024;
+        let body = "y".repeat(5000);
 
-        if max_body_len > 0 {
-            truncate_to_char_boundary(&mut body, max_body_len);
-        }
+        let preview = truncate_preview(&body, 1024);
 
-        assert_eq!(body.len(), 1024);
+        assert_eq!(preview.len(), 1024);
     }
 
     mod tls_mode_tests {
