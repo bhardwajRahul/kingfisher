@@ -500,6 +500,14 @@ fn apply_baseline_if_configured(
     Ok(())
 }
 
+fn effective_max_validation_body_len(args: &scan::ScanArgs) -> usize {
+    if args.full_validation_response {
+        0
+    } else {
+        args.max_validation_response_length
+    }
+}
+
 /// Runs the validation phase on matches in the datastore.
 #[allow(clippy::too_many_arguments)]
 async fn run_validation_phase(
@@ -512,8 +520,6 @@ async fn run_validation_phase(
     if let Some(validation) = validation_deps {
         let (parser, clients, cache, rate_limiter) =
             (&validation.0, &validation.1, &validation.2, &validation.3);
-        let effective_max_body_len =
-            if args.full_validation_response { 0 } else { args.max_validation_response_length };
         run_secret_validation(
             Arc::clone(datastore),
             parser,
@@ -525,7 +531,7 @@ async fn run_validation_phase(
             rate_limiter.clone(),
             Duration::from_secs(args.validation_timeout),
             args.validation_retries,
-            effective_max_body_len,
+            effective_max_validation_body_len(args),
         )
         .await?;
     }
@@ -659,8 +665,6 @@ async fn run_parallel_scan(
         let (parser, clients, cache, rate_limiter) =
             (&validation.0, &validation.1, &validation.2, &validation.3);
         let initial_match_count = { datastore.lock().unwrap().get_matches().len() };
-        let effective_max_body_len =
-            if args.full_validation_response { 0 } else { args.max_validation_response_length };
         if initial_match_count > 0 {
             run_secret_validation(
                 Arc::clone(datastore),
@@ -673,7 +677,7 @@ async fn run_parallel_scan(
                 rate_limiter.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
-                effective_max_body_len,
+                effective_max_validation_body_len(args),
             )
             .await?;
         }
@@ -750,11 +754,6 @@ async fn run_parallel_scan(
                                 (&validation.0, &validation.1, &validation.2, &validation.3);
                             let match_count =
                                 { repo_datastore.lock().unwrap().get_matches().len() };
-                            let effective_max_body_len = if args.full_validation_response {
-                                0
-                            } else {
-                                args.max_validation_response_length
-                            };
                             if match_count > 0 {
                                 rt_handle.block_on(run_secret_validation(
                                     Arc::clone(&repo_datastore),
@@ -767,7 +766,7 @@ async fn run_parallel_scan(
                                     rate_limiter.clone(),
                                     Duration::from_secs(args.validation_timeout),
                                     args.validation_retries,
-                                    effective_max_body_len,
+                                    effective_max_validation_body_len(&args),
                                 ))?;
                             }
                         }
