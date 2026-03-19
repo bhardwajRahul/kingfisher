@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - Added `--max-validation-response-length <BYTES>` for `scan` to control validation response storage truncation (default: `2048`, `0` disables truncation).
 - Updated `--full-validation-response` to bypass both validation storage truncation and reporter truncation, preserving complete response bodies end-to-end for parsing/reporting workflows.
 - Added Testkube detection/validation coverage with `kingfisher.testkube.*` rules for API keys plus dependent organization/environment IDs used for live API validation.
+- Improved TrueNAS rule
 
 ## [v1.89.0]
 - Added TOON output for `scan`, `validate`, and `revoke`, optimized for LLM/agent workflows; prefer `--format toon` when calling Kingfisher from an LLM.
