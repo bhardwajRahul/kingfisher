@@ -1,0 +1,49 @@
+name: SLSA Provenance
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  # Compute SHA256 hashes of all release assets
+  hash:
+    name: Compute artifact hashes
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "${TAG_NAME}" \
+            --repo "${{ github.repository }}" \
+            --dir assets
+
+      - name: Compute SHA256 hashes
+        id: hash
+        run: |
+          set -euo pipefail
+          cd assets
+          # Base64-encode the SHA256 hashes for SLSA provenance
+          echo "hashes=$(sha256sum -- * | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+  # Generate SLSA provenance for the release artifacts
+  provenance:
+    name: Generate SLSA provenance
+    needs: [hash]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
+    with:
+      base64-subjects: "${{ needs.hash.outputs.hashes }}"
+      upload-assets: true

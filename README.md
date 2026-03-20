@@ -641,7 +641,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
   --branch-root-commit $(git -C /tmp/repo merge-base main feature-1)
 ```
 
-**For more advanced features including confidence levels, validation tuning, and custom rules, see [docs/ADVANCED.md](docs/ADVANCED.md).**
+**For more advanced features including confidence levels, validation tuning, and custom rules, see [docs/ADVANCED.md](docs/ADVANCED.md).** See also [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for centralized and self-serve deployment strategies.
 
 # Documentation
 
