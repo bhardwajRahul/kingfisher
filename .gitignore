@@ -19,6 +19,8 @@ logs/*
 *.html
 !docs/access-map-viewer/index.html
 *.dot
+fuzz/
+fuzz/*
 
 ### macOS ###
 # General
