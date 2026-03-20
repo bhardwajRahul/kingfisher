@@ -33,6 +33,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use console::Term;
 use kingfisher::{
     access_map, azure, bitbucket,
     cli::{
@@ -61,7 +62,6 @@ use kingfisher::{
 };
 use serde_json::json;
 use tempfile::TempDir;
-use term_size;
 use tokio::runtime::Builder;
 use tracing::{error, info, warn};
 use tracing_core::metadata::LevelFilter;
@@ -268,7 +268,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         );
                         let paths = &scan_args.input_specifier_args.path_inputs;
                         let is_dash = paths.iter().any(|p| p.as_os_str() == "-");
-                        if (paths.is_empty() || is_dash) && !atty::is(atty::Stream::Stdin) {
+                        if (paths.is_empty() || is_dash) && !std::io::stdin().is_terminal() {
                             let mut buf = Vec::new();
                             std::io::stdin().read_to_end(&mut buf)?;
                             let stdin_file = temp_dir_path.join("stdin_input");
@@ -772,7 +772,7 @@ pub fn run_rules_list(args: &RulesListArgs) -> Result<()> {
     match args.output_args.format {
         RulesListOutputFormat::Pretty => {
             // Determine terminal width if possible, otherwise use default
-            let term_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(120);
+            let term_width = usize::from(Term::stdout().size().1);
             // First pass: calculate column widths
             let max_name_width = resolved.iter().map(|r| r.name().len()).max().unwrap_or(0).max(4); // "Rule" header
             let max_id_width = resolved.iter().map(|r| r.id().len()).max().unwrap_or(0).max(2); // "ID" header

@@ -598,8 +598,10 @@ impl DetailsReporter {
             //     String::from_utf8_lossy(cmd.message.lines().next().unwrap_or(&[],),).
             // into_owned();
 
-            let atime =
-                cmd.committer_timestamp.format(gix::date::time::format::SHORT.clone()).to_string();
+            let atime = cmd
+                .committer_timestamp
+                .format(gix::date::time::format::SHORT.clone())
+                .unwrap_or_else(|_| cmd.committer_timestamp.seconds.to_string());
 
             let git_metadata = serde_json::json!({
                 "repository_url": repository_url,

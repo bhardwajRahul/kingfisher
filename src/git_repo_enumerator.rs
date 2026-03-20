@@ -28,11 +28,8 @@ pub const MIN_SCANNABLE_BLOB_SIZE: u64 = 20;
 
 // Convert "<seconds> <offset>" -- Time; fallback to the Unix-epoch on parse error
 #[inline]
-fn parse_sig_time<T: AsRef<[u8]>>(raw: T) -> Time {
-    match std::str::from_utf8(raw.as_ref()) {
-        Ok(s) => parse_time(s, None).unwrap_or_else(|_| Time::new(0, 0)),
-        Err(_) => Time::new(0, 0),
-    }
+fn parse_sig_time(raw: &str) -> Time {
+    parse_time(raw, None).unwrap_or_else(|_| Time::new(0, 0))
 }
 
 /// How blobs are provided to the scanning pipeline.
@@ -157,11 +154,22 @@ impl<'a> GitRepoWithMetadataEnumerator<'a> {
                                 continue;
                             }
                         };
-                        let committer = &commit.committer;
+                        let committer = match commit.committer() {
+                            Ok(committer) => committer,
+                            Err(err) => {
+                                debug!(
+                                    "Failed to decode committer metadata for {}: {err}",
+                                    e.commit_oid
+                                );
+                                continue;
+                            }
+                        };
                         let parsed = Arc::new(CommitMetadata {
                             commit_id: e.commit_oid,
-                            committer_name: String::from_utf8_lossy(&committer.name).into_owned(),
-                            committer_email: String::from_utf8_lossy(&committer.email).into_owned(),
+                            committer_name: String::from_utf8_lossy(committer.name.as_ref())
+                                .into_owned(),
+                            committer_email: String::from_utf8_lossy(committer.email.as_ref())
+                                .into_owned(),
                             committer_timestamp: parse_sig_time(committer.time),
                         });
                         commit_metadata.insert(e.commit_oid, Arc::clone(&parsed));

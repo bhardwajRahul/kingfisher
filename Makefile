@@ -52,7 +52,7 @@ ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
 .PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows \
-        linux darwin all list-archives check-docker check-rust clean tests
+        linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz
 
 default: help
 
@@ -71,6 +71,8 @@ help:
 	@echo "  all"
 	@echo "  list-archives"
 	@echo "  tests"
+	@echo "  audit-deps        Run cargo-audit to report vulnerable dependencies"
+	@echo "  fuzz              Run fuzz targets (FUZZ_SECONDS=N to control duration, default 60s)"
 
 create-dockerignore:
 	@echo "target/" > .dockerignore
@@ -690,6 +692,44 @@ tests:
 	    echo "⚠️  cargo-nextest unavailable – falling back to cargo test"; \
 	    cargo test --workspace --all-targets; \
 	fi
+
+audit-deps:
+	@echo "🔍 checking for cargo-audit …"
+	@if command -v cargo-audit >/dev/null 2>&1; then \
+	    echo "✅ cargo-audit already present"; \
+	else \
+	    echo "📦 installing cargo-audit …"; \
+	    cargo install --locked cargo-audit; \
+	fi
+	@echo "▶ auditing dependency vulnerabilities …"
+	@cargo audit
+
+fuzz:
+	@echo "🐛 Running fuzz targets (cargo-fuzz required, nightly Rust required)…"
+	@command -v cargo-fuzz >/dev/null 2>&1 || { \
+		echo "📦 installing cargo-fuzz …"; \
+		cargo install cargo-fuzz; \
+	}
+	@rustup toolchain list | grep -q nightly || { \
+		echo "📦 installing nightly toolchain …"; \
+		rustup toolchain install nightly; \
+	}
+	@fuzz_seconds=$${FUZZ_SECONDS:-60}; \
+	NIGHTLY_PATH="$$HOME/.rustup/toolchains/nightly-$$(rustc -vV | awk '/^host:/{print $$2}')/bin"; \
+	if [ ! -d "$$NIGHTLY_PATH" ]; then \
+		echo "❌ Nightly toolchain not found at $$NIGHTLY_PATH"; \
+		exit 1; \
+	fi; \
+	export PATH="$$NIGHTLY_PATH:$$PATH"; \
+	echo "Using rustc: $$(which rustc) ($$(rustc --version))"; \
+	for target in fuzz_entropy fuzz_location fuzz_base64 fuzz_span; do \
+		echo "▶ fuzzing $$target for $${fuzz_seconds}s …"; \
+		cargo fuzz run $$target -- \
+			-max_total_time=$${fuzz_seconds} \
+			-max_len=4096 || { echo "❌ $$target found a crash"; exit 1; }; \
+		echo "✅ $$target passed"; \
+	done
+	@echo "🎉 All fuzz targets passed"
 
 clean:
 	@echo "Cleaning build artifacts..."
