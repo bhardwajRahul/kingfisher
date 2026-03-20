@@ -5,25 +5,18 @@
 If you discover a security vulnerability in Kingfisher, please report it
 responsibly. **Do not open a public GitHub issue.**
 
-### How to Report
+## Reporting a Vulnerability
 
-Please submit vulnerability reports through:
+If you discover a security vulnerability in Kingfisher, please follow MongoDB's responsible disclosure process:
 
-- **Email:** [security@mongodb.com](mailto:security@mongodb.com)
+- **Do not publicly disclose the vulnerability.**
+- Report it by following the instructions at [MongoDB Vulnerability Reporting](https://www.mongodb.com/docs/manual/tutorial/create-a-vulnerability-report/).
 
 ### What to Include
 
 - A description of the vulnerability and its potential impact
 - Steps to reproduce the issue
 - Any relevant logs, screenshots, or proof-of-concept code
-
-### Response Timeline
-
-| Stage | Timeframe |
-|---|---|
-| Acknowledgement | Within 5 business days |
-| Initial assessment | Within 10 business days |
-| Resolution target | Depends on severity |
 
 ## Supported Versions
 
@@ -34,12 +27,3 @@ always running the most recent version of Kingfisher.
 |---|---|
 | Latest release | ✅ |
 | Older releases | ❌ |
-
-## Security Best Practices
-
-When using Kingfisher in your environment:
-
-- Verify release artifact checksums before deployment
-- Run Kingfisher with the minimum required filesystem permissions
-- Review the [pre-commit hook configuration](.pre-commit-hooks.yaml) for
-  integration into your development workflow
