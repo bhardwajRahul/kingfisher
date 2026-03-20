@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.91.0]
+- Remediated current RustSec vulnerability findings by upgrading core dependencies including `gix`, `mysql_async`, `axum`, `indicatif`, `quick-xml`, and `console`.
+- Added `make audit-deps` to run `cargo audit` locally and report vulnerable dependencies.
+- Refreshed pinned GitHub Actions for `swatinem/rust-cache`, `msys2/setup-msys2`, and `ncipollo/release-action`, and configured Dependabot to ignore selected GitHub Action major-version bumps.
+- OpenSSF Scorecard hardening: added `SECURITY.md`, `.github/dependabot.yml`, pinned all GitHub Actions by SHA, fixed dangerous workflow expression injection patterns, added top-level `permissions: {}` to `pypi.yml`, and added SLSA provenance generation for releases.
+- Added ClusterFuzzLite integration with four fuzz targets (entropy, location mapping, base64 decoding, span deduplication) and a `make fuzz` target for local fuzzing.
+
 ## [v1.90.0]
 - Added `--max-validation-response-length <BYTES>` for `scan` to control validation response storage truncation (default: `2048`, `0` disables truncation).
 - Updated `--full-validation-response` to bypass both validation storage truncation and reporter truncation, preserving complete response bodies end-to-end for parsing/reporting workflows.
