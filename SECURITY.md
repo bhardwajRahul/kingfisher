@@ -2,11 +2,6 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Kingfisher, please report it
-responsibly. **Do not open a public GitHub issue.**
-
-## Reporting a Vulnerability
-
 If you discover a security vulnerability in Kingfisher, please follow MongoDB's responsible disclosure process:
 
 - **Do not publicly disclose the vulnerability.**
