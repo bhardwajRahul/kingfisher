@@ -708,23 +708,17 @@ fuzz:
 	@echo "🐛 Running fuzz targets (cargo-fuzz required, nightly Rust required)…"
 	@command -v cargo-fuzz >/dev/null 2>&1 || { \
 		echo "📦 installing cargo-fuzz …"; \
-		cargo install cargo-fuzz; \
+		cargo install --locked cargo-fuzz; \
 	}
 	@rustup toolchain list | grep -q nightly || { \
 		echo "📦 installing nightly toolchain …"; \
 		rustup toolchain install nightly; \
 	}
 	@fuzz_seconds=$${FUZZ_SECONDS:-60}; \
-	NIGHTLY_PATH="$$HOME/.rustup/toolchains/nightly-$$(rustc -vV | awk '/^host:/{print $$2}')/bin"; \
-	if [ ! -d "$$NIGHTLY_PATH" ]; then \
-		echo "❌ Nightly toolchain not found at $$NIGHTLY_PATH"; \
-		exit 1; \
-	fi; \
-	export PATH="$$NIGHTLY_PATH:$$PATH"; \
-	echo "Using rustc: $$(which rustc) ($$(rustc --version))"; \
+	echo "Using nightly rustc: $$(rustup run nightly rustc --version)"; \
 	for target in fuzz_entropy fuzz_location fuzz_base64 fuzz_span; do \
 		echo "▶ fuzzing $$target for $${fuzz_seconds}s …"; \
-		cargo fuzz run $$target -- \
+		cargo +nightly fuzz run $$target -- \
 			-max_total_time=$${fuzz_seconds} \
 			-max_len=4096 || { echo "❌ $$target found a crash"; exit 1; }; \
 		echo "✅ $$target passed"; \
