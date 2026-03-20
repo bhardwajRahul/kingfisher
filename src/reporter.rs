@@ -601,7 +601,7 @@ impl DetailsReporter {
             let atime = cmd
                 .committer_timestamp
                 .format(gix::date::time::format::SHORT.clone())
-                .unwrap_or_else(|_| "<unknown>".to_string());
+                .unwrap_or_else(|_| cmd.committer_timestamp.seconds.to_string());
 
             let git_metadata = serde_json::json!({
                 "repository_url": repository_url,
