@@ -29,7 +29,7 @@ jobs:
     name: Linux x64
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Free up disk space on Ubuntu runners
       - name: Free Disk Space
@@ -41,11 +41,11 @@ jobs:
           sudo docker image prune --all --force
           df -h
 
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
@@ -87,15 +87,15 @@ jobs:
           cp target/release/kingfisher-linux-x64.deb dist/
           cp target/release/kingfisher-linux-x64.rpm dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-x64.tgz
           path: dist/kingfisher-linux-x64.tgz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-x64.deb
           path: dist/kingfisher-linux-x64.deb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-x64.rpm
           path: dist/kingfisher-linux-x64.rpm
@@ -104,7 +104,7 @@ jobs:
     name: Linux arm64
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Free up disk space on Ubuntu runners
       - name: Free Disk Space
@@ -116,11 +116,11 @@ jobs:
           sudo docker image prune --all --force
           df -h
 
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
@@ -162,15 +162,15 @@ jobs:
           cp target/release/kingfisher-linux-arm64.deb dist/
           cp target/release/kingfisher-linux-arm64.rpm dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-arm64.tgz
           path: dist/kingfisher-linux-arm64.tgz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-arm64.deb
           path: dist/kingfisher-linux-arm64.deb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-linux-arm64.rpm
           path: dist/kingfisher-linux-arm64.rpm
@@ -179,13 +179,13 @@ jobs:
     name: macOS x64
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
@@ -209,7 +209,7 @@ jobs:
           mkdir -p dist
           cp target/release/kingfisher-darwin-x64.tgz  dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-darwin-x64.tgz
           path: dist/kingfisher-darwin-x64.tgz
@@ -218,13 +218,13 @@ jobs:
     name: macOS arm64
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
@@ -247,7 +247,7 @@ jobs:
           mkdir -p dist
           cp target/release/kingfisher-darwin-arm64.tgz dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-darwin-arm64.tgz
           path: dist/kingfisher-darwin-arm64.tgz
@@ -268,13 +268,13 @@ jobs:
             msystem: CLANGARM64
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@61f9e5e925871ba6c9e3e8da24ede83ea27fa91f # v2.27.0
         with:
           msystem: ${{ matrix.msystem }}
           update: true
@@ -282,7 +282,7 @@ jobs:
             make
             git
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           shared-key: kingfisher-${{ runner.os }}-${{ runner.arch }}
           cache-on-failure: true
@@ -343,7 +343,7 @@ jobs:
           mkdir -p dist
           cp target/release/kingfisher-windows-${{ matrix.arch }}.zip dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kingfisher-windows-${{ matrix.arch }}
           path: dist/kingfisher-windows-${{ matrix.arch }}.zip
@@ -355,22 +355,25 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Determine tag
         id: version
         shell: bash
+        env:
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
-            TAG="${{ github.event.release.tag_name }}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${{ github.event.inputs.tag }}" ]]; then
-            TAG="${{ github.event.inputs.tag }}"
+            TAG="${RELEASE_TAG_NAME}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_TAG}" ]]; then
+            TAG="${INPUT_TAG}"
           else
             VERSION=$(grep -m1 '^version\s*=' Cargo.toml | cut -d '"' -f2)
             TAG="v${VERSION}"
           fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: target/release/kingfisher-*
           merge-multiple: true
@@ -387,7 +390,7 @@ jobs:
 
       # ── create the release using just that snippet ─────────────────────
       - name: Create release & upload assets
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
         with:
           tag: ${{ steps.version.outputs.tag }}
           name: "Kingfisher ${{ steps.version.outputs.tag }}"
