@@ -32,6 +32,10 @@ RUN set -eux; \
     # optional cleanup to keep the image small
     rm -rf /app/*
 
+RUN addgroup -S app && adduser -S -G app -h /app app && chown -R app:app /app
+
+USER app
+
 # quick smoke-test so the build fails early if something’s wrong
 RUN kingfisher --version
 

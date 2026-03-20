@@ -38,7 +38,6 @@ jobs:
         # populated only for workflow_dispatch
         MANUAL_TAG: ${{ github.event.inputs.tag }}
         RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
         if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
@@ -47,9 +46,12 @@ jobs:
           RAW_TAG="${MANUAL_TAG}"
         else
           # manual w/o tag → ask GitHub API for latest release tag
-          RAW_TAG=$(curl -sSL -H "Authorization: Bearer ${GH_TOKEN}" \
-                   "https://api.github.com/repos/${{ github.repository }}/releases/latest" \
-                   | jq -r .tag_name)
+          RAW_TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)
+        fi
+
+        if [[ ! "${RAW_TAG}" =~ ^v[0-9A-Za-z._+-]+$ ]]; then
+          echo "Invalid tag format: ${RAW_TAG}" >&2
+          exit 1
         fi
 
         # Strip a leading "v" so v1.2.3 → 1.2.3
