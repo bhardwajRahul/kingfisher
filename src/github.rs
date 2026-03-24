@@ -142,7 +142,7 @@ fn create_github_client(github_url: &url::Url, ignore_certs: bool) -> Result<Arc
 
     let reqwest_client = client_builder.build().context("Failed to build HTTP client")?;
 
-    let http_client = reqwest_middleware::ClientBuilder::new(reqwest_client).build();
+    let http_client = reqwest_middleware_octorust::ClientBuilder::new(reqwest_client).build();
 
     let mut client = Client::custom(
         concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),

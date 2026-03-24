@@ -36,7 +36,7 @@ use http::{
     StatusCode,
 };
 use once_cell::sync::{Lazy, OnceCell};
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use regex::Regex;
 use tokio::{
     sync::Semaphore,

@@ -9,12 +9,13 @@ impl DetailsReporter {
     ) -> Result<()> {
         let envelope = self.build_report_envelope(args)?;
         for record in envelope.findings {
-            let doc = bson::to_document(&record)?;
+            let doc = bson::serialize_to_document(&record)?;
             doc.to_writer(&mut writer)?;
         }
 
         if let Some(access_map) = envelope.access_map {
-            let doc = bson::to_document(&serde_json::json!({ "access_map": access_map }))?;
+            let doc =
+                bson::serialize_to_document(&serde_json::json!({ "access_map": access_map }))?;
             doc.to_writer(&mut writer)?;
         }
         Ok(())

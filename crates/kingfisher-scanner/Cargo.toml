@@ -172,7 +172,7 @@ p256 = { version = "0.13.2", optional = true }
 ed25519-dalek = { version = "2.2", features = ["pkcs8"], optional = true }
 hex = { workspace = true, optional = true }
 url = { version = "2.5.7", optional = true }
-bson = { version = "2.15.0", optional = true }
+bson = { version = "3.1.0", features = ["serde"], optional = true }
 mongodb = { version = "3.4", default-features = false, features = ["rustls-tls", "aws-auth", "compat-3-0-0", "dns-resolver"], optional = true }
 mysql_async = { version = "0.36.1", default-features = false, features = ["default-rustls"], optional = true }
 tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"], optional = true }
@@ -191,7 +191,7 @@ aws-smithy-runtime-api = { version = "1.11.4", optional = true }
 aws-smithy-types = { version = "1.4.4", optional = true }
 base32 = { version = "0.5", optional = true }
 byteorder = { version = "1.5", optional = true }
-rand = { version = "0.9", optional = true }
+rand = { version = "0.10", optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1.4"
