@@ -727,7 +727,7 @@ pub async fn run_direct_validation(
 
             Validation::JWT => {
                 // JWT expects a JWT token as the secret
-                match validate_jwt(&secret, use_lax_tls).await {
+                match validate_jwt(&secret, use_lax_tls, global_args.allow_internal_ips).await {
                     Ok((is_valid, message)) => DirectValidationResult {
                         rule_id: String::new(),
                         rule_name: String::new(),

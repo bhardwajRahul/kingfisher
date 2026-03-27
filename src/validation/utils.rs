@@ -3,6 +3,9 @@ use tokio::net::lookup_host;
 
 use crate::validation::SerializableCaptures;
 
+// Re-export from the scanner crate so the rest of this module can use it.
+pub use kingfisher_scanner::validation::is_ssrf_safe_ip;
+
 /// Return (NAME, value, start, end) for the captures we care about.
 ///
 /// * Named captures keep their (upper-cased) name
@@ -106,11 +109,30 @@ pub fn find_closest_variable(
     best_before.or(best_overlap).or(best_after).map(|(_, value)| value)
 }
 
-pub async fn check_url_resolvable(url: &Url) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn check_url_resolvable(
+    url: &Url,
+    allow_internal_ips: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let host = url.host_str().ok_or("No host in URL")?;
     let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
     let addr = format!("{}:{}", host, port);
-    lookup_host(addr).await?.next().ok_or_else(|| "Failed to resolve URL".into()).map(|_| ())
+    let mut resolved_any = false;
+    for socket_addr in lookup_host(&addr).await? {
+        resolved_any = true;
+        if !allow_internal_ips && !is_ssrf_safe_ip(&socket_addr.ip()) {
+            return Err(format!(
+                "SSRF protection: resolved IP {} for host '{}' is not a public address. \
+                 Use --allow-internal-ips to permit internal addresses.",
+                socket_addr.ip(),
+                host
+            )
+            .into());
+        }
+    }
+    if !resolved_any {
+        return Err("Failed to resolve URL".into());
+    }
+    Ok(())
 }
 
 // -----------------------------------------------------------------------------
@@ -245,5 +267,54 @@ mod tests {
             find_closest_variable(&captures, &"secret".to_string(), "TOKEN", "AKID").unwrap();
 
         assert_eq!(result, "after".to_string());
+    }
+
+    // ---- SSRF IP validation tests ----
+
+    #[test]
+    fn ssrf_rejects_loopback() {
+        assert!(!is_ssrf_safe_ip(&"127.0.0.1".parse().unwrap()));
+        assert!(!is_ssrf_safe_ip(&"::1".parse().unwrap()));
+    }
+
+    #[test]
+    fn ssrf_rejects_unspecified() {
+        assert!(!is_ssrf_safe_ip(&"0.0.0.0".parse().unwrap()));
+        assert!(!is_ssrf_safe_ip(&"::".parse().unwrap()));
+    }
+
+    #[test]
+    fn ssrf_rejects_private_ranges() {
+        assert!(!is_ssrf_safe_ip(&"10.0.0.1".parse().unwrap()));
+        assert!(!is_ssrf_safe_ip(&"172.16.0.1".parse().unwrap()));
+        assert!(!is_ssrf_safe_ip(&"192.168.1.1".parse().unwrap()));
+    }
+
+    #[test]
+    fn ssrf_rejects_link_local_and_metadata() {
+        assert!(!is_ssrf_safe_ip(&"169.254.169.254".parse().unwrap()));
+        assert!(!is_ssrf_safe_ip(&"169.254.1.1".parse().unwrap()));
+    }
+
+    #[test]
+    fn ssrf_accepts_public_ips() {
+        assert!(is_ssrf_safe_ip(&"8.8.8.8".parse().unwrap()));
+        assert!(is_ssrf_safe_ip(&"1.1.1.1".parse().unwrap()));
+        assert!(is_ssrf_safe_ip(&"2606:4700::1111".parse().unwrap()));
+    }
+
+    #[tokio::test]
+    async fn check_url_resolvable_blocks_localhost() {
+        let url = Url::parse("https://localhost/path").unwrap();
+        let result = check_url_resolvable(&url, false).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("SSRF protection"));
+    }
+
+    #[tokio::test]
+    async fn check_url_resolvable_allows_localhost_when_opted_in() {
+        let url = Url::parse("https://localhost/path").unwrap();
+        let result = check_url_resolvable(&url, true).await;
+        assert!(result.is_ok());
     }
 }

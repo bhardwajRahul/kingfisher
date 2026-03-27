@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::Utc;
-use ipnet::IpNet;
 use jsonwebtoken::{
     decode, decode_header, jwk::JwkSet, Algorithm, DecodingKey, Validation as JwtValidation,
 };
@@ -10,7 +9,7 @@ use reqwest::{redirect::Policy, Client, Url};
 use serde::Deserialize;
 use tokio::net::lookup_host;
 
-use super::http_validation::check_url_resolvable;
+use super::http_validation::{check_url_resolvable, is_ssrf_safe_ip};
 
 /// Global redirect-free client with strict TLS validation.
 static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
@@ -38,9 +37,6 @@ fn get_client(lax_tls: bool) -> &'static Client {
     }
 }
 
-/// RFC 1918 + loopback + link-local nets we refuse to contact.
-const BLOCKED_NETS: &[&str] =
-    &["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16"];
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
@@ -66,11 +62,16 @@ pub struct ValidateOptions {
 }
 
 /// Backwards-compatible entry point with secure defaults.
-pub async fn validate_jwt(token: &str, lax_tls: bool) -> Result<(bool, String)> {
+pub async fn validate_jwt(
+    token: &str,
+    lax_tls: bool,
+    allow_internal_ips: bool,
+) -> Result<(bool, String)> {
     validate_jwt_with(
         token,
         &ValidateOptions { allow_alg_none: false, fallback_decoding_key: None },
         lax_tls,
+        allow_internal_ips,
     )
     .await
 }
@@ -80,6 +81,7 @@ pub async fn validate_jwt_with(
     token: &str,
     opts: &ValidateOptions,
     lax_tls: bool,
+    allow_internal_ips: bool,
 ) -> Result<(bool, String)> {
     let client = get_client(lax_tls);
     let claims: Claims = {
@@ -197,13 +199,17 @@ pub async fn validate_jwt_with(
         ));
     }
 
-    for addr in lookup_host((jwks_host.as_str(), 443)).await? {
-        if is_blocked_ip(addr.ip()) {
-            return Ok((false, "jwks_uri resolves to private or link-local IP".to_string()));
+    if !allow_internal_ips {
+        for addr in lookup_host((jwks_host.as_str(), 443)).await? {
+            if !is_ssrf_safe_ip(&addr.ip()) {
+                return Ok((false, "jwks_uri resolves to private or link-local IP".to_string()));
+            }
         }
     }
 
-    check_url_resolvable(&url).await.map_err(|e| anyhow!("jwks uri unresolvable: {e}"))?;
+    check_url_resolvable(&url, allow_internal_ips)
+        .await
+        .map_err(|e| anyhow!("jwks uri unresolvable: {e}"))?;
 
     let jwks_resp = client.get(url).send().await.map_err(|e| anyhow!("jwks fetch failed: {e}"))?;
     if !jwks_resp.status().is_success() {
@@ -240,9 +246,6 @@ fn extract_aud_strings(claims: &Claims) -> Vec<String> {
     }
 }
 
-fn is_blocked_ip(ip: std::net::IpAddr) -> bool {
-    BLOCKED_NETS.iter().filter_map(|cidr| cidr.parse::<IpNet>().ok()).any(|net| net.contains(&ip))
-}
 
 fn normalize_issuer_url(issuer: &str) -> Result<Url> {
     let trimmed = issuer.trim();

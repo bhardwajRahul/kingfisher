@@ -336,6 +336,7 @@ impl TestContext {
             ignore_certs: false,
             user_agent_suffix: None,
             tls_mode: TlsMode::Strict,
+            allow_internal_ips: false,
         };
 
         let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));

@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, future::Future, str::FromStr, time::Duration};
+use std::{collections::BTreeMap, future::Future, net::IpAddr, str::FromStr, time::Duration};
 
 use anyhow::{anyhow, Error, Result};
 use http::StatusCode;
@@ -392,10 +392,220 @@ pub fn validate_response(
     word_ok && status_ok && header_ok && json_ok && xml_ok && html_ok
 }
 
-/// Check if a URL can be resolved via DNS.
-pub async fn check_url_resolvable(url: &Url) -> Result<(), Box<dyn std::error::Error>> {
+/// Returns `true` if the IP address is safe for outbound validation requests
+/// (i.e., it is a publicly routable address, not internal/reserved).
+pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
+    if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
+        return false;
+    }
+    match ip {
+        IpAddr::V4(v4) => {
+            let octets = v4.octets();
+            // Private ranges (RFC 1918)
+            if octets[0] == 10 {
+                return false;
+            }
+            if octets[0] == 172 && (16..=31).contains(&octets[1]) {
+                return false;
+            }
+            if octets[0] == 192 && octets[1] == 168 {
+                return false;
+            }
+            // Link-local (169.254.0.0/16) — includes AWS metadata 169.254.169.254
+            if octets[0] == 169 && octets[1] == 254 {
+                return false;
+            }
+            // CGNAT / Shared Address Space (100.64.0.0/10)
+            if octets[0] == 100 && (64..=127).contains(&octets[1]) {
+                return false;
+            }
+            // Documentation ranges (RFC 5737)
+            if octets[0] == 192 && octets[1] == 0 && octets[2] == 2 {
+                return false;
+            }
+            if octets[0] == 198 && octets[1] == 51 && octets[2] == 100 {
+                return false;
+            }
+            if octets[0] == 203 && octets[1] == 0 && octets[2] == 113 {
+                return false;
+            }
+            // Benchmarking (198.18.0.0/15)
+            if octets[0] == 198 && (18..=19).contains(&octets[1]) {
+                return false;
+            }
+            // Broadcast
+            if octets == [255, 255, 255, 255] {
+                return false;
+            }
+            true
+        }
+        IpAddr::V6(v6) => {
+            let segments = v6.segments();
+            // Unique local (fc00::/7)
+            if segments[0] & 0xfe00 == 0xfc00 {
+                return false;
+            }
+            // Link-local (fe80::/10)
+            if segments[0] & 0xffc0 == 0xfe80 {
+                return false;
+            }
+            true
+        }
+    }
+}
+
+/// Check if a URL can be resolved via DNS, with SSRF protection against
+/// internal/private IP addresses.
+pub async fn check_url_resolvable(
+    url: &Url,
+    allow_internal_ips: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let host = url.host_str().ok_or("No host in URL")?;
     let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
     let addr = format!("{}:{}", host, port);
-    lookup_host(addr).await?.next().ok_or_else(|| "Failed to resolve URL".into()).map(|_| ())
+    let mut resolved_any = false;
+    for socket_addr in lookup_host(&addr).await? {
+        resolved_any = true;
+        if !allow_internal_ips && !is_ssrf_safe_ip(&socket_addr.ip()) {
+            return Err(format!(
+                "SSRF protection: resolved IP {} for host '{}' is not a public address. \
+                 Use --allow-internal-ips to permit internal addresses.",
+                socket_addr.ip(),
+                host
+            )
+            .into());
+        }
+    }
+    if !resolved_any {
+        return Err("Failed to resolve URL".into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+    #[test]
+    fn rejects_ipv4_loopback() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(127, 255, 255, 255))));
+    }
+
+    #[test]
+    fn rejects_ipv4_unspecified() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::UNSPECIFIED)));
+    }
+
+    #[test]
+    fn rejects_ipv4_private_rfc1918() {
+        // 10.0.0.0/8
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(10, 255, 255, 255))));
+        // 172.16.0.0/12
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(172, 31, 255, 255))));
+        // 192.168.0.0/16
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 255, 255))));
+    }
+
+    #[test]
+    fn rejects_link_local_and_metadata() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(169, 254, 0, 1))));
+        // AWS/GCP/Azure metadata endpoint
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(169, 254, 169, 254))));
+    }
+
+    #[test]
+    fn rejects_cgnat() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(100, 64, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(100, 127, 255, 255))));
+    }
+
+    #[test]
+    fn rejects_documentation_ranges() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(198, 51, 100, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(203, 0, 113, 1))));
+    }
+
+    #[test]
+    fn rejects_benchmarking() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(198, 18, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(198, 19, 255, 255))));
+    }
+
+    #[test]
+    fn rejects_broadcast() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::BROADCAST)));
+    }
+
+    #[test]
+    fn rejects_multicast() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(224, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv6_loopback() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::LOCALHOST)));
+    }
+
+    #[test]
+    fn rejects_ipv6_unspecified() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::UNSPECIFIED)));
+    }
+
+    #[test]
+    fn rejects_ipv6_unique_local() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfd00, 0, 0, 0, 0, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv6_link_local() {
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))));
+    }
+
+    #[test]
+    fn accepts_public_ipv4() {
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))));
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1))));
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(93, 184, 216, 34))));
+    }
+
+    #[test]
+    fn accepts_public_ipv6() {
+        assert!(is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2606, 0x4700, 0, 0, 0, 0, 0, 0x1111))));
+    }
+
+    #[test]
+    fn accepts_edge_cases_outside_private_ranges() {
+        // 172.15.x.x is NOT private (private is 172.16-31)
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(172, 15, 255, 255))));
+        // 172.32.x.x is NOT private
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(172, 32, 0, 1))));
+        // 100.63.x.x is NOT CGNAT (CGNAT is 100.64-127)
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(100, 63, 255, 255))));
+        // 100.128.x.x is NOT CGNAT
+        assert!(is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(100, 128, 0, 1))));
+    }
+
+    #[tokio::test]
+    async fn check_url_resolvable_rejects_localhost() {
+        let url = Url::parse("https://localhost/test").unwrap();
+        let result = check_url_resolvable(&url, false).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("SSRF protection"), "expected SSRF error, got: {}", err);
+    }
+
+    #[tokio::test]
+    async fn check_url_resolvable_allows_localhost_when_permitted() {
+        let url = Url::parse("https://localhost/test").unwrap();
+        // With allow_internal_ips=true, localhost should resolve successfully
+        let result = check_url_resolvable(&url, true).await;
+        assert!(result.is_ok(), "expected Ok with allow_internal_ips=true, got: {:?}", result);
+    }
 }

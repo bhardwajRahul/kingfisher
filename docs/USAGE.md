@@ -986,6 +986,42 @@ The legacy `--ignore-certs` flag is still supported as an alias for `--tls-mode=
 
 ---
 
+## SSRF Protection
+
+Kingfisher makes outbound HTTP requests during credential validation, with URLs sometimes constructed from user-controlled data found in scanned content (e.g., domain names extracted alongside API keys). To prevent Server-Side Request Forgery (SSRF), Kingfisher blocks validation requests that would connect to non-public IP addresses.
+
+### What is blocked
+
+By default, validation requests are rejected if the target hostname resolves to any of these address ranges:
+
+| Range | Description |
+| ----- | ----------- |
+| `127.0.0.0/8`, `::1` | Loopback (localhost) |
+| `0.0.0.0`, `::` | Unspecified |
+| `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` | Private networks (RFC 1918) |
+| `169.254.0.0/16`, `fe80::/10` | Link-local (includes cloud metadata at `169.254.169.254`) |
+| `100.64.0.0/10` | CGNAT / Shared Address Space |
+| `fc00::/7` | IPv6 unique-local |
+| Multicast, broadcast, documentation, benchmarking ranges | Other reserved ranges |
+
+HTTP redirects to IP-literal addresses in these ranges are also blocked.
+
+### `--allow-internal-ips`
+
+If you are scanning infrastructure that uses internal endpoints for credential validation (e.g., self-hosted GitLab, Artifactory, or Vault behind a private network), use `--allow-internal-ips` to disable SSRF protections:
+
+```bash
+# Scan with SSRF protection disabled (allows requests to internal IPs)
+kingfisher scan --allow-internal-ips ./repo
+
+# Also works with validate and revoke commands
+kingfisher validate --allow-internal-ips --rule kingfisher.artifactory.1
+```
+
+> **Warning:** Only use `--allow-internal-ips` when you trust the content being scanned. Malicious content could cause Kingfisher to make requests to internal services.
+
+---
+
 ## Understanding the Scan Summary
 
 After each scan, Kingfisher displays a summary with validation statistics:

@@ -197,6 +197,7 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         ignore_certs: false,
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
+        allow_internal_ips: false,
     };
 
     let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
