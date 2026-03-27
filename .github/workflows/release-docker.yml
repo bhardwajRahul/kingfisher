@@ -20,12 +20,14 @@ on:
 ###############################################################################
 permissions:
   contents: read       # needed for checkout + GH API
-  packages: write      # push to ghcr.io
 
 ###############################################################################
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write    # push to ghcr.io
 
     steps:
     # -----------------------------------------------------------------------
