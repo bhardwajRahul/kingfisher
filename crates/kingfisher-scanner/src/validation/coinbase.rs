@@ -10,8 +10,6 @@ use p256::{
     pkcs8::DecodePrivateKey,
     SecretKey,
 };
-use rand::rngs::OsRng;
-use rand::TryRngCore;
 use reqwest::{Client, StatusCode, Url};
 use sha1::{Digest, Sha1};
 
@@ -82,10 +80,7 @@ fn build_jwt(
     let pem =
         pem.replace("\r\n", "\n").replace("\\r\\n", "\n").replace("\\n", "\n").replace("\r", "\n");
 
-    let mut rng = OsRng;
-    let mut nonce = [0u8; 16];
-
-    let _ = rng.try_fill_bytes(&mut nonce);
+    let nonce: [u8; 16] = rand::random();
 
     if let Ok(secret_key) =
         SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))

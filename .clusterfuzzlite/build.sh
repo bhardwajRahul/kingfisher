@@ -7,6 +7,11 @@ apt-get install -y --no-install-recommends \
 
 cd "$SRC/kingfisher"
 
+# OSS-Fuzz's clang/libc++ toolchain builds vendored Vectorscan against Ubuntu
+# 20.04's Boost headers. Re-enable the removed unary_function/binary_function
+# compatibility shims so Boost 1.71 still compiles in C++17 mode.
+export CXXFLAGS="${CXXFLAGS:-} -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION"
+
 # Build all fuzz targets in release mode with debug assertions
 cargo fuzz build -O --debug-assertions
 

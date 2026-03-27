@@ -1,8 +1,8 @@
 use std::{net::IpAddr, time::Duration};
 
 use anyhow::Result;
-use bson::doc;
 use mongodb::{
+    bson::doc,
     error::ErrorKind,
     options::{ClientOptions, Tls, TlsOptions},
     Client,

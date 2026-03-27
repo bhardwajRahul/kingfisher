@@ -9,7 +9,7 @@ use liquid_core::{
 };
 
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use rand::{distr::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384};
 use time::{format_description::well_known::Iso8601, OffsetDateTime};

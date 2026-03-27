@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM alpine:latest
+FROM alpine:latest@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
 
 RUN apk add --no-cache curl tar git
 
@@ -31,6 +31,10 @@ RUN set -eux; \
     install -m 0755 "$KF_PATH" /usr/local/bin/kingfisher; \
     # optional cleanup to keep the image small
     rm -rf /app/*
+
+RUN addgroup -S app && adduser -S -G app -h /app app && chown -R app:app /app
+
+USER app
 
 # quick smoke-test so the build fails early if something’s wrong
 RUN kingfisher --version

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
-use bson::{doc, Document};
 use mongodb::{
+    bson::{doc, Document},
     options::{ClientOptions, Tls, TlsOptions},
     Client,
 };
