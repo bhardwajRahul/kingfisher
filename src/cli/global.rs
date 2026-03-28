@@ -119,6 +119,14 @@ pub struct GlobalArgs {
     #[arg(global = true, long, value_enum, default_value = "strict")]
     pub tls_mode: TlsMode,
 
+    /// Allow validation requests to internal/private IP addresses.
+    ///
+    /// By default, Kingfisher blocks HTTP requests to loopback, private,
+    /// and link-local addresses during credential validation to prevent SSRF.
+    /// Use this flag when scanning infrastructure that uses internal endpoints.
+    #[arg(global = true, long = "allow-internal-ips", default_value_t = false)]
+    pub allow_internal_ips: bool,
+
     /// Disable TLS certificate validation (deprecated: use --tls-mode=off)
     #[arg(global = true, long, hide = true)]
     pub ignore_certs: bool,
@@ -149,6 +157,7 @@ impl Default for GlobalArgs {
             verbose: 0,
             quiet: false,
             tls_mode: TlsMode::Strict,
+            allow_internal_ips: false,
             ignore_certs: false,
             self_update: false,
             no_update_check: false,

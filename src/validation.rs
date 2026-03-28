@@ -118,19 +118,104 @@ pub struct ValidationClients {
     lax: Client,
     /// The global TLS mode from CLI arguments.
     pub global_mode: TlsMode,
+    /// When true, skip SSRF IP validation and allow requests to internal/private addresses.
+    pub allow_internal_ips: bool,
+}
+
+/// Build a redirect policy that validates redirect targets against SSRF rules.
+///
+/// Each redirect hop is checked: IP-literal targets are validated directly via
+/// `is_ssrf_safe_ip`, and hostname targets are resolved synchronously via
+/// `std::net::ToSocketAddrs` so that all resolved IPs can be checked. This
+/// significantly reduces the hostname-redirect SSRF risk (e.g., a public URL
+/// that 302s to an attacker-controlled hostname resolving to `169.254.169.254`).
+/// This is a best-effort check: reqwest performs its own DNS resolution when
+/// connecting, so a malicious DNS server could return different IPs between
+/// this check and the actual request (DNS rebinding / TOCTOU). A future
+/// hardening step would be a pinned/custom resolver so that validated IPs are
+/// exactly those used for the outbound connection.
+///
+/// **Note:** reqwest runs redirect callbacks on Tokio worker threads. The DNS
+/// lookup uses `tokio::task::block_in_place` so the runtime can compensate
+/// (e.g., spawn additional worker threads) rather than silently stalling.
+pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        // Cap redirect depth (reqwest default is 10)
+        if attempt.previous().len() >= 10 {
+            return attempt.error("too many redirects");
+        }
+        // Extract URL info before potentially moving `attempt`.
+        let url = attempt.url().clone();
+        if let Some(host) = url.host_str() {
+            if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+                // IP-literal: check directly without DNS.
+                if !kingfisher_scanner::validation::is_ssrf_safe_ip(&ip) {
+                    return attempt.error(format!(
+                        "SSRF protection: redirect to non-public IP {} blocked",
+                        ip
+                    ));
+                }
+            } else {
+                // Hostname: resolve and check all resolved IPs. We use
+                // block_in_place to signal Tokio that this thread is about to
+                // block on synchronous DNS, so the runtime can compensate.
+                let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
+                let dns_result = tokio::task::block_in_place(|| {
+                    std::net::ToSocketAddrs::to_socket_addrs(&(host, port))
+                });
+                match dns_result {
+                    Ok(addrs) => {
+                        for addr in addrs {
+                            if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {
+                                return attempt.error(format!(
+                                    "SSRF protection: redirect to '{}' resolves to non-public IP {} — blocked",
+                                    host,
+                                    addr.ip()
+                                ));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        // Fail closed: if we cannot resolve the hostname, we
+                        // cannot guarantee the redirect target is SSRF-safe.
+                        return attempt.error(format!(
+                            "SSRF protection: cannot resolve redirect host '{}' ({}) — blocked",
+                            host, e
+                        ));
+                    }
+                }
+            }
+        }
+        attempt.follow()
+    })
 }
 
 impl ValidationClients {
     /// Create validation clients based on the global TLS mode.
-    pub fn new(global_mode: TlsMode) -> anyhow::Result<Self> {
+    pub fn new(global_mode: TlsMode, allow_internal_ips: bool) -> anyhow::Result<Self> {
         let timeout = std::time::Duration::from_secs(30);
 
-        let strict =
-            Client::builder().danger_accept_invalid_certs(false).timeout(timeout).build()?;
+        let strict = Client::builder()
+            .danger_accept_invalid_certs(false)
+            .redirect(if allow_internal_ips {
+                reqwest::redirect::Policy::default()
+            } else {
+                ssrf_safe_redirect_policy()
+            })
+            .timeout(timeout)
+            .build()?;
 
-        let lax = Client::builder().danger_accept_invalid_certs(true).timeout(timeout).build()?;
+        let lax = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .redirect(if allow_internal_ips {
+                reqwest::redirect::Policy::default()
+            } else {
+                ssrf_safe_redirect_policy()
+            })
+            .timeout(timeout)
+            .build()?;
 
-        Ok(Self { strict, lax, global_mode })
+        Ok(Self { strict, lax, global_mode, allow_internal_ips })
     }
 
     /// Get the appropriate client for a given rule's TLS mode.
@@ -288,6 +373,7 @@ async fn render_and_parse_url(
     globals: &liquid::Object,
     rule_name: &str,
     template_url: &str,
+    allow_internal_ips: bool,
 ) -> Result<Url, String> {
     let rendered_url_str =
         render_template(parser, globals, rule_name, template_url).await.map_err(|e| {
@@ -302,8 +388,8 @@ async fn render_and_parse_url(
         error_msg
     })?;
 
-    // Check if the URL is resolvable.
-    utils::check_url_resolvable(&url).await.map_err(|e| {
+    // Check if the URL is resolvable (with SSRF protection).
+    utils::check_url_resolvable(&url, allow_internal_ips).await.map_err(|e| {
         let error_msg = format!("URL <{}> resolution failed: {}", &url, e);
         error_msg
     })?;
@@ -534,6 +620,7 @@ async fn timed_validate_single_match<'a>(
                 &globals,
                 &rule_syntax.name,
                 &http_validation.request.url,
+                clients.allow_internal_ips,
             )
             .await
             {
@@ -792,6 +879,7 @@ async fn timed_validate_single_match<'a>(
                 &globals,
                 &rule_syntax.name,
                 &grpc_validation_cfg.request.url,
+                clients.allow_internal_ips,
             )
             .await
             {
@@ -1168,7 +1256,7 @@ async fn timed_validate_single_match<'a>(
                 return;
             }
 
-            match jwt::validate_jwt(&token, use_lax_tls).await {
+            match jwt::validate_jwt(&token, use_lax_tls, clients.allow_internal_ips).await {
                 Ok((ok, msg)) => {
                     m.validation_success = ok;
                     m.validation_response_body = validation_body::from_string(msg);
@@ -1494,19 +1582,19 @@ mod tests {
 
         #[test]
         fn validation_clients_new_creates_both_clients() {
-            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+            let clients = ValidationClients::new(TlsMode::Strict, false).unwrap();
             assert_eq!(clients.global_mode, TlsMode::Strict);
 
-            let clients_lax = ValidationClients::new(TlsMode::Lax).unwrap();
+            let clients_lax = ValidationClients::new(TlsMode::Lax, false).unwrap();
             assert_eq!(clients_lax.global_mode, TlsMode::Lax);
 
-            let clients_off = ValidationClients::new(TlsMode::Off).unwrap();
+            let clients_off = ValidationClients::new(TlsMode::Off, false).unwrap();
             assert_eq!(clients_off.global_mode, TlsMode::Off);
         }
 
         #[test]
         fn client_for_rule_strict_mode_always_returns_strict_client() {
-            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+            let clients = ValidationClients::new(TlsMode::Strict, false).unwrap();
 
             // With no rule TLS mode
             let client1 = clients.client_for_rule(None);
@@ -1522,7 +1610,7 @@ mod tests {
 
         #[test]
         fn client_for_rule_off_mode_always_returns_lax_client() {
-            let clients = ValidationClients::new(TlsMode::Off).unwrap();
+            let clients = ValidationClients::new(TlsMode::Off, false).unwrap();
 
             // With no rule TLS mode
             let client1 = clients.client_for_rule(None);
@@ -1538,7 +1626,7 @@ mod tests {
 
         #[test]
         fn client_for_rule_lax_mode_respects_rule_preference() {
-            let clients = ValidationClients::new(TlsMode::Lax).unwrap();
+            let clients = ValidationClients::new(TlsMode::Lax, false).unwrap();
 
             // Get references to understand which is which
             let strict_client = clients.client_for_rule(None);
@@ -1565,7 +1653,7 @@ mod tests {
 
         #[test]
         fn should_use_lax_off_mode_always_returns_true() {
-            let clients = ValidationClients::new(TlsMode::Off).unwrap();
+            let clients = ValidationClients::new(TlsMode::Off, false).unwrap();
 
             assert!(clients.should_use_lax(None));
             assert!(clients.should_use_lax(Some(kingfisher_rules::TlsMode::Strict)));
@@ -1574,7 +1662,7 @@ mod tests {
 
         #[test]
         fn should_use_lax_strict_mode_always_returns_false() {
-            let clients = ValidationClients::new(TlsMode::Strict).unwrap();
+            let clients = ValidationClients::new(TlsMode::Strict, false).unwrap();
 
             assert!(!clients.should_use_lax(None));
             assert!(!clients.should_use_lax(Some(kingfisher_rules::TlsMode::Strict)));
@@ -1583,7 +1671,7 @@ mod tests {
 
         #[test]
         fn should_use_lax_lax_mode_respects_rule_preference() {
-            let clients = ValidationClients::new(TlsMode::Lax).unwrap();
+            let clients = ValidationClients::new(TlsMode::Lax, false).unwrap();
 
             // Only true when rule explicitly opts in
             assert!(!clients.should_use_lax(None));

@@ -60,9 +60,14 @@ pub use validation_body::{as_str, clone_as_string, from_string, ValidationRespon
 
 #[cfg(feature = "validation-http")]
 pub use http_validation::{
-    build_request_builder, check_url_resolvable, generate_http_cache_key_parts, parse_http_method,
-    process_headers, retry_multipart_request, retry_request, validate_response,
+    build_request_builder, check_url_resolvable, generate_http_cache_key_parts, is_ssrf_safe_ip,
+    parse_http_method, process_headers, retry_multipart_request, retry_request, validate_response,
+    SsrfBlockedError,
 };
+
+#[cfg(feature = "validation-http")]
+#[allow(deprecated)]
+pub use http_validation::check_url_resolvable_safe;
 
 #[cfg(feature = "validation-aws")]
 pub use aws::{

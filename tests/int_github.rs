@@ -189,6 +189,7 @@ fn test_github_remote_scan() -> Result<()> {
         ignore_certs: false,
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
+        allow_internal_ips: false,
     };
     // Create in-memory datastore
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));

@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.91.0]
+- Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. HTTP redirect targets are DNS-resolved and validated against the same SSRF rules. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.
+- Consolidated JWT SSRF checks to use the shared `is_ssrf_safe_ip` function, covering additional reserved ranges (CGNAT, documentation, benchmarking, IPv6 unique-local).
+- Removed `ipnet` dependency from `kingfisher-scanner` (no longer needed).
 - Remediated current RustSec vulnerability findings by upgrading core dependencies including `gix`, `mysql_async`, `axum`, `indicatif`, `quick-xml`, and `console`.
 - Added `make audit-deps` to run `cargo audit` locally and report vulnerable dependencies.
 - Refreshed pinned GitHub Actions for `swatinem/rust-cache`, `msys2/setup-msys2`, and `ncipollo/release-action`, and configured Dependabot to ignore selected GitHub Action major-version bumps.
