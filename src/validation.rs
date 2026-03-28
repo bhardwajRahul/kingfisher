@@ -127,8 +127,13 @@ pub struct ValidationClients {
 /// Each redirect hop is checked: IP-literal targets are validated directly via
 /// `is_ssrf_safe_ip`, and hostname targets are resolved synchronously via
 /// `std::net::ToSocketAddrs` so that all resolved IPs can be checked. This
-/// closes the hostname-redirect SSRF gap (e.g., a public URL that 302s to an
-/// attacker-controlled hostname resolving to `169.254.169.254`).
+/// significantly reduces the hostname-redirect SSRF risk (e.g., a public URL
+/// that 302s to an attacker-controlled hostname resolving to `169.254.169.254`).
+/// This is a best-effort check: reqwest performs its own DNS resolution when
+/// connecting, so a malicious DNS server could return different IPs between
+/// this check and the actual request (DNS rebinding / TOCTOU). A future
+/// hardening step would be a pinned/custom resolver so that validated IPs are
+/// exactly those used for the outbound connection.
 ///
 /// **Note:** reqwest runs redirect callbacks on Tokio worker threads, so the
 /// blocking DNS lookup here can briefly stall other async tasks on that thread.
@@ -156,7 +161,7 @@ pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
             } else {
                 // Hostname: resolve synchronously and check all resolved IPs.
                 let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
-                match std::net::ToSocketAddrs::to_socket_addrs(&(host, port as u16)) {
+                match std::net::ToSocketAddrs::to_socket_addrs(&(host, port)) {
                     Ok(addrs) => {
                         for addr in addrs {
                             if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {

@@ -395,7 +395,7 @@ pub fn validate_response(
 /// Returns `true` if the IP address is safe for outbound validation requests
 /// (i.e., it is a publicly routable address, not internal/reserved).
 ///
-/// Covers all IANA special-purpose ranges from RFC 6890 and RFC 8190.
+/// Blocks common IANA special-purpose ranges from RFC 6890 and RFC 8190.
 pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
     if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
         return false;

@@ -1,3 +1,4 @@
+use super::http_validation::check_url_resolvable;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::Utc;
@@ -7,9 +8,6 @@ use jsonwebtoken::{
 use once_cell::sync::Lazy;
 use reqwest::{redirect::Policy, Client, Url};
 use serde::Deserialize;
-use tokio::net::lookup_host;
-
-use super::http_validation::{check_url_resolvable, is_ssrf_safe_ip};
 
 /// Global redirect-free client with strict TLS validation.
 static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
@@ -198,17 +196,16 @@ pub async fn validate_jwt_with(
         ));
     }
 
-    if !allow_internal_ips {
-        for addr in lookup_host((jwks_host.as_str(), 443)).await? {
-            if !is_ssrf_safe_ip(&addr.ip()) {
+    match check_url_resolvable(&url, allow_internal_ips).await {
+        Ok(()) => {}
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("SSRF protection") {
                 return Ok((false, "jwks_uri resolves to non-public or reserved IP".to_string()));
             }
+            return Err(anyhow!("jwks uri unresolvable: {e}"));
         }
     }
-
-    check_url_resolvable(&url, allow_internal_ips)
-        .await
-        .map_err(|e| anyhow!("jwks uri unresolvable: {e}"))?;
 
     let jwks_resp = client.get(url).send().await.map_err(|e| anyhow!("jwks fetch failed: {e}"))?;
     if !jwks_resp.status().is_success() {
