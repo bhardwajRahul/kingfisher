@@ -37,7 +37,6 @@ fn get_client(lax_tls: bool) -> &'static Client {
     }
 }
 
-
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Aud {
@@ -245,7 +244,6 @@ fn extract_aud_strings(claims: &Claims) -> Vec<String> {
         None => vec![],
     }
 }
-
 
 fn normalize_issuer_url(issuer: &str) -> Result<Url> {
     let trimmed = issuer.trim();

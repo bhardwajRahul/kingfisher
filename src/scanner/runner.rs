@@ -164,7 +164,10 @@ pub async fn run_async_scan(
         info!("Starting secret validation phase...");
         Some(Arc::new((
             register_all(liquid::ParserBuilder::with_stdlib()).build()?,
-            crate::validation::ValidationClients::new(global_args.tls_mode, global_args.allow_internal_ips)?,
+            crate::validation::ValidationClients::new(
+                global_args.tls_mode,
+                global_args.allow_internal_ips,
+            )?,
             Arc::new(SkipMap::new()),
             validation_rate_limiter.clone(),
         )))

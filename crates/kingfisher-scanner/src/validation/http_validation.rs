@@ -598,19 +598,29 @@ mod tests {
     fn rejects_ipv6_documentation() {
         // 2001:db8::/32 — documentation range (RFC 3849)
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1))));
-        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0xffff, 0, 0, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(
+            0x2001, 0x0db8, 0xffff, 0, 0, 0, 0, 1
+        ))));
     }
 
     #[test]
     fn rejects_ipv4_mapped_ipv6() {
         // ::ffff:127.0.0.1 — IPv4-mapped loopback
-        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 0x0001))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0xffff, 0x7f00, 0x0001
+        ))));
         // ::ffff:10.0.0.1 — IPv4-mapped private
-        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0a00, 0x0001))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0xffff, 0x0a00, 0x0001
+        ))));
         // ::ffff:169.254.169.254 — IPv4-mapped metadata endpoint
-        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xa9fe, 0xa9fe))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0xffff, 0xa9fe, 0xa9fe
+        ))));
         // ::ffff:192.168.1.1 — IPv4-mapped private
-        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0x0101))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0x0101
+        ))));
         // ::ffff:8.8.8.8 — IPv4-mapped public (should be allowed)
         assert!(is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0808, 0x0808))));
     }
