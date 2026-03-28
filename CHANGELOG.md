@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.91.0]
-- Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. Redirects to non-public IP-literal addresses are also blocked. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.
+- Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. Automatic HTTP redirects are blocked during validation to prevent redirect-based SSRF. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.
 - Consolidated JWT SSRF checks to use the shared `is_ssrf_safe_ip` function, covering additional reserved ranges (CGNAT, documentation, benchmarking, IPv6 unique-local).
 - Removed `ipnet` dependency from `kingfisher-scanner` (no longer needed).
 - Remediated current RustSec vulnerability findings by upgrading core dependencies including `gix`, `mysql_async`, `axum`, `indicatif`, `quick-xml`, and `console`.

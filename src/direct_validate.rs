@@ -357,9 +357,15 @@ async fn execute_grpc_validation(
     globals: &Object,
     parser: &liquid::Parser,
     timeout: Duration,
+    allow_internal_ips: bool,
 ) -> Result<DirectValidationResult> {
     // Render the URL
     let url = render_and_parse_url(parser, globals, &grpc_validation_cfg.request.url).await?;
+
+    // SSRF check: verify the resolved IP is public before making the request
+    crate::validation::utils::check_url_resolvable(&url, allow_internal_ips)
+        .await
+        .map_err(|e| anyhow!("URL resolution failed: {}", e))?;
 
     debug!("Validating against gRPC URL: {}", url);
 
@@ -585,7 +591,14 @@ pub async fn run_direct_validation(
                 .await?
             }
             Validation::Grpc(grpc_validation_cfg) => {
-                execute_grpc_validation(grpc_validation_cfg, &globals, &parser, timeout).await?
+                execute_grpc_validation(
+                    grpc_validation_cfg,
+                    &globals,
+                    &parser,
+                    timeout,
+                    global_args.allow_internal_ips,
+                )
+                .await?
             }
 
             Validation::AWS => {

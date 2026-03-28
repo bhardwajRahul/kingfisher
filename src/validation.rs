@@ -122,31 +122,22 @@ pub struct ValidationClients {
     pub allow_internal_ips: bool,
 }
 
-/// Build a redirect policy that blocks redirects to non-public IP addresses.
+/// Build a redirect policy that prevents SSRF via HTTP redirects.
 ///
-/// **Known limitation:** This only validates IP-literal redirect targets
-/// (e.g., `http://10.0.0.1/...`). Redirects to *hostnames* that resolve to
-/// internal IPs cannot be checked here because reqwest's redirect callback is
-/// synchronous and cannot perform async DNS resolution. The initial request URL
-/// is always validated via `check_url_resolvable` before the request is made,
-/// but a redirect chain to an attacker-controlled hostname that resolves to an
-/// internal IP would bypass this check. Fully closing this gap requires
-/// disabling automatic redirects and manually following them with async DNS
-/// validation at each hop — a future enhancement.
+/// Automatic redirects are blocked entirely when SSRF protection is enabled.
+/// An attacker could supply a URL that initially points to a public endpoint
+/// but redirects to an internal/private address (including via a hostname that
+/// resolves to a private IP). Because reqwest's redirect callback is synchronous
+/// and cannot perform async DNS resolution, selectively filtering redirect
+/// targets is insufficient. Blocking all redirects is the safe default;
+/// credential validation endpoints rarely require redirect-following.
 pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
-        if let Some(host) = attempt.url().host_str() {
-            // For IP-literal hosts, check directly without DNS.
-            if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-                if !kingfisher_scanner::validation::is_ssrf_safe_ip(&ip) {
-                    return attempt.error(format!(
-                        "SSRF protection: redirect to non-public IP {} blocked",
-                        ip
-                    ));
-                }
-            }
-        }
-        attempt.follow()
+        let url = attempt.url().clone();
+        attempt.error(format!(
+            "SSRF protection: redirect to {} blocked (automatic redirects disabled)",
+            url
+        ))
     })
 }
 

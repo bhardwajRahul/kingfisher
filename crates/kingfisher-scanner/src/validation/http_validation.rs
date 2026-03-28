@@ -437,8 +437,8 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             if octets[0] == 198 && (18..=19).contains(&octets[1]) {
                 return false;
             }
-            // Broadcast
-            if octets == [255, 255, 255, 255] {
+            // Reserved for future use (240.0.0.0/4) — not routable
+            if octets[0] >= 240 {
                 return false;
             }
             true
@@ -464,6 +464,10 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             if segments[0] & 0xffc0 == 0xfe80 {
                 return false;
             }
+            // Site-local (fec0::/10) — deprecated (RFC 3879) but still non-routable
+            if segments[0] & 0xffc0 == 0xfec0 {
+                return false;
+            }
             // Documentation (2001:db8::/32)
             if segments[0] == 0x2001 && segments[1] == 0x0db8 {
                 return false;
@@ -475,6 +479,13 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
 
 /// Check if a URL can be resolved via DNS, with SSRF protection against
 /// internal/private IP addresses.
+///
+/// **Note:** This is a preflight check — the HTTP client will perform its own
+/// DNS resolution when connecting. A DNS-rebinding attack could theoretically
+/// return a public IP for this check and a private IP for the actual connection.
+/// Fully eliminating this TOCTOU gap would require a custom resolver/connector
+/// that pins resolved IPs; automatic redirect blocking (see
+/// `ssrf_safe_redirect_policy`) mitigates the most practical exploitation path.
 pub async fn check_url_resolvable(
     url: &Url,
     allow_internal_ips: bool,
@@ -579,7 +590,10 @@ mod tests {
     }
 
     #[test]
-    fn rejects_broadcast() {
+    fn rejects_reserved_and_broadcast() {
+        // 240.0.0.0/4 — reserved for future use (includes broadcast)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(240, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(250, 1, 2, 3))));
         assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::BROADCAST)));
     }
 
@@ -607,6 +621,13 @@ mod tests {
     #[test]
     fn rejects_ipv6_link_local() {
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv6_site_local() {
+        // fec0::/10 — deprecated site-local (RFC 3879)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfec0, 0, 0, 0, 0, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfeff, 0, 0, 0, 0, 0, 0, 1))));
     }
 
     #[test]

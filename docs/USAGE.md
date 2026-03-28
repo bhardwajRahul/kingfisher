@@ -1004,9 +1004,11 @@ By default, validation requests are rejected if the target hostname resolves to 
 | `fc00::/7` | IPv6 unique-local |
 | `2001:db8::/32` | IPv6 documentation (RFC 3849) |
 | `::ffff:0:0/96` | IPv4-mapped IPv6 (checked against IPv4 rules) |
-| Multicast, broadcast, benchmarking ranges | Other reserved ranges |
+| `240.0.0.0/4` | Reserved for future use (includes broadcast) |
+| `fec0::/10` | IPv6 site-local (deprecated, RFC 3879) |
+| Multicast, benchmarking ranges | Other reserved ranges |
 
-HTTP redirects to IP-literal addresses in these ranges are also blocked.
+Automatic HTTP redirects are blocked during credential validation to prevent redirect-based SSRF bypasses.
 
 ### `--allow-internal-ips`
 
