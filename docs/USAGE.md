@@ -1016,7 +1016,7 @@ If you are scanning infrastructure that uses internal endpoints for credential v
 # Scan with SSRF protection disabled (allows requests to internal IPs)
 kingfisher scan --allow-internal-ips ./repo
 
-# Also works with validate and revoke commands
+# Also works with the validate command
 kingfisher validate --allow-internal-ips --rule kingfisher.artifactory.1
 ```
 

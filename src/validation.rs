@@ -133,7 +133,7 @@ pub struct ValidationClients {
 /// internal IP would bypass this check. Fully closing this gap requires
 /// disabling automatic redirects and manually following them with async DNS
 /// validation at each hop — a future enhancement.
-fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
+pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
         if let Some(host) = attempt.url().host_str() {
             // For IP-literal hosts, check directly without DNS.

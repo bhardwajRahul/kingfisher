@@ -480,6 +480,21 @@ pub async fn check_url_resolvable(
     allow_internal_ips: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let host = url.host_str().ok_or("No host in URL")?;
+
+    // If the host is already an IP literal, check it directly without DNS.
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        if !allow_internal_ips && !is_ssrf_safe_ip(&ip) {
+            return Err(format!(
+                "SSRF protection: resolved IP {} for host '{}' is not a public address. \
+                 Use --allow-internal-ips to permit internal addresses.",
+                ip, host
+            )
+            .into());
+        }
+        return Ok(());
+    }
+
+    // Hostname — resolve via DNS and check each resolved address.
     let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
     let addr = format!("{}:{}", host, port);
     let mut resolved_any = false;
@@ -674,5 +689,15 @@ mod tests {
         // With allow_internal_ips=true, localhost should resolve successfully
         let result = check_url_resolvable(&url, true).await;
         assert!(result.is_ok(), "expected Ok with allow_internal_ips=true, got: {:?}", result);
+    }
+
+    #[tokio::test]
+    async fn check_url_resolvable_rejects_ipv6_loopback_literal() {
+        // IPv6 literal URL — brackets are handled by reqwest::Url, host_str() returns "::1"
+        let url = Url::parse("https://[::1]/test").unwrap();
+        let result = check_url_resolvable(&url, false).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("SSRF protection"), "expected SSRF error, got: {}", err);
     }
 }

@@ -296,9 +296,15 @@ async fn execute_http_validation(
     parser: &liquid::Parser,
     timeout: Duration,
     retries: u32,
+    allow_internal_ips: bool,
 ) -> Result<DirectValidationResult> {
     // Render the URL
     let url = render_and_parse_url(parser, globals, &http_validation.request.url).await?;
+
+    // SSRF check: verify the resolved IP is public before making the request
+    crate::validation::utils::check_url_resolvable(&url, allow_internal_ips)
+        .await
+        .map_err(|e| anyhow!("URL resolution failed: {}", e))?;
 
     debug!("Validating against URL: {}", url);
 
@@ -438,11 +444,16 @@ pub async fn run_direct_validation(
         crate::cli::global::TlsMode::Off | crate::cli::global::TlsMode::Lax
     );
 
-    // Build HTTP client
+    // Build HTTP client with SSRF-safe redirect policy when applicable
     let client = Client::builder()
         .danger_accept_invalid_certs(use_lax_tls)
         .timeout(Duration::from_secs(args.timeout))
         .user_agent(GLOBAL_USER_AGENT.as_str())
+        .redirect(if global_args.allow_internal_ips {
+            reqwest::redirect::Policy::default()
+        } else {
+            crate::validation::ssrf_safe_redirect_policy()
+        })
         .gzip(true)
         .deflate(true)
         .brotli(true)
@@ -569,6 +580,7 @@ pub async fn run_direct_validation(
                     &parser,
                     timeout,
                     args.retries,
+                    global_args.allow_internal_ips,
                 )
                 .await?
             }
