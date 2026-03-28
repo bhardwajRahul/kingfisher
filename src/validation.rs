@@ -153,20 +153,27 @@ pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
             } else {
                 // Hostname: resolve synchronously and check all resolved IPs.
                 let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
-                if let Ok(addrs) = std::net::ToSocketAddrs::to_socket_addrs(&(host, port as u16)) {
-                    for addr in addrs {
-                        if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {
-                            return attempt.error(format!(
-                                "SSRF protection: redirect to '{}' resolves to non-public IP {} — blocked",
-                                host,
-                                addr.ip()
-                            ));
+                match std::net::ToSocketAddrs::to_socket_addrs(&(host, port as u16)) {
+                    Ok(addrs) => {
+                        for addr in addrs {
+                            if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {
+                                return attempt.error(format!(
+                                    "SSRF protection: redirect to '{}' resolves to non-public IP {} — blocked",
+                                    host,
+                                    addr.ip()
+                                ));
+                            }
                         }
                     }
+                    Err(e) => {
+                        // Fail closed: if we cannot resolve the hostname, we
+                        // cannot guarantee the redirect target is SSRF-safe.
+                        return attempt.error(format!(
+                            "SSRF protection: cannot resolve redirect host '{}' ({}) — blocked",
+                            host, e
+                        ));
+                    }
                 }
-                // If DNS resolution fails, allow the redirect — reqwest will
-                // fail on connect anyway, and we don't want to silently block
-                // valid hostnames that are transiently unresolvable.
             }
         }
         attempt.follow()

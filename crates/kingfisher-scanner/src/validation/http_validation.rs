@@ -528,6 +528,13 @@ pub async fn check_url_resolvable(
     Ok(())
 }
 
+/// Backwards-compatible wrapper: checks URL resolvability with SSRF protection
+/// enabled (i.e., `allow_internal_ips = false`).
+#[deprecated(since = "0.1.0", note = "use check_url_resolvable(url, allow_internal_ips) instead")]
+pub async fn check_url_resolvable_safe(url: &Url) -> Result<(), Box<dyn std::error::Error>> {
+    check_url_resolvable(url, false).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
