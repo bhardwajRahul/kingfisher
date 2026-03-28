@@ -401,6 +401,10 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => {
             let octets = v4.octets();
+            // 0.0.0.0/8 — "This host on this network" (RFC 1122); not routable
+            if octets[0] == 0 {
+                return false;
+            }
             // Private ranges (RFC 1918)
             if octets[0] == 10 {
                 return false;
@@ -446,6 +450,12 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
                 return is_ssrf_safe_ip(&IpAddr::V4(mapped));
             }
             let segments = v6.segments();
+            // IPv4-compatible IPv6 addresses (::/96, e.g., ::127.0.0.1) are
+            // deprecated (RFC 4291 §2.5.5.1) and can bypass IPv4-only checks.
+            // Reject the entire ::/96 range.
+            if segments[..6].iter().all(|&s| s == 0) {
+                return false;
+            }
             // Unique local (fc00::/7)
             if segments[0] & 0xfe00 == 0xfc00 {
                 return false;
@@ -505,6 +515,13 @@ mod tests {
     #[test]
     fn rejects_ipv4_unspecified() {
         assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::UNSPECIFIED)));
+    }
+
+    #[test]
+    fn rejects_ipv4_this_network() {
+        // 0.0.0.0/8 — "This host on this network" (RFC 1122)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(0, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(0, 255, 255, 255))));
     }
 
     #[test]
@@ -596,6 +613,16 @@ mod tests {
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0x0101))));
         // ::ffff:8.8.8.8 — IPv4-mapped public (should be allowed)
         assert!(is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0808, 0x0808))));
+    }
+
+    #[test]
+    fn rejects_ipv4_compatible_ipv6() {
+        // ::127.0.0.1 — deprecated IPv4-compatible IPv6 (loopback)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x7f00, 0x0001))));
+        // ::10.0.0.1 — deprecated IPv4-compatible IPv6 (private)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0a00, 0x0001))));
+        // ::8.8.8.8 — even public IPv4 in ::/96 is rejected (deprecated range)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0808, 0x0808))));
     }
 
     #[test]
