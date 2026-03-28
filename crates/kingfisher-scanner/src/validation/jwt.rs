@@ -1,4 +1,4 @@
-use super::http_validation::check_url_resolvable;
+use super::http_validation::{check_url_resolvable, SsrfBlockedError};
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::Utc;
@@ -196,15 +196,11 @@ pub async fn validate_jwt_with(
         ));
     }
 
-    match check_url_resolvable(&url, allow_internal_ips).await {
-        Ok(()) => {}
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("SSRF protection") {
-                return Ok((false, "jwks_uri resolves to non-public or reserved IP".to_string()));
-            }
-            return Err(anyhow!("jwks uri unresolvable: {e}"));
+    if let Err(e) = check_url_resolvable(&url, allow_internal_ips).await {
+        if e.downcast_ref::<SsrfBlockedError>().is_some() {
+            return Ok((false, "jwks_uri resolves to non-public or reserved IP".to_string()));
         }
+        return Err(anyhow!("jwks uri unresolvable: {e}"));
     }
 
     let jwks_resp = client.get(url).send().await.map_err(|e| anyhow!("jwks fetch failed: {e}"))?;

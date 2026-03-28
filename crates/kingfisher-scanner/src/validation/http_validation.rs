@@ -14,6 +14,20 @@ use sha1::{Digest, Sha1};
 use tokio::{net::lookup_host, time::sleep};
 use tracing::debug;
 
+/// Error returned by [`check_url_resolvable`] when an IP address fails the
+/// SSRF safety check. Callers can downcast `Box<dyn Error>` to distinguish
+/// SSRF blocks from other resolution failures.
+#[derive(Debug)]
+pub struct SsrfBlockedError(pub String);
+
+impl std::fmt::Display for SsrfBlockedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for SsrfBlockedError {}
+
 use super::GLOBAL_USER_AGENT;
 use kingfisher_rules::ResponseMatcher;
 
@@ -510,11 +524,11 @@ pub async fn check_url_resolvable(
     // If the host is already an IP literal, check it directly without DNS.
     if let Ok(ip) = host.parse::<std::net::IpAddr>() {
         if !allow_internal_ips && !is_ssrf_safe_ip(&ip) {
-            return Err(format!(
+            return Err(SsrfBlockedError(format!(
                 "SSRF protection: resolved IP {} for host '{}' is not a public address. \
                  Use --allow-internal-ips to permit internal addresses.",
                 ip, host
-            )
+            ))
             .into());
         }
         return Ok(());
@@ -527,12 +541,12 @@ pub async fn check_url_resolvable(
     for socket_addr in lookup_host(&addr).await? {
         resolved_any = true;
         if !allow_internal_ips && !is_ssrf_safe_ip(&socket_addr.ip()) {
-            return Err(format!(
+            return Err(SsrfBlockedError(format!(
                 "SSRF protection: resolved IP {} for host '{}' is not a public address. \
                  Use --allow-internal-ips to permit internal addresses.",
                 socket_addr.ip(),
                 host
-            )
+            ))
             .into());
         }
     }

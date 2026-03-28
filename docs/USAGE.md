@@ -997,7 +997,7 @@ By default, validation requests are rejected if the target hostname resolves to 
 | Range | Description |
 | ----- | ----------- |
 | `127.0.0.0/8`, `::1` | Loopback (localhost) |
-| `0.0.0.0`, `::` | Unspecified |
+| `0.0.0.0/8`, `::` | Unspecified / "this network" (RFC 1122) |
 | `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` | Private networks (RFC 1918) |
 | `169.254.0.0/16`, `fe80::/10` | Link-local (includes cloud metadata at `169.254.169.254`) |
 | `100.64.0.0/10` | CGNAT / Shared Address Space |

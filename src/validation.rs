@@ -135,12 +135,9 @@ pub struct ValidationClients {
 /// hardening step would be a pinned/custom resolver so that validated IPs are
 /// exactly those used for the outbound connection.
 ///
-/// **Note:** reqwest runs redirect callbacks on Tokio worker threads, so the
-/// blocking DNS lookup here can briefly stall other async tasks on that thread.
-/// This is acceptable for a scanner workload because DNS is typically cached
-/// by the system resolver (<5ms), redirect hops are infrequent, and the
-/// alternative (disabling automatic redirects and following them manually with
-/// async DNS) would add significant complexity for minimal practical benefit.
+/// **Note:** reqwest runs redirect callbacks on Tokio worker threads. The DNS
+/// lookup uses `tokio::task::block_in_place` so the runtime can compensate
+/// (e.g., spawn additional worker threads) rather than silently stalling.
 pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
         // Cap redirect depth (reqwest default is 10)
@@ -159,9 +156,14 @@ pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
                     ));
                 }
             } else {
-                // Hostname: resolve synchronously and check all resolved IPs.
+                // Hostname: resolve and check all resolved IPs. We use
+                // block_in_place to signal Tokio that this thread is about to
+                // block on synchronous DNS, so the runtime can compensate.
                 let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
-                match std::net::ToSocketAddrs::to_socket_addrs(&(host, port)) {
+                let dns_result = tokio::task::block_in_place(|| {
+                    std::net::ToSocketAddrs::to_socket_addrs(&(host, port))
+                });
+                match dns_result {
                     Ok(addrs) => {
                         for addr in addrs {
                             if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {
