@@ -352,6 +352,8 @@ jobs:
     name: Public GitHub Release
     needs: [linux-x64, linux-arm64, windows, macos-x64, macos-arm64]
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     permissions:
       contents: write
       id-token: write
@@ -405,3 +407,23 @@ jobs:
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: 'target/release/*'
+
+  # ──────────────── Publish Docker image ────────────────
+  publish-docker:
+    needs: [release]
+    uses: ./.github/workflows/release-docker.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    permissions:
+      contents: read
+      packages: write
+
+  # ──────────────── Publish PyPI wheels ────────────────
+  publish-pypi:
+    needs: [release]
+    uses: ./.github/workflows/pypi.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    permissions:
+      contents: read
+      id-token: write
