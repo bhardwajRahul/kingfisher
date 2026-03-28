@@ -195,3 +195,4 @@ rand = { version = "0.10", optional = true }
 [dev-dependencies]
 pretty_assertions = "1.4"
 tempfile = "3.23"
+tokio = { version = "1.48", features = ["macros", "rt"] }

@@ -263,7 +263,7 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         ignore_certs: false,
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
-        allow_internal_ips: false,
+        allow_internal_ips: true,
     };
     let update_status = UpdateStatus::default();
 

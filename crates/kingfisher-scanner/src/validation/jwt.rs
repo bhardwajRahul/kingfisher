@@ -202,7 +202,7 @@ pub async fn validate_jwt_with(
     if !allow_internal_ips {
         for addr in lookup_host((jwks_host.as_str(), 443)).await? {
             if !is_ssrf_safe_ip(&addr.ip()) {
-                return Ok((false, "jwks_uri resolves to private or link-local IP".to_string()));
+                return Ok((false, "jwks_uri resolves to non-public or reserved IP".to_string()));
             }
         }
     }

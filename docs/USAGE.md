@@ -1002,7 +1002,9 @@ By default, validation requests are rejected if the target hostname resolves to 
 | `169.254.0.0/16`, `fe80::/10` | Link-local (includes cloud metadata at `169.254.169.254`) |
 | `100.64.0.0/10` | CGNAT / Shared Address Space |
 | `fc00::/7` | IPv6 unique-local |
-| Multicast, broadcast, documentation, benchmarking ranges | Other reserved ranges |
+| `2001:db8::/32` | IPv6 documentation (RFC 3849) |
+| `::ffff:0:0/96` | IPv4-mapped IPv6 (checked against IPv4 rules) |
+| Multicast, broadcast, benchmarking ranges | Other reserved ranges |
 
 HTTP redirects to IP-literal addresses in these ranges are also blocked.
 

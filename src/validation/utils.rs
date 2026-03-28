@@ -1,10 +1,7 @@
-use reqwest::Url;
-use tokio::net::lookup_host;
-
 use crate::validation::SerializableCaptures;
 
 // Re-export from the scanner crate so the rest of this module can use it.
-pub use kingfisher_scanner::validation::is_ssrf_safe_ip;
+pub use kingfisher_scanner::validation::{check_url_resolvable, is_ssrf_safe_ip};
 
 /// Return (NAME, value, start, end) for the captures we care about.
 ///
@@ -109,31 +106,6 @@ pub fn find_closest_variable(
     best_before.or(best_overlap).or(best_after).map(|(_, value)| value)
 }
 
-pub async fn check_url_resolvable(
-    url: &Url,
-    allow_internal_ips: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let host = url.host_str().ok_or("No host in URL")?;
-    let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
-    let addr = format!("{}:{}", host, port);
-    let mut resolved_any = false;
-    for socket_addr in lookup_host(&addr).await? {
-        resolved_any = true;
-        if !allow_internal_ips && !is_ssrf_safe_ip(&socket_addr.ip()) {
-            return Err(format!(
-                "SSRF protection: resolved IP {} for host '{}' is not a public address. \
-                 Use --allow-internal-ips to permit internal addresses.",
-                socket_addr.ip(),
-                host
-            )
-            .into());
-        }
-    }
-    if !resolved_any {
-        return Err("Failed to resolve URL".into());
-    }
-    Ok(())
-}
 
 // -----------------------------------------------------------------------------
 // tests
@@ -144,6 +116,7 @@ mod tests {
     use super::*;
     use crate::matcher::{SerializableCapture, SerializableCaptures};
     use pretty_assertions::assert_eq;
+    use reqwest::Url;
     use smallvec::smallvec;
 
     #[test]

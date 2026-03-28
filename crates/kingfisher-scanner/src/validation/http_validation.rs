@@ -440,6 +440,11 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             true
         }
         IpAddr::V6(v6) => {
+            // IPv4-mapped IPv6 addresses (::ffff:x.x.x.x) — apply IPv4 checks
+            // to prevent bypassing via e.g. ::ffff:127.0.0.1 or ::ffff:10.0.0.1
+            if let Some(mapped) = v6.to_ipv4_mapped() {
+                return is_ssrf_safe_ip(&IpAddr::V4(mapped));
+            }
             let segments = v6.segments();
             // Unique local (fc00::/7)
             if segments[0] & 0xfe00 == 0xfc00 {
@@ -447,6 +452,10 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             }
             // Link-local (fe80::/10)
             if segments[0] & 0xffc0 == 0xfe80 {
+                return false;
+            }
+            // Documentation (2001:db8::/32)
+            if segments[0] == 0x2001 && segments[1] == 0x0db8 {
                 return false;
             }
             true
@@ -566,6 +575,27 @@ mod tests {
     #[test]
     fn rejects_ipv6_link_local() {
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv6_documentation() {
+        // 2001:db8::/32 — documentation range (RFC 3849)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1))));
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0xffff, 0, 0, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv4_mapped_ipv6() {
+        // ::ffff:127.0.0.1 — IPv4-mapped loopback
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 0x0001))));
+        // ::ffff:10.0.0.1 — IPv4-mapped private
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0a00, 0x0001))));
+        // ::ffff:169.254.169.254 — IPv4-mapped metadata endpoint
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xa9fe, 0xa9fe))));
+        // ::ffff:192.168.1.1 — IPv4-mapped private
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0x0101))));
+        // ::ffff:8.8.8.8 — IPv4-mapped public (should be allowed)
+        assert!(is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x0808, 0x0808))));
     }
 
     #[test]

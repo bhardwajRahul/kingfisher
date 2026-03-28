@@ -123,6 +123,16 @@ pub struct ValidationClients {
 }
 
 /// Build a redirect policy that blocks redirects to non-public IP addresses.
+///
+/// **Known limitation:** This only validates IP-literal redirect targets
+/// (e.g., `http://10.0.0.1/...`). Redirects to *hostnames* that resolve to
+/// internal IPs cannot be checked here because reqwest's redirect callback is
+/// synchronous and cannot perform async DNS resolution. The initial request URL
+/// is always validated via `check_url_resolvable` before the request is made,
+/// but a redirect chain to an attacker-controlled hostname that resolves to an
+/// internal IP would bypass this check. Fully closing this gap requires
+/// disabling automatic redirects and manually following them with async DNS
+/// validation at each hop — a future enhancement.
 fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
         if let Some(host) = attempt.url().host_str() {
@@ -135,9 +145,6 @@ fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
                     ));
                 }
             }
-            // For hostnames, we cannot do async DNS in the sync redirect
-            // callback. The pre-request check_url_resolvable call validates
-            // DNS-resolved IPs before the initial request is made.
         }
         attempt.follow()
     })
