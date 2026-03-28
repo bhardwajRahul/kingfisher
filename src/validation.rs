@@ -122,22 +122,54 @@ pub struct ValidationClients {
     pub allow_internal_ips: bool,
 }
 
-/// Build a redirect policy that prevents SSRF via HTTP redirects.
+/// Build a redirect policy that validates redirect targets against SSRF rules.
 ///
-/// Automatic redirects are blocked entirely when SSRF protection is enabled.
-/// An attacker could supply a URL that initially points to a public endpoint
-/// but redirects to an internal/private address (including via a hostname that
-/// resolves to a private IP). Because reqwest's redirect callback is synchronous
-/// and cannot perform async DNS resolution, selectively filtering redirect
-/// targets is insufficient. Blocking all redirects is the safe default;
-/// credential validation endpoints rarely require redirect-following.
+/// Each redirect hop is checked: IP-literal targets are validated directly via
+/// `is_ssrf_safe_ip`, and hostname targets are resolved synchronously via
+/// `std::net::ToSocketAddrs` so that all resolved IPs can be checked. This
+/// closes the hostname-redirect SSRF gap (e.g., a public URL that 302s to an
+/// attacker-controlled hostname resolving to `169.254.169.254`).
+///
+/// **Note:** Using blocking DNS in the redirect callback is acceptable because
+/// reqwest runs redirect callbacks on its connection thread, not the tokio
+/// event loop, and the DNS latency is negligible relative to the HTTP request.
 pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
+        // Cap redirect depth (reqwest default is 10)
+        if attempt.previous().len() >= 10 {
+            return attempt.error("too many redirects");
+        }
+        // Extract URL info before potentially moving `attempt`.
         let url = attempt.url().clone();
-        attempt.error(format!(
-            "SSRF protection: redirect to {} blocked (automatic redirects disabled)",
-            url
-        ))
+        if let Some(host) = url.host_str() {
+            if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+                // IP-literal: check directly without DNS.
+                if !kingfisher_scanner::validation::is_ssrf_safe_ip(&ip) {
+                    return attempt.error(format!(
+                        "SSRF protection: redirect to non-public IP {} blocked",
+                        ip
+                    ));
+                }
+            } else {
+                // Hostname: resolve synchronously and check all resolved IPs.
+                let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
+                if let Ok(addrs) = std::net::ToSocketAddrs::to_socket_addrs(&(host, port as u16)) {
+                    for addr in addrs {
+                        if !kingfisher_scanner::validation::is_ssrf_safe_ip(&addr.ip()) {
+                            return attempt.error(format!(
+                                "SSRF protection: redirect to '{}' resolves to non-public IP {} — blocked",
+                                host,
+                                addr.ip()
+                            ));
+                        }
+                    }
+                }
+                // If DNS resolution fails, allow the redirect — reqwest will
+                // fail on connect anyway, and we don't want to silently block
+                // valid hostnames that are transiently unresolvable.
+            }
+        }
+        attempt.follow()
     })
 }
 

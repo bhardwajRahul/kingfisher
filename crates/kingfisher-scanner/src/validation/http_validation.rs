@@ -484,8 +484,9 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
 /// DNS resolution when connecting. A DNS-rebinding attack could theoretically
 /// return a public IP for this check and a private IP for the actual connection.
 /// Fully eliminating this TOCTOU gap would require a custom resolver/connector
-/// that pins resolved IPs; automatic redirect blocking (see
-/// `ssrf_safe_redirect_policy`) mitigates the most practical exploitation path.
+/// that pins resolved IPs. In practice, callers should also disable automatic
+/// redirects or use a redirect-blocking policy on the HTTP client to mitigate
+/// the most practical exploitation paths.
 pub async fn check_url_resolvable(
     url: &Url,
     allow_internal_ips: bool,
