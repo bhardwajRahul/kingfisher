@@ -43,14 +43,14 @@ jobs:
       env:
         # workflow_call passes tag here; workflow_dispatch may or may not
         CALL_TAG: ${{ inputs.tag }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         if [[ -n "${CALL_TAG}" ]]; then
           RAW_TAG="${CALL_TAG}"
         else
-          # workflow_dispatch without a tag → query latest release (no auth
-          # needed for public repos)
-          RAW_TAG=$(curl -sf "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name)
+          # workflow_dispatch without a tag → query latest release
+          RAW_TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)
         fi
 
         if [[ ! "${RAW_TAG}" =~ ^v[0-9A-Za-z._+-]+$ ]]; then
