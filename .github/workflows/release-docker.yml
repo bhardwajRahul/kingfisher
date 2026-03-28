@@ -5,11 +5,15 @@ name: Publish Docker image
 # Triggers
 ###############################################################################
 on:
-  # 1️⃣  Traditional: run automatically when a GitHub Release is published
-  release:
-    types: [published]
+  # Called automatically by the release workflow after a successful build
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag to push (e.g. v1.2.3)"
+        required: true
+        type: string
 
-  # 2️⃣  Manual: “Run workflow” button or `gh workflow run`
+  # Manual: "Run workflow" button or `gh workflow run`
   workflow_dispatch:
     inputs:
       tag:
@@ -19,7 +23,7 @@ on:
 
 ###############################################################################
 permissions:
-  contents: read       # needed for checkout + GH API
+  contents: read       # needed for checkout
 
 ###############################################################################
 jobs:
@@ -31,24 +35,22 @@ jobs:
 
     steps:
     # -----------------------------------------------------------------------
-    # Decide which tag we’re going to publish
+    # Decide which tag we're going to publish
     # -----------------------------------------------------------------------
     - name: Determine tag
       id: tag
       shell: bash
       env:
-        # populated only for workflow_dispatch
-        MANUAL_TAG: ${{ github.event.inputs.tag }}
-        RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+        # workflow_call passes tag here; workflow_dispatch may or may not
+        CALL_TAG: ${{ inputs.tag }}
       run: |
         set -euo pipefail
-        if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
-          RAW_TAG="${RELEASE_TAG_NAME}"
-        elif [[ -n "${MANUAL_TAG}" ]]; then
-          RAW_TAG="${MANUAL_TAG}"
+        if [[ -n "${CALL_TAG}" ]]; then
+          RAW_TAG="${CALL_TAG}"
         else
-          # manual w/o tag → ask GitHub API for latest release tag
-          RAW_TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)
+          # workflow_dispatch without a tag → query latest release (no auth
+          # needed for public repos)
+          RAW_TAG=$(curl -sf "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name)
         fi
 
         if [[ ! "${RAW_TAG}" =~ ^v[0-9A-Za-z._+-]+$ ]]; then

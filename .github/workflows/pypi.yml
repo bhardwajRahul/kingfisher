@@ -3,6 +3,12 @@ name: pypi-wheels
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to package (e.g., v1.2.3)"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -24,15 +30,16 @@ jobs:
         id: version
         shell: bash
         env:
-          INPUT_TAG: ${{ github.event.inputs.tag || '' }}
+          INPUT_TAG: ${{ inputs.tag || '' }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name || '' }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG_NAME}" ]]; then
-            TAG="${RELEASE_TAG_NAME}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_TAG}" ]]; then
+          if [[ -n "${INPUT_TAG}" ]]; then
+            # workflow_call or workflow_dispatch with explicit tag
             TAG="${INPUT_TAG}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG_NAME}" ]]; then
+            TAG="${RELEASE_TAG_NAME}"
           else
             TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)
           fi
