@@ -394,6 +394,8 @@ pub fn validate_response(
 
 /// Returns `true` if the IP address is safe for outbound validation requests
 /// (i.e., it is a publicly routable address, not internal/reserved).
+///
+/// Covers all IANA special-purpose ranges from RFC 6890 and RFC 8190.
 pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
     if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
         return false;
@@ -423,8 +425,16 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             if octets[0] == 100 && (64..=127).contains(&octets[1]) {
                 return false;
             }
+            // IANA Special Purpose (192.0.0.0/24, RFC 6890)
+            if octets[0] == 192 && octets[1] == 0 && octets[2] == 0 {
+                return false;
+            }
             // Documentation ranges (RFC 5737)
             if octets[0] == 192 && octets[1] == 0 && octets[2] == 2 {
+                return false;
+            }
+            // 6to4 relay anycast (192.88.99.0/24, RFC 7526 — deprecated)
+            if octets[0] == 192 && octets[1] == 88 && octets[2] == 99 {
                 return false;
             }
             if octets[0] == 198 && octets[1] == 51 && octets[2] == 100 {
@@ -466,6 +476,10 @@ pub fn is_ssrf_safe_ip(ip: &IpAddr) -> bool {
             }
             // Site-local (fec0::/10) — deprecated (RFC 3879) but still non-routable
             if segments[0] & 0xffc0 == 0xfec0 {
+                return false;
+            }
+            // Benchmarking (2001:2::/48, RFC 5180)
+            if segments[0] == 0x2001 && segments[1] == 0x0002 && segments[2] == 0 {
                 return false;
             }
             // Documentation (2001:db8::/32)
@@ -677,6 +691,24 @@ mod tests {
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0a00, 0x0001))));
         // ::8.8.8.8 — even public IPv4 in ::/96 is rejected (deprecated range)
         assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0808, 0x0808))));
+    }
+
+    #[test]
+    fn rejects_iana_special_purpose() {
+        // 192.0.0.0/24 — IANA special-purpose (RFC 6890)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(192, 0, 0, 1))));
+    }
+
+    #[test]
+    fn rejects_6to4_relay_anycast() {
+        // 192.88.99.0/24 — 6to4 relay anycast (RFC 7526, deprecated)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V4(Ipv4Addr::new(192, 88, 99, 1))));
+    }
+
+    #[test]
+    fn rejects_ipv6_benchmarking() {
+        // 2001:2::/48 — benchmarking (RFC 5180)
+        assert!(!is_ssrf_safe_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0x0002, 0, 0, 0, 0, 0, 1))));
     }
 
     #[test]

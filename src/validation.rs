@@ -130,9 +130,12 @@ pub struct ValidationClients {
 /// closes the hostname-redirect SSRF gap (e.g., a public URL that 302s to an
 /// attacker-controlled hostname resolving to `169.254.169.254`).
 ///
-/// **Note:** Using blocking DNS in the redirect callback is acceptable because
-/// reqwest runs redirect callbacks on its connection thread, not the tokio
-/// event loop, and the DNS latency is negligible relative to the HTTP request.
+/// **Note:** reqwest runs redirect callbacks on Tokio worker threads, so the
+/// blocking DNS lookup here can briefly stall other async tasks on that thread.
+/// This is acceptable for a scanner workload because DNS is typically cached
+/// by the system resolver (<5ms), redirect hops are infrequent, and the
+/// alternative (disabling automatic redirects and following them manually with
+/// async DNS) would add significant complexity for minimal practical benefit.
 pub(crate) fn ssrf_safe_redirect_policy() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::custom(|attempt| {
         // Cap redirect depth (reqwest default is 10)
