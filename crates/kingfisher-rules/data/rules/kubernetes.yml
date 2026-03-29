@@ -5,8 +5,6 @@ rules:
       (?xi)
       \b
       (?:
-        server
-      |
         kube(?:rnetes)?(?:_api)?_server
       |
         api_server
@@ -28,7 +26,7 @@ rules:
     confidence: medium
     visible: false
     examples:
-      - "server: https://10.96.0.1:443"
+      - "kube_server: https://10.96.0.1:443"
       - KUBE_API_SERVER=https://api.cluster.example.com:6443
     references:
       - https://kubernetes.io/docs/reference/access-authn-authz/authentication/

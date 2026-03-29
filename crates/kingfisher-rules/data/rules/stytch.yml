@@ -25,7 +25,7 @@ rules:
       (
         secret-(?:test|live)-[A-Za-z0-9_-]{35}=?
       )
-      \b
+      (?:[^A-Za-z0-9_=-]|$)
     pattern_requirements:
       min_digits: 2
       min_uppercase: 1
