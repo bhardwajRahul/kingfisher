@@ -6,7 +6,10 @@ rules:
       \b
       (
         [a-z0-9]
-        [a-z0-9-]{1,62}
+        (?:
+          [a-z0-9-]{0,61}
+          [a-z0-9]
+        )?
         \.zendesk\.com
       )
       \b
@@ -80,7 +83,7 @@ rules:
       - https://developer.zendesk.com/api-reference/ticketing/account-configuration/current_user/
     depends_on_rule:
       - rule_id: kingfisher.zendesk.1
-        variable: ZENDESK_SUBDOMAIN
+        variable: ZENDESK_HOST
       - rule_id: kingfisher.zendesk.2
         variable: ZENDESK_EMAIL
     validation:
@@ -88,7 +91,7 @@ rules:
       content:
         request:
           method: GET
-          url: 'https://{{ ZENDESK_SUBDOMAIN }}/api/v2/users/me.json'
+          url: 'https://{{ ZENDESK_HOST }}/api/v2/users/me.json'
           headers:
             Accept: application/json
             Authorization: 'Basic {{ ZENDESK_EMAIL | append: "/token:" | append: TOKEN | b64enc }}'

@@ -51,7 +51,7 @@ rules:
             extract:
               AUTHORIZATION_ID:
                 type: Regex
-                pattern: '"id":"([^"]+)"(?:.|[\n\r]){0,2048}?"token":"{{ TOKEN }}"'
+                pattern: '"id":"([^"]+)"[^{}]{0,2048}?"token":"{{ TOKEN }}"'
           - name: revoke_authorization
             request:
               method: DELETE
@@ -108,7 +108,7 @@ rules:
             extract:
               AUTHORIZATION_ID:
                 type: Regex
-                pattern: '"id":"([^"]+)"(?:.|[\n\r]){0,2048}?"token":"{{ TOKEN }}"'
+                pattern: '"id":"([^"]+)"[^{}]{0,2048}?"token":"{{ TOKEN }}"'
           - name: revoke_authorization
             request:
               method: DELETE
