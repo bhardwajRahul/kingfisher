@@ -427,7 +427,11 @@ jobs:
           mkdir -p assets
           gh release download "${TAG_NAME}" \
             --repo "${{ github.repository }}" \
-            --dir assets
+            --dir assets \
+            --pattern '*.tgz' \
+            --pattern '*.deb' \
+            --pattern '*.rpm' \
+            --pattern '*.zip'
 
       - name: Compute SHA256 hashes
         id: hash

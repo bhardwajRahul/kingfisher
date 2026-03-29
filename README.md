@@ -315,7 +315,7 @@ Each GitHub release includes a `multiple.intoto.jsonl` provenance file. Verify a
 go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@latest
 
 # Download the artifact and provenance from the release
-gh release download v1.91.0 --repo mongodb/kingfisher \
+gh release download <version> --repo mongodb/kingfisher \
   --pattern 'kingfisher-linux-x64.tgz' \
   --pattern 'multiple.intoto.jsonl'
 
@@ -330,7 +330,7 @@ slsa-verifier verify-artifact kingfisher-linux-x64.tgz \
 Release artifacts also have GitHub build attestations, verifiable with the GitHub CLI:
 
 ```bash
-gh release download v1.91.0 --repo mongodb/kingfisher \
+gh release download <version> --repo mongodb/kingfisher \
   --pattern 'kingfisher-linux-x64.tgz'
 
 gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher

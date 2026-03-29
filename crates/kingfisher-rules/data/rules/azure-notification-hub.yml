@@ -149,7 +149,8 @@ rules:
               {%- assign se = "" | unix_timestamp | plus: 300 -%}
               {%- capture to_sign -%}{{ uri | url_encode }}
               {{ se }}{%- endcapture -%}
-              {%- capture auth -%}SharedAccessSignature sr={{ uri | url_encode }}&sig={{ to_sign | hmac_sha256: TOKEN | url_encode }}&se={{ se }}&skn={{ NH_KEY_NAME | url_encode }}{%- endcapture -%}
+              {%- assign key_bytes = TOKEN | b64dec -%}
+              {%- capture auth -%}SharedAccessSignature sr={{ uri | url_encode }}&sig={{ to_sign | hmac_sha256: key_bytes | url_encode }}&se={{ se }}&skn={{ NH_KEY_NAME | url_encode }}{%- endcapture -%}
               {{ auth | strip_newlines }}
           response_matcher:
             - report_response: true

@@ -32,7 +32,7 @@ rules:
           method: GET
           url: https://api.fullstory.com/me
           headers:
-            Authorization: Basic {{ TOKEN }}
+            Authorization: Basic {{ TOKEN | append: ':' | b64enc }}
             Accept: application/json
           response_matcher:
             - report_response: true
