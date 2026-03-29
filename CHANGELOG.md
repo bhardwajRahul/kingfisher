@@ -3,8 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.92.0]
-- Added new built-in rules for Etsy, Flutterwave, Freemius, JFrog, Kraken, KuCoin, and Trello, plus recent Betterleaks-derived additions including Octopus Deploy, OpenShift, Private AI, SettleMint, Sidekiq, and Polymarket.
+- Added new built-in rules for Etsy, Flutterwave, Freemius, JFrog, Kraken, KuCoin, Trello, Octopus Deploy, OpenShift, Private AI, SettleMint, Sidekiq, and Polymarket.
 - Added live HTTP validation for Etsy, JFrog, Octopus Deploy, OpenShift, and Private AI where provider documentation supported reliable token-only checks.
+- Added detection + validation rules for Anthropic Admin, Azure Speech, Azure Translator, Databento, DataStax Astra, DevCycle, Fullstory, GC Notify, and Stytch; built-in runtime rule count is now 601 with `--confidence=low`.
+- Added Heroku token revocation support for both legacy UUID-format tokens and `HRKU-` platform tokens via the OAuth authorizations API.
 
 ## [v1.91.0]
 - Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. HTTP redirect targets are DNS-resolved and validated against the same SSRF rules. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.

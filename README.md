@@ -4,7 +4,7 @@
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-548-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
+[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-601-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
 [![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)<br>
 
 
@@ -301,6 +301,40 @@ Kingfisher supports multiple installation methods:
 - **Compile from source**: Build with `make` for your platform
 
 **For complete installation instructions and pre-commit hook setup, see [docs/INSTALLATION.md](docs/INSTALLATION.md).**
+
+## Verifying Releases
+
+Every Kingfisher release includes [SLSA v3](https://slsa.dev) provenance and GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
+
+### SLSA provenance
+
+Each GitHub release includes a `multiple.intoto.jsonl` provenance file. Verify any release artifact with [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier):
+
+```bash
+# Install slsa-verifier
+go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@latest
+
+# Download the artifact and provenance from the release
+gh release download v1.91.0 --repo mongodb/kingfisher \
+  --pattern 'kingfisher-linux-x64.tgz' \
+  --pattern 'multiple.intoto.jsonl'
+
+# Verify
+slsa-verifier verify-artifact kingfisher-linux-x64.tgz \
+  --provenance-path multiple.intoto.jsonl \
+  --source-uri github.com/mongodb/kingfisher
+```
+
+### GitHub attestations
+
+Release artifacts also have GitHub build attestations, verifiable with the GitHub CLI:
+
+```bash
+gh release download v1.91.0 --repo mongodb/kingfisher \
+  --pattern 'kingfisher-linux-x64.tgz'
+
+gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
+```
 
 # Detection Rules
 

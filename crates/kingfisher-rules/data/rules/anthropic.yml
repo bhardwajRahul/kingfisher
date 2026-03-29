@@ -48,3 +48,37 @@ rules:
                 - '"type":"message"'
                 - 'credit balance is too low'
           url: https://api.anthropic.com/v1/messages
+
+  - name: Anthropic Admin API Key
+    id: kingfisher.anthropic.2
+    pattern: |
+      (?xi)
+      (
+        sk-ant-admin(?:\d{2,4})?-[A-Za-z0-9_-]{40,}
+      )
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - sk-ant-admin03-4mB9zY2Qx8LmN7pR5sT1uV6wX0aBcDeFgHiJkLmNoPqRsTuVwXyZ1234
+    references:
+      - https://docs.anthropic.com/en/api/administration-api
+      - https://docs.anthropic.com/en/api/admin-api/organization/get-me
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.anthropic.com/v1/organizations/me
+          headers:
+            x-api-key: '{{ TOKEN }}'
+            anthropic-version: "2023-06-01"
+            content-type: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
