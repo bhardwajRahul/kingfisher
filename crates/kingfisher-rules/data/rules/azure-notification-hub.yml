@@ -63,7 +63,9 @@ rules:
     pattern: |
       (?xi)
       \b
+      ["']?
       SharedAccessKeyName
+      ["']?
       \s*[:=]\s*
       ["']?
       (

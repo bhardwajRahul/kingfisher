@@ -22,8 +22,8 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - BUNDLE_ENTERPRISE__CONTRIBSYS__COM=cafebabe:deadbeef
-      - 'export BUNDLE_GEMS__CONTRIBSYS__COM="cafeb4b3:d3adb33f"'
+      - BUNDLE_ENTERPRISE__CONTRIBSYS__COM=cafe1234:dead5678
+      - 'export BUNDLE_GEMS__CONTRIBSYS__COM="ca1eb4b3:d3ad533f"'
 
   - name: Sidekiq Sensitive URL
     id: kingfisher.sidekiq.2
@@ -54,5 +54,5 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - https://cafebabe:deadbeef@gems.contribsys.com/
-      - http://cafeb4b3:d3adb33f@enterprise.contribsys.com:80/path?param1=true
+      - https://cafe1234:dead5678@gems.contribsys.com/
+      - http://ca1eb4b3:d3ad533f@enterprise.contribsys.com:80/path?param1=true

@@ -1,0 +1,31 @@
+rules:
+  - name: Kraken API Secret
+    id: kingfisher.kraken.1
+    pattern: |
+      (?xi)
+      \b
+      kraken
+      (?:.|[\n\r]){0,32}?
+      (?:
+        api[_-]?secret |
+        secret |
+        private[_-]?key |
+        token
+      )
+      (?:.|[\n\r]){0,12}?
+      (
+        [A-Za-z0-9+/=_-]{80,90}
+      )
+      (?:[^A-Za-z0-9+/=_-]|$)
+    pattern_requirements:
+      min_digits: 4
+      min_uppercase: 2
+      min_lowercase: 8
+    min_entropy: 4.0
+    confidence: medium
+    examples:
+      - KRAKEN_API_SECRET=dGhpcy1sb29rcy1saWtlLWEtYmFzZTY0LWtyYWtlbi1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaA==
+      - kraken_secret="Aq1Bq2Cr3Ds4Et5Fu6Gv7Hw8Ix9Jy0Kz1La2Mb3Nc4Od5Pe6Qf7Rg8Sh9Ti0Uj1Vk2Wm3Xn4Yo5Za6Bc7"
+    references:
+      - https://docs.kraken.com/api/docs/guides/spot-rest-auth/
+      - https://docs.kraken.com/api/docs/rest-api/get-account-balance/

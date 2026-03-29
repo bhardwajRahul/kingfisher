@@ -8,9 +8,9 @@ rules:
         (?:.|[\n\r]){0,128}?
         --server=
       |
-        \bopenshift\b
+        \bopenshift(?:[_-]?(?:server|api(?:[_-]?server)?|cluster(?:[_-]?url)?))?\b
         (?:.|[\n\r]){0,32}?
-        \b(?:server|api(?:[_-]?server)?|cluster(?:[_-]?url)?)\b
+        \b(?:server|api(?:[_-]?server)?|cluster(?:[_-]?url)?)?\b
         \s*[:=]\s*
       )
       ["']?
@@ -43,7 +43,7 @@ rules:
       (
         sha256~[A-Za-z0-9_-]{43}
       )
-      \b
+      (?:[^A-Za-z0-9_-]|$)
     pattern_requirements:
       min_digits: 3
       min_uppercase: 1

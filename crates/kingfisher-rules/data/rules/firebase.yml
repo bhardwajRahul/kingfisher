@@ -52,7 +52,7 @@ rules:
     confidence: medium
     examples:
       - FCM_DEVICE_TOKEN=AbCdEfGhIjKlMnOpQrStUv:APA91bZaYxWvUtSrQpOnMlKjIhGfEdCbA9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-AaBbCcDdEeFfGgHhIiJj
-      - 'registrationToken: "ZyXwVuTsRqPoNmLkJiHgFe:APA91bAbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-KkLlMmNnOoPpQqRrSs"'
+      - 'registrationToken: "AbCdEfGhIjKlMnOpQrStUv:APA91bZaYxWvUtSrQpOnMlKjIhGfEdCbA9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-AaBbCcDdEeFfGgHhIiJj"'
     references:
       - https://firebase.google.com/docs/cloud-messaging/manage-tokens
     # Registration tokens can’t be safely live-validated using only the token value.

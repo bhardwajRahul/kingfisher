@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.92.0]
+- Added new built-in rules for Etsy, Flutterwave, Freemius, JFrog, Kraken, KuCoin, and Trello, plus recent Betterleaks-derived additions including Octopus Deploy, OpenShift, Private AI, SettleMint, Sidekiq, and Polymarket.
+- Added live HTTP validation for Etsy, JFrog, Octopus Deploy, OpenShift, and Private AI where provider documentation supported reliable token-only checks.
+
 ## [v1.91.0]
 - Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. HTTP redirect targets are DNS-resolved and validated against the same SSRF rules. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.
 - Consolidated JWT SSRF checks to use the shared `is_ssrf_safe_ip` function, covering additional reserved ranges (CGNAT, documentation, benchmarking, IPv6 unique-local).
