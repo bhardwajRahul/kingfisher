@@ -4,7 +4,7 @@ rules:
     pattern: |
       (?xi)
       \b
-      (?:fullstory|fs_api_key|fullstory_api_key)
+      (?:fullstory|fs_api|fullstory_api)
       (?:.|[\n\r]){0,32}?
       (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|AUTHORIZATION|API)
       (?:.|[\n\r]){0,16}?
