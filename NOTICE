@@ -47,10 +47,16 @@ Certain detection rules:
  * crates/kingfisher-rules/data/rules/instagram.yml
  * crates/kingfisher-rules/data/rules/iterable.yml
  * crates/kingfisher-rules/data/rules/lokalise.yml
+ * crates/kingfisher-rules/data/rules/azure-notification-hub.yml
+ * crates/kingfisher-rules/data/rules/firebase.yml
+ * crates/kingfisher-rules/data/rules/helpscout.yml
+ * crates/kingfisher-rules/data/rules/kubernetes.yml
  * crates/kingfisher-rules/data/rules/pendo.yml
  * crates/kingfisher-rules/data/rules/razorpay.yml
  * crates/kingfisher-rules/data/rules/spotify.yml
  * crates/kingfisher-rules/data/rules/wakatime.yml
+ * crates/kingfisher-rules/data/rules/zapier.yml
+ * crates/kingfisher-rules/data/rules/zendesk.yml
 
 are derived in part from Titus (https://github.com/praetorian-inc/titus),
 which is licensed under the Apache License, Version 2.0.
