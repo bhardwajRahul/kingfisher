@@ -7,6 +7,13 @@ All notable changes to this project will be documented in this file.
 - Added live HTTP validation for Etsy, JFrog, Octopus Deploy, OpenShift, and Private AI where provider documentation supported reliable token-only checks.
 - Added detection + validation rules for Anthropic Admin, Azure Speech, Azure Translator, Databento, DataStax Astra, DevCycle, Fullstory, GC Notify, and Stytch; built-in runtime rule count is now 601 with `--confidence=low`.
 - Added Heroku token revocation support for both legacy UUID-format tokens and `HRKU-` platform tokens via the OAuth authorizations API.
+- Added `hmac_sha256_b64key` Liquid filter for HMAC-SHA256 signing with base64-encoded keys (decodes key to raw bytes before signing), enabling correct Azure Notification Hub SAS validation.
+- Integrated SLSA v3 provenance generation into the release workflow; hash computation now scopes to build artifacts only for idempotent re-runs.
+- Removed Zapier webhook live validation (GET to a catch hook triggers the Zap).
+- Hardened Heroku revocation regex to prevent crossing JSON object boundaries when extracting authorization IDs.
+- Fixed Zendesk subdomain regex to reject trailing hyphens; renamed `ZENDESK_SUBDOMAIN` to `ZENDESK_HOST` for clarity.
+- Fixed Stytch and Polymarket trailing `\b` boundaries that prevented matching base64-padded secrets ending with `=`.
+- Tightened Kubernetes API Server URL pattern to require kube-specific identifiers, preventing bootstrap tokens from binding to unrelated `server:` entries.
 
 ## [v1.91.0]
 - Added SSRF protection for credential validation: outbound HTTP requests now block connections to loopback, private, link-local, and other non-public IP addresses. HTTP redirect targets are DNS-resolved and validated against the same SSRF rules. Use `--allow-internal-ips` to opt out when scanning internal infrastructure.

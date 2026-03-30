@@ -182,6 +182,45 @@ impl Filter for HmacSha256Filter {
     }
 }
 
+// ── HMAC-SHA256 with base64-encoded key ──────────────────────────────────
+#[derive(Debug, FilterParameters)]
+struct HmacB64KeyArgs {
+    #[parameter(description = "Base64-encoded HMAC key", arg_type = "str")]
+    key: Expression,
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "hmac_sha256_b64key",
+    description = "HMAC-SHA256 with a base64-encoded key – decodes the key to raw bytes before signing. Returns Base64.",
+    parameters(HmacB64KeyArgs),
+    parsed(HmacSha256B64KeyFilter)
+)]
+pub struct HmacSha256B64Key;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "hmac_sha256_b64key"]
+struct HmacSha256B64KeyFilter {
+    #[parameters]
+    args: HmacB64KeyArgs,
+}
+
+impl Filter for HmacSha256B64KeyFilter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let args = self.args.evaluate(runtime)?;
+        let key_b64 = args.key.to_kstr();
+
+        let key_bytes = general_purpose::STANDARD.decode(key_b64.as_bytes()).map_err(|e| {
+            LiquidError::with_msg(format!("hmac_sha256_b64key: invalid base64 key: {e}"))
+        })?;
+
+        let mut mac = Hmac::<Sha256>::new_from_slice(&key_bytes)
+            .map_err(|e| LiquidError::with_msg(format!("hmac_sha256_b64key: {e}")))?;
+        mac.update(input.to_kstr().as_bytes());
+        Ok(Value::scalar(general_purpose::STANDARD.encode(mac.finalize().into_bytes())))
+    }
+}
+
 // ── HMAC-SHA1 ─────────────────────────────────────────────
 #[derive(Debug, FilterParameters)]
 struct HmacSha1Args {
@@ -923,6 +962,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(Base62Filter::default())
         .filter(Base36Filter::default())
         .filter(HmacSha256::default())
+        .filter(HmacSha256B64Key::default())
         .filter(HmacSha1::default())
         .filter(HmacSha384::default())
 }
@@ -1071,6 +1111,21 @@ mod tests {
         let expect = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
 
         assert_eq!(render(r#"{{ "hi!" | hmac_sha256: "secret" }}"#), expect);
+    }
+
+    #[test]
+    fn hmac_sha256_b64key_filter() {
+        // Key is base64-encoded; the filter must decode it to raw bytes before HMAC.
+        let raw_key: &[u8] = &[0x00, 0x80, 0xFF, 0x42, 0xDE, 0xAD, 0xBE, 0xEF];
+        let b64_key = general_purpose::STANDARD.encode(raw_key);
+
+        let data = b"hello azure";
+        let mut mac = Hmac::<Sha256>::new_from_slice(raw_key).unwrap();
+        mac.update(data);
+        let expect = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+
+        let template = format!(r#"{{{{ "hello azure" | hmac_sha256_b64key: "{b64_key}" }}}}"#);
+        assert_eq!(render(&template), expect);
     }
 
     #[test]
