@@ -94,6 +94,11 @@ if [[ ! -f "$binary_path" ]]; then
   exit 1
 fi
 
+if [[ -z "$plat_name" ]]; then
+  echo "Missing --plat-name" >&2
+  exit 1
+fi
+
 
 root_dir="$(git rev-parse --show-toplevel)"
 cd "$root_dir"
@@ -121,9 +126,18 @@ cat > "$pkg_dir/kingfisher/_version.py" <<EOF
 __version__ = "$version"
 EOF
 
+export KINGFISHER_PYPI_WHEEL_TAG="py3-none-${plat_name}"
+
 "$PYTHON" -m build \
   --wheel \
   --outdir "$out_dir" \
   "$pkg_dir"
+
+expected_wheel="$out_dir/kingfisher_bin-${version}-py3-none-${plat_name}.whl"
+if [[ ! -f "$expected_wheel" ]]; then
+  echo "Expected platform wheel was not produced: $expected_wheel" >&2
+  ls -la "$out_dir" >&2
+  exit 1
+fi
 
 echo "Built wheel(s) in $out_dir"
