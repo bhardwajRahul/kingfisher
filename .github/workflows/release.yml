@@ -444,7 +444,8 @@ jobs:
             echo "Error: no release assets found to hash in $(pwd)" >&2
             exit 1
           fi
-          echo "hashes=$(sha256sum -- "${files[@]}" | base64 -w0)" >> "$GITHUB_OUTPUT"
+          hashes=$(sha256sum -- "${files[@]}" | base64 -w0)
+          echo "hashes=${hashes}" >> "$GITHUB_OUTPUT"
 
   provenance:
     name: Generate SLSA provenance
