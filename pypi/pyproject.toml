@@ -41,3 +41,5 @@ only-include = [
   "kingfisher",
   "README.md",
 ]
+
+[tool.hatch.build.targets.wheel.hooks.custom]

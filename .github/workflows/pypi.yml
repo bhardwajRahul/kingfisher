@@ -29,13 +29,21 @@ jobs:
         shell: bash
         env:
           INPUT_TAG: ${{ inputs.tag || github.event.inputs.tag || '' }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ -z "${INPUT_TAG}" ]]; then
-            echo "No tag provided — cannot determine version" >&2
-            exit 1
+            set +e
+            TAG="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName -q .tagName)"
+            gh_status=$?
+            set -e
+            if [[ ${gh_status} -ne 0 || -z "${TAG}" ]]; then
+              echo "No tag provided and failed to determine latest release tag (gh release view exit status: ${gh_status})" >&2
+              exit 1
+            fi
+          else
+            TAG="${INPUT_TAG}"
           fi
-          TAG="${INPUT_TAG}"
           if [[ ! "${TAG}" =~ ^v[0-9A-Za-z._+-]+$ ]]; then
             echo "Invalid tag format: ${TAG}" >&2
             exit 1
@@ -136,3 +144,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
         with:
           packages-dir: dist-pypi
+          verbose: true

@@ -77,6 +77,11 @@ if [[ -z "$binary_path" ]]; then
   exit 1
 fi
 
+if [[ -z "$version" ]]; then
+  echo "Missing --version" >&2
+  exit 1
+fi
+
 if [[ "$binary_path" != /* ]]; then
   # interpret relative to the directory where the user invoked the script
   binary_path="$PWD/$binary_path"
@@ -91,6 +96,11 @@ fi
 if [[ ! -f "$binary_path" ]]; then
   echo "Binary not found: $binary_path" >&2
   echo "Tip: check for typos (e.g. 'kiingfisher' vs 'kingfisher')." >&2
+  exit 1
+fi
+
+if [[ -z "$plat_name" ]]; then
+  echo "Missing --plat-name" >&2
   exit 1
 fi
 
@@ -121,9 +131,18 @@ cat > "$pkg_dir/kingfisher/_version.py" <<EOF
 __version__ = "$version"
 EOF
 
+export KINGFISHER_PYPI_WHEEL_TAG="py3-none-${plat_name}"
+
 "$PYTHON" -m build \
   --wheel \
   --outdir "$out_dir" \
   "$pkg_dir"
+
+expected_wheel="$out_dir/kingfisher_bin-${version}-py3-none-${plat_name}.whl"
+if [[ ! -f "$expected_wheel" ]]; then
+  echo "Expected platform wheel was not produced: $expected_wheel" >&2
+  ls -la "$out_dir" >&2
+  exit 1
+fi
 
 echo "Built wheel(s) in $out_dir"
