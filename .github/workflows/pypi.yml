@@ -33,9 +33,12 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${INPUT_TAG}" ]]; then
+            set +e
             TAG="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName -q .tagName)"
-            if [[ -z "${TAG}" ]]; then
-              echo "No tag provided and failed to determine latest release tag" >&2
+            gh_status=$?
+            set -e
+            if [[ ${gh_status} -ne 0 || -z "${TAG}" ]]; then
+              echo "No tag provided and failed to determine latest release tag (gh release view exit status: ${gh_status})" >&2
               exit 1
             fi
           else

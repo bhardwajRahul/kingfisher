@@ -77,6 +77,11 @@ if [[ -z "$binary_path" ]]; then
   exit 1
 fi
 
+if [[ -z "$version" ]]; then
+  echo "Missing --version" >&2
+  exit 1
+fi
+
 if [[ "$binary_path" != /* ]]; then
   # interpret relative to the directory where the user invoked the script
   binary_path="$PWD/$binary_path"
