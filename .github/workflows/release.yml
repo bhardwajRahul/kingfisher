@@ -438,7 +438,13 @@ jobs:
         run: |
           set -euo pipefail
           cd assets
-          echo "hashes=$(sha256sum -- * | base64 -w0)" >> "$GITHUB_OUTPUT"
+          shopt -s nullglob
+          files=( * )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "Error: no release assets found to hash in $(pwd)" >&2
+            exit 1
+          fi
+          echo "hashes=$(sha256sum -- "${files[@]}" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
   provenance:
     name: Generate SLSA provenance
