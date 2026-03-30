@@ -30,8 +30,27 @@ Strongly recommended fields:
 
 ## Pattern Quality Rules
 - Prefer specific anchors/prefixes and provider context over broad generic regex.
+- When the token format is generic or common-looking (for example bare 32-hex keys), prefer contextual patterns of the form: provider keyword -> short flexible gap -> key/secret label -> short flexible gap -> token. A good default is:
+  - `\b`
+  - provider identifier (for example `amplitude`, `azure`, `speech`, `translator`)
+  - `(?:.|[\n\r]){0,N}?`
+  - common credential labels such as `(?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|AUTHORIZATION|API)`
+  - `(?:.|[\n\r]){0,M}?`
+  - the token capture wrapped in a single unnamed capture group
+- Do not add surrounding context when the token is already strongly self-identifying by prefix or structure (for example `sk-ant-api...`, `AstraCS:...`, `dvc_client_...`, `secret-test-...`). In those cases, prefer the tighter self-identifying regex.
 - Use `pattern_requirements` to enforce quality constraints (`min_digits`, `min_uppercase`, `min_lowercase`, `min_special_chars`, `ignore_if_contains`, `checksum`).
-- Use checksum validation in `pattern_requirements.checksum` when token formats support it.
+- Use checksum validation in `pattern_requirements.checksum` when token formats support it. This is preferred when the provider token format includes a documented or reverse-engineered check segment, because it can sharply reduce false positives without adding brittle surrounding context.
+- For checksum-based rules, prefer named captures for the main token body and checksum suffix/prefix, then compute the expected checksum in Liquid. A typical pattern is:
+  - `(
+      prefix_(?P<body>...)(?P<checksum>...)
+    )`
+  - with:
+    - `actual.template: "{{ checksum }}"`
+    - `actual.requires_capture: checksum`
+    - `expected: "{{ body | <checksum-filter> | <encoding/filter chain> }}"`
+    - `skip_if_missing: true`
+- Example: GitHub PATs use a CRC32-derived base62 checksum. The rule in `github.yml` captures `body` and `checksum`, then compares `{{ checksum }}` against `{{ body | crc32 | base62: 6 }}`.
+- Prefer checksum validation over extra loose context whenever the token structure itself supports it. If the checksum is only present on some token generations, keep `skip_if_missing: true` so older examples continue to load safely.
 - Use `visible: false` for helper/non-secret captures used only by dependent rules.
 - Use `depends_on_rule` for multi-part credential validation (for example ID + secret).
 

@@ -1,0 +1,43 @@
+rules:
+  - name: Flutterwave Public Key
+    id: kingfisher.flutterwave.1
+    pattern: |
+      (?x)
+      \b
+      (
+        FLWPUBK(?:_TEST)?-[a-f0-9]{32}-X
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+      min_lowercase: 4
+    min_entropy: 3.1
+    confidence: medium
+    examples:
+      - FLW_PUBLIC_KEY=FLWPUBK_TEST-32193bba8dab84e3d9c4525c85ea7a12-X
+      - data-PBFPubKey="FLWPUBK_TEST-589490616a6297324231c5e89b58f3f6-X"
+    references:
+      - https://developer.flutterwave.com/docs/authentication
+      - https://developer.flutterwave.com/v2.0/docs/api-keys
+
+  - name: Flutterwave Secret Key
+    id: kingfisher.flutterwave.2
+    pattern: |
+      (?x)
+      \b
+      (
+        FLWSECK(?:_TEST)?-[a-f0-9]{32}-X
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+      min_lowercase: 8
+    min_entropy: 3.3
+    confidence: medium
+    examples:
+      - FLW_SECRET_KEY=FLWSECK_TEST-a514d8f1abd080db1502a144f22954dc-X
+      - 'Authorization: Bearer FLWSECK_TEST-5b1f0a33de9c41748c2a7e9b51d3c6af-X'
+      - seckey=FLWSECK-e6db11d1f8a6208de8cb2f94e293450e-X
+    references:
+      - https://developer.flutterwave.com/docs/authentication
+      - https://developer.flutterwave.com/v2.0/reference/api-request-and-response-standards
