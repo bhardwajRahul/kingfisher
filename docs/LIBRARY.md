@@ -315,10 +315,10 @@ let template = parser.parse("{{ secret | sha256 }}")?;
 
 Available filters:
 - **Encoding**: `b64enc`, `b64dec`, `b64url_enc`, `url_encode`, `json_escape`
-- **Hashing**: `sha256`, `crc32`, `crc32_dec`, `crc32_hex`
-- **HMAC**: `hmac_sha256`, `hmac_sha384`, `hmac_sha1`
+- **Hashing**: `sha256`, `crc32`, `crc32_dec`, `crc32_hex`, `crc32_le_b64`
+- **HMAC**: `hmac_sha256`, `hmac_sha384`, `hmac_sha1`, `hmac_sha256_b64key`
 - **Encoding**: `base62`, `base36`
-- **Strings**: `prefix`, `suffix`, `replace`, `lstrip_chars`, `random_string`
+- **Strings**: `prefix`, `suffix`, `replace`, `lstrip_chars`, `random_string`, `newline`
 - **Time**: `unix_timestamp`, `iso_timestamp`, `iso_timestamp_no_frac`
 - **Other**: `uuid`, `jwt_header`
 

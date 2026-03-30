@@ -142,8 +142,8 @@ rules:
             Authorization: |
               {%- assign uri = "https://" | append: NH_HOST | append: "/" | append: NH_HUB | append: "/registrations/?api-version=2015-01" -%}
               {%- assign se = "" | unix_timestamp | plus: 300 -%}
-              {%- assign to_sign = uri | url_encode | append: '
-' | append: se -%}
+              {%- assign nl = "" | newline -%}
+              {%- assign to_sign = uri | url_encode | append: nl | append: se -%}
               {%- capture auth -%}SharedAccessSignature sr={{ uri | url_encode }}&sig={{ to_sign | hmac_sha256_b64key: TOKEN | url_encode }}&se={{ se }}&skn={{ NH_KEY_NAME | url_encode }}{%- endcapture -%}
               {{ auth | strip_newlines }}
           response_matcher:

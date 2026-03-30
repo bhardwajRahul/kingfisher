@@ -478,6 +478,14 @@ impl Filter for B64DecFilter {
     }
 }
 
+// {{ "any" | newline }} → "\n"  (appends nothing, just returns a newline character)
+static_filter!(
+    /// Returns a single newline character. Useful inside YAML block scalars where
+    /// a literal newline in the template would break indentation.
+    NewlineFilter, "newline",
+    |_input: &dyn ValueView| -> String { "\n".to_string() }
+);
+
 // -----------------------------------------------------------------------------
 // Authentication & Security
 // -----------------------------------------------------------------------------
@@ -951,6 +959,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(JwtHeaderFilter::default())
         .filter(B64EncFilter::default())
         .filter(B64DecFilter::default())
+        .filter(NewlineFilter::default())
         .filter(RandomStringFilter::default())
         .filter(SuffixFilter::default())
         .filter(PrefixFilter::default())
