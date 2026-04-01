@@ -192,6 +192,188 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_airtable(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("airtable|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Airtable {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_algolia(&self, app_id: &str, api_key: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("algolia|{app_id}|{api_key}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Algolia {
+            app_id: app_id.to_string(),
+            api_key: api_key.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_artifactory(&self, token: &str, base_url: Option<&str>, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("artifactory|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Artifactory {
+            token: token.to_string(),
+            base_url: base_url.map(|s| s.to_string()),
+            fingerprint,
+        });
+    }
+
+    pub fn record_auth0(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+        domain: &str,
+        fingerprint: String,
+    ) {
+        let key = xxhash_rust::xxh3::xxh3_64(
+            format!("auth0|{domain}|{client_id}|{client_secret}").as_bytes(),
+        );
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Auth0 {
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
+            domain: domain.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_circleci(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("circleci|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::CircleCI {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_digitalocean(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("digitalocean|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::DigitalOcean {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_fastly(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("fastly|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Fastly { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_hubspot(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("hubspot|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::HubSpot { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_ibm_cloud(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("ibm_cloud|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::IbmCloud {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_jira(&self, token: &str, base_url: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("jira|{base_url}|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Jira {
+            token: token.to_string(),
+            base_url: base_url.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_mysql(&self, uri: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("mysql|{uri}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::MySQL { uri: uri.to_string(), fingerprint });
+    }
+
+    pub fn record_paypal(&self, client_id: &str, client_secret: &str, fingerprint: String) {
+        let key =
+            xxhash_rust::xxh3::xxh3_64(format!("paypal|{client_id}|{client_secret}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::PayPal {
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_plaid(&self, client_id: &str, secret: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("plaid|{client_id}|{secret}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Plaid {
+            client_id: client_id.to_string(),
+            secret: secret.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_sendgrid(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("sendgrid|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::SendGrid {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_sendinblue(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("sendinblue|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Sendinblue {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_shopify(&self, token: &str, subdomain: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("shopify|{subdomain}|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Shopify {
+            token: token.to_string(),
+            subdomain: subdomain.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_square(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("square|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Square { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_stripe(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("stripe|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Stripe { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_terraform(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("terraform|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Terraform {
+            token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_xray(&self, token: &str, base_url: Option<&str>, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("xray|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Xray {
+            token: token.to_string(),
+            base_url: base_url.map(|s| s.to_string()),
+            fingerprint,
+        });
+    }
+
+    pub fn record_zendesk(&self, token: &str, subdomain: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("zendesk|{subdomain}|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Zendesk {
+            token: token.to_string(),
+            subdomain: subdomain.to_string(),
+            fingerprint,
+        });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -766,6 +948,13 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                 }
             }
         }
+        Some(Validation::MySQL) => {
+            if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                if !value.is_empty() {
+                    collector.record_mysql(value, fp.clone());
+                }
+            }
+        }
         _ => {
             if om.rule.id().starts_with("kingfisher.github.") {
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
@@ -886,6 +1075,235 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                     if !value.is_empty() {
                         collector.record_microsoft_teams(value, fp.clone());
                     }
+                }
+            }
+            // --- New providers ---
+            if om.rule.id().starts_with("kingfisher.airtable.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_airtable(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.algolia.") {
+                let api_key = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let app_id = captures
+                    .iter()
+                    .find(|(name, ..)| name == "APPID")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("APPID").cloned())
+                    .unwrap_or_default();
+                if !api_key.is_empty() && !app_id.is_empty() {
+                    collector.record_algolia(&app_id, &api_key, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.artifactory.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        let base_url = captures
+                            .iter()
+                            .find(|(name, ..)| name == "HOST" || name == "URL")
+                            .map(|(_, value, ..)| value.clone())
+                            .or_else(|| om.dependent_captures.get("HOST").cloned());
+                        collector.record_artifactory(value, base_url.as_deref(), fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.auth0.") {
+                let client_secret = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let client_id = captures
+                    .iter()
+                    .find(|(name, ..)| name == "CLIENTID")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("CLIENTID").cloned())
+                    .unwrap_or_default();
+                let domain = captures
+                    .iter()
+                    .find(|(name, ..)| name == "DOMAIN")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("DOMAIN").cloned())
+                    .unwrap_or_default();
+                if !client_secret.is_empty() && !client_id.is_empty() && !domain.is_empty() {
+                    collector.record_auth0(&client_id, &client_secret, &domain, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.circleci.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_circleci(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.digitalocean.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_digitalocean(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.fastly.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_fastly(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.hubspot.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_hubspot(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.ibm.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_ibm_cloud(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.jira.") {
+                let token = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let base_url = captures
+                    .iter()
+                    .find(|(name, ..)| name == "DOMAIN" || name == "URL")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("DOMAIN").cloned())
+                    .unwrap_or_default();
+                if !token.is_empty() && !base_url.is_empty() {
+                    let url = if base_url.starts_with("http") {
+                        base_url
+                    } else {
+                        format!("https://{base_url}")
+                    };
+                    collector.record_jira(&token, &url, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.paypal.") {
+                let client_secret = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let client_id = captures
+                    .iter()
+                    .find(|(name, ..)| name == "CLIENTID")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("CLIENTID").cloned())
+                    .unwrap_or_default();
+                if !client_secret.is_empty() && !client_id.is_empty() {
+                    collector.record_paypal(&client_id, &client_secret, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.plaid.") {
+                let secret = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let client_id = captures
+                    .iter()
+                    .find(|(name, ..)| name == "CLIENTID")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("CLIENTID").cloned())
+                    .unwrap_or_default();
+                if !secret.is_empty() && !client_id.is_empty() {
+                    collector.record_plaid(&client_id, &secret, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.sendgrid.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_sendgrid(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.sendinblue.")
+                || om.rule.id().starts_with("kingfisher.brevo.")
+            {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_sendinblue(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.shopify.") {
+                let token = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let subdomain = captures
+                    .iter()
+                    .find(|(name, ..)| name == "DOMAIN" || name == "SUBDOMAIN")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("DOMAIN").cloned())
+                    .unwrap_or_default();
+                if !token.is_empty() && !subdomain.is_empty() {
+                    collector.record_shopify(&token, &subdomain, fp.clone());
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.square.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_square(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.stripe.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_stripe(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.terraform.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_terraform(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.jfrog.")
+                || om.rule.id().starts_with("kingfisher.xray.")
+            {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        let base_url = captures
+                            .iter()
+                            .find(|(name, ..)| name == "HOST" || name == "URL")
+                            .map(|(_, value, ..)| value.clone())
+                            .or_else(|| om.dependent_captures.get("HOST").cloned());
+                        collector.record_xray(value, base_url.as_deref(), fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.zendesk.") {
+                let token = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let subdomain = captures
+                    .iter()
+                    .find(|(name, ..)| name == "SUBDOMAIN" || name == "DOMAIN")
+                    .map(|(_, value, ..)| value.clone())
+                    .or_else(|| om.dependent_captures.get("SUBDOMAIN").cloned())
+                    .unwrap_or_default();
+                if !token.is_empty() && !subdomain.is_empty() {
+                    collector.record_zendesk(&token, &subdomain, fp.clone());
                 }
             }
         }

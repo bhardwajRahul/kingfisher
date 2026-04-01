@@ -80,6 +80,7 @@ Strongly recommended fields:
   - `cargo test -p kingfisher-rules`
 - Broader regression check:
   - `cargo test --workspace --all-targets`
+- **Warning-free build**: `cargo check` (or `make darwin` / `make linux`) must produce zero warnings. Address all `dead_code`, `unused_*`, and other warnings before submitting. Use `#[allow(dead_code)]` on individual struct fields kept for deserialization completeness, and remove truly unused code.
 - Behavioral check against sample content:
   - `kingfisher scan ./testdata --rule <rule-family-or-id> --rule-stats`
 - Validation check (when validation is present):

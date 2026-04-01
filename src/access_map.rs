@@ -4,26 +4,47 @@ use serde::Serialize;
 
 use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
 
+mod airtable;
+mod algolia;
 mod anthropic;
+mod artifactory;
+mod auth0;
 mod aws;
 mod azure;
 mod azure_devops;
 mod bitbucket;
 mod buildkite;
+mod circleci;
+mod digitalocean;
+mod fastly;
 mod gcp;
 mod gitea;
 mod github;
 mod gitlab;
 mod harness;
+mod hubspot;
 mod huggingface;
+mod ibm_cloud;
+mod jira;
 mod microsoft_teams;
 pub(crate) mod mongodb;
+pub(crate) mod mysql;
 mod openai;
+mod paypal;
+mod plaid;
 pub(crate) mod postgres;
 mod report;
 mod salesforce;
+mod sendgrid;
+mod sendinblue;
+mod shopify;
 mod slack;
+mod square;
+mod stripe;
+mod terraform;
 mod weightsandbiases;
+mod xray;
+mod zendesk;
 
 /// Trait for access map providers that map a single token to an access profile.
 ///
@@ -62,6 +83,27 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Salesforce => salesforce::map_access(&args).await?,
         AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
         AccessMapProvider::Microsoftteams => microsoft_teams::map_access(&args).await?,
+        AccessMapProvider::Airtable => airtable::map_access(&args).await?,
+        AccessMapProvider::Circleci => circleci::map_access(&args).await?,
+        AccessMapProvider::Digitalocean => digitalocean::map_access(&args).await?,
+        AccessMapProvider::Fastly => fastly::map_access(&args).await?,
+        AccessMapProvider::Hubspot => hubspot::map_access(&args).await?,
+        AccessMapProvider::Ibmcloud => ibm_cloud::map_access(&args).await?,
+        AccessMapProvider::Sendgrid => sendgrid::map_access(&args).await?,
+        AccessMapProvider::Sendinblue => sendinblue::map_access(&args).await?,
+        AccessMapProvider::Stripe => stripe::map_access(&args).await?,
+        AccessMapProvider::Terraform => terraform::map_access(&args).await?,
+        AccessMapProvider::Square => square::map_access(&args).await?,
+        AccessMapProvider::Jira => jira::map_access(&args).await?,
+        AccessMapProvider::Mysql => mysql::map_access(&args).await?,
+        AccessMapProvider::Algolia => algolia::map_access(&args).await?,
+        AccessMapProvider::Auth0 => auth0::map_access(&args).await?,
+        AccessMapProvider::Paypal => paypal::map_access(&args).await?,
+        AccessMapProvider::Plaid => plaid::map_access(&args).await?,
+        AccessMapProvider::Shopify => shopify::map_access(&args).await?,
+        AccessMapProvider::Zendesk => zendesk::map_access(&args).await?,
+        AccessMapProvider::Artifactory => artifactory::map_access(&args).await?,
+        AccessMapProvider::Xray => xray::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -124,6 +166,48 @@ pub enum AccessMapRequest {
     WeightsAndBiases { token: String, fingerprint: String },
     /// A Microsoft Teams Incoming Webhook URL.
     MicrosoftTeams { webhook_url: String, fingerprint: String },
+    /// An Airtable API token.
+    Airtable { token: String, fingerprint: String },
+    /// A CircleCI API token.
+    CircleCI { token: String, fingerprint: String },
+    /// A DigitalOcean API token.
+    DigitalOcean { token: String, fingerprint: String },
+    /// A Fastly API token.
+    Fastly { token: String, fingerprint: String },
+    /// A HubSpot API token.
+    HubSpot { token: String, fingerprint: String },
+    /// An IBM Cloud API key.
+    IbmCloud { token: String, fingerprint: String },
+    /// A SendGrid API token.
+    SendGrid { token: String, fingerprint: String },
+    /// A Brevo (Sendinblue) API token.
+    Sendinblue { token: String, fingerprint: String },
+    /// A Stripe API key.
+    Stripe { token: String, fingerprint: String },
+    /// A Terraform Cloud API token.
+    Terraform { token: String, fingerprint: String },
+    /// A Square API token.
+    Square { token: String, fingerprint: String },
+    /// A Jira API token with base URL.
+    Jira { token: String, base_url: String, fingerprint: String },
+    /// A MySQL connection URI.
+    MySQL { uri: String, fingerprint: String },
+    /// An Algolia app_id + api_key pair.
+    Algolia { app_id: String, api_key: String, fingerprint: String },
+    /// Auth0 client credentials (client_id + client_secret + domain).
+    Auth0 { client_id: String, client_secret: String, domain: String, fingerprint: String },
+    /// PayPal client credentials (client_id + client_secret).
+    PayPal { client_id: String, client_secret: String, fingerprint: String },
+    /// Plaid API credentials (client_id + secret).
+    Plaid { client_id: String, secret: String, fingerprint: String },
+    /// A Shopify access token with store subdomain.
+    Shopify { token: String, subdomain: String, fingerprint: String },
+    /// A Zendesk API token with subdomain.
+    Zendesk { token: String, subdomain: String, fingerprint: String },
+    /// A JFrog Artifactory token with optional base URL.
+    Artifactory { token: String, base_url: Option<String>, fingerprint: String },
+    /// A JFrog Xray token with optional base URL.
+    Xray { token: String, base_url: Option<String>, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -345,6 +429,107 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
                     .unwrap_or_else(|err| build_failed_result("microsoft_teams", "webhook", err)),
                 fingerprint,
             ),
+            AccessMapRequest::Airtable { token, fingerprint } => {
+                (map_token(&AirtableMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::CircleCI { token, fingerprint } => {
+                (map_token(&CircleCiMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::DigitalOcean { token, fingerprint } => {
+                (map_token(&DigitalOceanMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Fastly { token, fingerprint } => {
+                (map_token(&FastlyMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::HubSpot { token, fingerprint } => {
+                (map_token(&HubSpotMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::IbmCloud { token, fingerprint } => {
+                (map_token(&IbmCloudMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::SendGrid { token, fingerprint } => {
+                (map_token(&SendGridMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Sendinblue { token, fingerprint } => {
+                (map_token(&SendinblueMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Stripe { token, fingerprint } => {
+                (map_token(&StripeMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Terraform { token, fingerprint } => {
+                (map_token(&TerraformMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Square { token, fingerprint } => {
+                (map_token(&SquareMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Jira { token, base_url, fingerprint } => (
+                jira::map_access_from_token_and_url(&token, &base_url)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("jira", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::MySQL { uri, fingerprint } => (
+                mysql::map_access_from_uri(&uri)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("mysql", "uri", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Algolia { app_id, api_key, fingerprint } => (
+                algolia::map_access_from_credentials(&app_id, &api_key)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("algolia", &app_id, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Auth0 { client_id, client_secret, domain, fingerprint } => (
+                auth0::map_access_from_credentials(&client_id, &client_secret, &domain)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("auth0", &client_id, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::PayPal { client_id, client_secret, fingerprint } => (
+                paypal::map_access_from_credentials(&client_id, &client_secret)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("paypal", &client_id, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Plaid { client_id, secret, fingerprint } => (
+                plaid::map_access_from_credentials(&client_id, &secret)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("plaid", &client_id, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Shopify { token, subdomain, fingerprint } => (
+                shopify::map_access_from_token_and_subdomain(&token, &subdomain)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("shopify", &subdomain, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Zendesk { token, subdomain, fingerprint } => (
+                zendesk::map_access_from_token_and_subdomain(&token, &subdomain)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("zendesk", &subdomain, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Artifactory { token, base_url, fingerprint } => {
+                let res: Result<AccessMapResult> = match base_url {
+                    Some(url) => artifactory::map_access_from_token_and_url(&token, &url).await,
+                    None => artifactory::map_access_from_token(&token).await,
+                };
+                (
+                    res.unwrap_or_else(|err| build_failed_result("artifactory", "token", err)),
+                    fingerprint,
+                )
+            }
+            AccessMapRequest::Xray { token, base_url, fingerprint } => {
+                let res: Result<AccessMapResult> = match base_url {
+                    Some(url) => xray::map_access_from_token_and_url(&token, &url).await,
+                    None => xray::map_access_from_token(&token).await,
+                };
+                (
+                    res.unwrap_or_else(|err| build_failed_result("jfrog_xray", "token", err)),
+                    fingerprint,
+                )
+            }
         };
 
         mapped.fingerprint = Some(fp);
@@ -512,6 +697,149 @@ impl TokenAccessMapper for WeightsAndBiasesMapper {
 
     async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
         weightsandbiases::map_access_from_token(token).await
+    }
+}
+
+/// Airtable access mapper.
+pub struct AirtableMapper;
+
+impl TokenAccessMapper for AirtableMapper {
+    fn cloud_name(&self) -> &'static str {
+        "airtable"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        airtable::map_access_from_token(token).await
+    }
+}
+
+/// CircleCI access mapper.
+pub struct CircleCiMapper;
+
+impl TokenAccessMapper for CircleCiMapper {
+    fn cloud_name(&self) -> &'static str {
+        "circleci"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        circleci::map_access_from_token(token).await
+    }
+}
+
+/// DigitalOcean access mapper.
+pub struct DigitalOceanMapper;
+
+impl TokenAccessMapper for DigitalOceanMapper {
+    fn cloud_name(&self) -> &'static str {
+        "digitalocean"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        digitalocean::map_access_from_token(token).await
+    }
+}
+
+/// Fastly access mapper.
+pub struct FastlyMapper;
+
+impl TokenAccessMapper for FastlyMapper {
+    fn cloud_name(&self) -> &'static str {
+        "fastly"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        fastly::map_access_from_token(token).await
+    }
+}
+
+/// HubSpot access mapper.
+pub struct HubSpotMapper;
+
+impl TokenAccessMapper for HubSpotMapper {
+    fn cloud_name(&self) -> &'static str {
+        "hubspot"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        hubspot::map_access_from_token(token).await
+    }
+}
+
+/// IBM Cloud access mapper.
+pub struct IbmCloudMapper;
+
+impl TokenAccessMapper for IbmCloudMapper {
+    fn cloud_name(&self) -> &'static str {
+        "ibm_cloud"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        ibm_cloud::map_access_from_token(token).await
+    }
+}
+
+/// SendGrid access mapper.
+pub struct SendGridMapper;
+
+impl TokenAccessMapper for SendGridMapper {
+    fn cloud_name(&self) -> &'static str {
+        "sendgrid"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        sendgrid::map_access_from_token(token).await
+    }
+}
+
+/// Sendinblue (Brevo) access mapper.
+pub struct SendinblueMapper;
+
+impl TokenAccessMapper for SendinblueMapper {
+    fn cloud_name(&self) -> &'static str {
+        "sendinblue"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        sendinblue::map_access_from_token(token).await
+    }
+}
+
+/// Stripe access mapper.
+pub struct StripeMapper;
+
+impl TokenAccessMapper for StripeMapper {
+    fn cloud_name(&self) -> &'static str {
+        "stripe"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        stripe::map_access_from_token(token).await
+    }
+}
+
+/// Terraform Cloud access mapper.
+pub struct TerraformMapper;
+
+impl TokenAccessMapper for TerraformMapper {
+    fn cloud_name(&self) -> &'static str {
+        "terraform"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        terraform::map_access_from_token(token).await
+    }
+}
+
+/// Square access mapper.
+pub struct SquareMapper;
+
+impl TokenAccessMapper for SquareMapper {
+    fn cloud_name(&self) -> &'static str {
+        "square"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        square::map_access_from_token(token).await
     }
 }
 

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.93.0]
+- **Access Map: added 21 new blast radius providers**, bringing the total to 39. New providers: Airtable, Algolia, Artifactory, Auth0, CircleCI, DigitalOcean, Fastly, HubSpot, IBM Cloud, Jira, MySQL, PayPal, Plaid, SendGrid, Sendinblue/Brevo, Shopify, Square, Stripe, Terraform Cloud, JFrog Xray, and Zendesk. Each provider maps leaked credentials to their effective identity, permissions, and exposed resources.
+- Added Mermaid architecture documentation in `docs/ARCHITECTURE.md`, covering the main Kingfisher components, command paths, and scan flow at a high level.
+- Expanded `docs/LIBRARY.md` with Mermaid diagrams showing the relationships and internal structure of `kingfisher-core`, `kingfisher-rules`, and `kingfisher-scanner`.
+
 ## [v1.92.0]
 - Added new built-in rules for Etsy, Flutterwave, Freemius, JFrog, Kraken, KuCoin, Trello, Octopus Deploy, OpenShift, Private AI, SettleMint, Sidekiq, and Polymarket.
 - Added live HTTP validation for Etsy, JFrog, Octopus Deploy, OpenShift, and Private AI where provider documentation supported reliable token-only checks.

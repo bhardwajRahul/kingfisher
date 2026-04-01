@@ -5,7 +5,7 @@ use clap::{Args, ValueEnum};
 /// Inspect a cloud credential and derive the effective identity and blast radius.
 #[derive(Args, Debug)]
 pub struct AccessMapArgs {
-    /// Cloud provider: aws | gcp | azure | github | gitlab | slack | postgres | mongodb | huggingface | gitea | bitbucket | buildkite | harness | openai | anthropic | salesforce | weightsandbiases | microsoftteams
+    /// Cloud provider for identity mapping
     #[clap(value_parser, value_name = "PROVIDER")]
     pub provider: AccessMapProvider,
 
@@ -65,4 +65,60 @@ pub enum AccessMapProvider {
     /// Microsoft Teams
     #[clap(alias = "msteams")]
     Microsoftteams,
+    /// Airtable
+    Airtable,
+    /// CircleCI
+    Circleci,
+    /// DigitalOcean
+    #[clap(alias = "do")]
+    Digitalocean,
+    /// Fastly
+    Fastly,
+    /// HubSpot
+    Hubspot,
+    /// IBM Cloud
+    #[clap(alias = "ibm")]
+    Ibmcloud,
+    /// SendGrid
+    Sendgrid,
+    /// Brevo (Sendinblue)
+    #[clap(alias = "brevo")]
+    Sendinblue,
+    /// Stripe
+    Stripe,
+    /// Terraform Cloud
+    #[clap(alias = "tfc")]
+    Terraform,
+    /// Square
+    Square,
+    /// Jira
+    #[clap(alias = "jira")]
+    Jira,
+    /// MySQL database
+    #[clap(alias = "mysql")]
+    Mysql,
+    /// Algolia
+    #[clap(alias = "algolia")]
+    Algolia,
+    /// Auth0
+    #[clap(alias = "auth0")]
+    Auth0,
+    /// PayPal
+    #[clap(alias = "paypal")]
+    Paypal,
+    /// Plaid
+    #[clap(alias = "plaid")]
+    Plaid,
+    /// Shopify
+    #[clap(alias = "shopify")]
+    Shopify,
+    /// Zendesk
+    #[clap(alias = "zendesk")]
+    Zendesk,
+    /// JFrog Artifactory
+    #[clap(alias = "jfrog-art")]
+    Artifactory,
+    /// JFrog Xray
+    #[clap(alias = "jfrog-xray")]
+    Xray,
 }

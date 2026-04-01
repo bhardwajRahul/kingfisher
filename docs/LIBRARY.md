@@ -7,17 +7,33 @@ Kingfisher's functionality is available as a set of Rust library crates that can
 ## Crate Overview
 
 | Crate | Description |
-|-------|-------------|
+| ----- | ----------- |
 | `kingfisher-core` | Core types: `Blob`, `BlobId`, `Location`, `Origin`, entropy calculation |
 | `kingfisher-rules` | Rule definitions, YAML parsing, compiled rule database, builtin rules |
 | `kingfisher-scanner` | High-level scanning API with `Scanner` and `Finding` types |
+
+### Crate Relationships
+
+```mermaid
+flowchart LR
+    App[Your Rust application]
+    Core[kingfisher-core]
+    Rules[kingfisher-rules]
+    Scanner[kingfisher-scanner]
+
+    App --> Core
+    App --> Rules
+    App --> Scanner
+    Scanner --> Core
+    Scanner --> Rules
+```
 
 ### Optional Features
 
 The `kingfisher-scanner` crate supports optional validation features:
 
 | Feature | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `validation` | Core validation support (includes HTTP validation) |
 | `validation-http` | HTTP-based validation for API tokens |
 | `validation-aws` | AWS credential validation via STS GetCallerIdentity |
@@ -103,9 +119,34 @@ fn scan_content(content: &[u8]) -> anyhow::Result<()> {
 
 Core types and utilities for working with scannable content.
 
+### Core Structure
+
+```mermaid
+flowchart TD
+    Core[kingfisher-core]
+    Blob[blob module]
+    Location[location module]
+    Origin[origin module]
+    Content[content_type module]
+    Entropy[entropy module]
+    GitMeta[git_commit_metadata module]
+    Escape[bstring_escape module]
+    Error[error module]
+
+    Core --> Blob
+    Core --> Location
+    Core --> Origin
+    Core --> Content
+    Core --> Entropy
+    Core --> GitMeta
+    Core --> Escape
+    Core --> Error
+```
+
 ### Blob - Content Abstraction
 
 `Blob` represents content that can be scanned. It supports:
+
 - **File-backed content** with memory mapping for large files
 - **In-memory content** for programmatic use
 - **Borrowed content** for zero-copy scanning
@@ -192,9 +233,33 @@ let origin = Origin::GitRepo(GitRepoOrigin {
 
 Rule definitions, YAML parsing, and the compiled rule database.
 
+### Rules Structure
+
+```mermaid
+flowchart TD
+    Rules[kingfisher-rules]
+    RuleMod[rule module]
+    RulesMod[rules module]
+    Db[rules_database module]
+    Defaults[defaults module]
+    Liquid[liquid_filters module]
+
+    Rules --> RuleMod
+    Rules --> RulesMod
+    Rules --> Db
+    Rules --> Defaults
+    Rules --> Liquid
+
+    RuleMod --> Syntax[Rule and RuleSyntax]
+    RulesMod --> Collections[Rules collection and loading]
+    Db --> Compiled[Compiled RulesDatabase]
+    Defaults --> Builtins[Builtin rules]
+    Liquid --> Filters[Template filters]
+```
+
 ### Loading Builtin Rules
 
-Kingfisher comes with 400+ builtin rules for common secret types:
+Kingfisher comes with 600+ builtin rules for common secret types:
 
 ```rust
 use kingfisher_rules::{get_builtin_rules, Confidence};
@@ -314,6 +379,7 @@ let template = parser.parse("{{ secret | sha256 }}")?;
 ```
 
 Available filters:
+
 - **Encoding**: `b64enc`, `b64dec`, `b64url_enc`, `url_encode`, `json_escape`
 - **Hashing**: `sha256`, `crc32`, `crc32_dec`, `crc32_hex`, `crc32_le_b64`
 - **HMAC**: `hmac_sha256`, `hmac_sha384`, `hmac_sha1`, `hmac_sha256_b64key`
@@ -327,6 +393,34 @@ Available filters:
 ## kingfisher-scanner
 
 High-level scanning API that combines core types and rules.
+
+### Scanner Structure
+
+```mermaid
+flowchart TD
+    Scanner[kingfisher-scanner]
+    ScanMod[scanner module]
+    FindingMod[finding module]
+    PoolMod[scanner_pool module]
+    Prim[primitives module]
+    Validation[validation module]
+    Core[kingfisher-core]
+    Rules[kingfisher-rules]
+
+    Scanner --> ScanMod
+    Scanner --> FindingMod
+    Scanner --> PoolMod
+    Scanner --> Prim
+    Scanner --> Validation
+    Scanner --> Core
+    Scanner --> Rules
+
+    ScanMod --> API[Scanner and ScannerConfig]
+    FindingMod --> Finding[Finding types]
+    PoolMod --> Pool[ScannerPool]
+    Prim --> Helpers[Matching helpers]
+    Validation --> Validators[Optional validators]
+```
 
 ### Scanner Configuration
 
@@ -627,7 +721,7 @@ kingfisher-scanner = { git = "https://github.com/mongodb/kingfisher", features =
 ### Available Features
 
 | Feature | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `validation` | Core validation support with HTTP validation |
 | `validation-http` | HTTP-based validation for API tokens |
 | `validation-aws` | AWS credential validation via STS |

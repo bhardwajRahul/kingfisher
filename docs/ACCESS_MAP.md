@@ -11,6 +11,53 @@ There are two ways to produce access maps:
 
 > Access mapping runs additional network requests. Only use it when you are authorized to inspect the target account/workspace.
 
+## How Access Map Works
+
+### Standalone Flow
+
+```mermaid
+flowchart LR
+    CLI[kingfisher access-map] --> Args[Provider and credential input]
+    Args --> Dispatch[Provider dispatch]
+    Dispatch --> Provider[Provider mapper]
+    Provider --> APIs[Provider APIs]
+    APIs --> Result[AccessMapResult]
+    Result --> JSON[JSON stdout or file]
+    Result --> HTML[Optional HTML report]
+```
+
+### Scan-Time Flow
+
+```mermaid
+flowchart LR
+    Scan[kingfisher scan --access-map] --> Detect[Detect findings]
+    Detect --> Validate[Validate supported credentials]
+    Validate --> Collect[AccessMapCollector]
+    Collect --> Requests[AccessMapRequest values]
+    Requests --> Map[access_map::map_requests]
+    Map --> Results[AccessMapResult values]
+    Results --> Report[Report and viewer output]
+```
+
+### Provider Dispatch Model
+
+```mermaid
+flowchart TD
+    Request[Access map request] --> Kind{Credential kind}
+
+    Kind --> Token[Single token providers]
+    Kind --> Complex[Structured credential providers]
+
+    Token --> Trait[TokenAccessMapper]
+    Trait --> Modules[GitHub GitLab Slack Gitea Bitbucket and similar providers]
+
+    Complex --> Custom[Custom provider mapping]
+    Custom --> ComplexModules[AWS GCP Azure Postgres MongoDB and other multi-field providers]
+
+    Modules --> Result[AccessMapResult]
+    ComplexModules --> Result
+```
+
 ## What “supported tokens” means
 
 Access map only runs for credential types Kingfisher knows how to authenticate with and enumerate. In the codebase, these map to `AccessMapRequest` variants recorded from validated findings (see `src/scanner/validation.rs`).
