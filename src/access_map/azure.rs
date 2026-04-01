@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
 use chrono::Utc;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use quick_xml::{events::Event, Reader};
 use reqwest::{header::HeaderValue, Client};
 use serde_json::Value as JsonValue;
