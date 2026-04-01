@@ -81,6 +81,10 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         risk_notes.push(format!("Key permission lookup failed: {err}"));
         KeyIntrospection::default()
     });
+    let visible_api_keys = list_api_keys(&client, token).await.unwrap_or_else(|err| {
+        warn!("Anthropic access-map: API key inventory lookup failed: {err}");
+        Vec::new()
+    });
     let mut token_scopes = key_info.permissions.clone();
 
     let models = list_models(&client, token).await.unwrap_or_else(|err| {
@@ -126,11 +130,42 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         });
     }
 
+    let can_administer_keys = token_scopes.iter().any(|scope| scope == "full_access");
+    for api_key in &visible_api_keys {
+        let key_name = api_key
+            .name
+            .clone()
+            .or_else(|| api_key.id.clone())
+            .unwrap_or_else(|| "unknown_api_key".to_string());
+        let mut key_permissions = vec!["api_key:read".to_string()];
+        if can_administer_keys {
+            key_permissions.push("api_key:manage".to_string());
+        }
+
+        resources.push(ResourceExposure {
+            resource_type: "api_key".into(),
+            name: key_name,
+            permissions: key_permissions,
+            risk: if can_administer_keys { "high".into() } else { "medium".into() },
+            reason: if can_administer_keys {
+                "Organization API key visible to a full-access Anthropic key".to_string()
+            } else {
+                "Organization API key visible to this Anthropic key".to_string()
+            },
+        });
+    }
+
     if models.len() > MAX_MODEL_RESOURCES {
         risk_notes.push(format!(
             "Model resource list truncated to first {MAX_MODEL_RESOURCES} entries ({} total models visible)",
             models.len()
         ));
+    }
+    if !visible_api_keys.is_empty() {
+        permissions.read_only.push("api_keys:list".to_string());
+        if can_administer_keys {
+            risk_notes.push("Key can enumerate organization API keys".to_string());
+        }
     }
 
     if resources.is_empty() {
@@ -274,6 +309,27 @@ async fn fetch_key_permissions(client: &Client, token: &str) -> Result<KeyIntros
     }
 
     Err(anyhow!("Anthropic access-map: unable to map listed key permissions to this token"))
+}
+
+async fn list_api_keys(client: &Client, token: &str) -> Result<Vec<AnthropicApiKey>> {
+    let resp = client
+        .get(format!("{ANTHROPIC_API}/organizations/api_keys"))
+        .header("x-api-key", token)
+        .header("anthropic-version", ANTHROPIC_VERSION)
+        .header(header::ACCEPT, "application/json")
+        .send()
+        .await
+        .context("Anthropic access-map: failed to list organization API keys")?;
+
+    if !resp.status().is_success() {
+        return Ok(Vec::new());
+    }
+
+    let body: AnthropicApiKeysResponse = resp
+        .json()
+        .await
+        .context("Anthropic access-map: invalid organization API key list JSON")?;
+    Ok(body.data)
 }
 
 async fn fetch_permissions_from_endpoint(

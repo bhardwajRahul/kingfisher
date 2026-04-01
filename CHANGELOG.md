@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.93.0]
 - **Access Map: added 21 new blast radius providers**, bringing the total to 39. New providers: Airtable, Algolia, Artifactory, Auth0, CircleCI, DigitalOcean, Fastly, HubSpot, IBM Cloud, Jira, MySQL, PayPal, Plaid, SendGrid, Sendinblue/Brevo, Shopify, Square, Stripe, Terraform Cloud, JFrog Xray, and Zendesk. Each provider maps leaked credentials to their effective identity, permissions, and exposed resources.
+- **Access Map: expanded provider depth** for existing integrations. AWS now enumerates SQS, SNS, RDS, ECR, and SSM Parameter Store in addition to the earlier core services; Azure Storage now maps Blob containers, File shares, and Queues from account keys; OpenAI now enumerates visible models, files, assistants, and fine-tuning jobs; Hugging Face now includes datasets and Spaces alongside models; Anthropic now surfaces visible organization API keys.
 - Added Mermaid architecture documentation in `docs/ARCHITECTURE.md`, covering the main Kingfisher components, command paths, and scan flow at a high level.
 - Expanded `docs/LIBRARY.md` with Mermaid diagrams showing the relationships and internal structure of `kingfisher-core`, `kingfisher-rules`, and `kingfisher-scanner`.
 

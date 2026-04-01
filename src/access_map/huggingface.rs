@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use reqwest::{header, Client};
 use serde::Deserialize;
+use std::collections::BTreeSet;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
@@ -11,6 +12,7 @@ use super::{
 };
 
 const HUGGINGFACE_API: &str = "https://huggingface.co/api";
+const MAX_HF_RESOURCES_PER_KIND: usize = 100;
 
 #[derive(Deserialize)]
 struct HfWhoAmI {
@@ -58,6 +60,22 @@ struct HfAccessTokenInfo {
 struct HfModel {
     #[serde(default, rename = "modelId")]
     model_id: Option<String>,
+    #[serde(default, rename = "id")]
+    id: Option<String>,
+    #[serde(default)]
+    private: bool,
+}
+
+#[derive(Deserialize)]
+struct HfDataset {
+    #[serde(default, rename = "id")]
+    id: Option<String>,
+    #[serde(default)]
+    private: bool,
+}
+
+#[derive(Deserialize)]
+struct HfSpace {
     #[serde(default, rename = "id")]
     id: Option<String>,
     #[serde(default)]
@@ -163,18 +181,51 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         });
     }
 
-    // Enumerate models accessible to the user.
-    let models = list_user_models(&client, token, &username).await.unwrap_or_else(|err| {
-        warn!("Hugging Face access-map: model enumeration failed: {err}");
-        Vec::new()
-    });
+    let mut authors = BTreeSet::new();
+    authors.insert(username.clone());
+    for org in &whoami.orgs {
+        if let Some(org_name) = org.name.as_ref().filter(|name| !name.is_empty()) {
+            authors.insert(org_name.clone());
+        }
+    }
 
+    let mut models = Vec::new();
+    let mut datasets = Vec::new();
+    let mut spaces = Vec::new();
+
+    for author in &authors {
+        let mut author_models =
+            list_models_by_author(&client, token, author).await.unwrap_or_else(|err| {
+                warn!("Hugging Face access-map: model enumeration failed for {author}: {err}");
+                Vec::new()
+            });
+        models.append(&mut author_models);
+
+        let mut author_datasets =
+            list_datasets_by_author(&client, token, author).await.unwrap_or_else(|err| {
+                warn!("Hugging Face access-map: dataset enumeration failed for {author}: {err}");
+                Vec::new()
+            });
+        datasets.append(&mut author_datasets);
+
+        let mut author_spaces =
+            list_spaces_by_author(&client, token, author).await.unwrap_or_else(|err| {
+                warn!("Hugging Face access-map: Space enumeration failed for {author}: {err}");
+                Vec::new()
+            });
+        spaces.append(&mut author_spaces);
+    }
+
+    let mut seen_resources = BTreeSet::new();
     for model in &models {
         let model_name = model
             .model_id
             .clone()
             .or_else(|| model.id.clone())
             .unwrap_or_else(|| "unknown".to_string());
+        if !seen_resources.insert(("model".to_string(), model_name.clone())) {
+            continue;
+        }
 
         let (risk, perm_label) = if model.private {
             (Severity::Medium, "model:private")
@@ -201,6 +252,68 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         }
     }
 
+    for dataset in &datasets {
+        let dataset_name = dataset.id.clone().unwrap_or_else(|| "unknown".to_string());
+        if !seen_resources.insert(("dataset".to_string(), dataset_name.clone())) {
+            continue;
+        }
+
+        let (risk, perm_label) = if dataset.private {
+            (Severity::Medium, "dataset:private")
+        } else {
+            (Severity::Low, "dataset:public")
+        };
+
+        resources.push(ResourceExposure {
+            resource_type: "dataset".into(),
+            name: dataset_name,
+            permissions: vec![perm_label.to_string()],
+            risk: severity_to_str(risk).to_string(),
+            reason: if dataset.private {
+                "Accessible private dataset".to_string()
+            } else {
+                "Accessible public dataset".to_string()
+            },
+        });
+
+        if dataset.private {
+            permissions.risky.push(perm_label.to_string());
+        } else {
+            permissions.read_only.push(perm_label.to_string());
+        }
+    }
+
+    for space in &spaces {
+        let space_name = space.id.clone().unwrap_or_else(|| "unknown".to_string());
+        if !seen_resources.insert(("space".to_string(), space_name.clone())) {
+            continue;
+        }
+
+        let (risk, perm_label) = if space.private {
+            (Severity::Medium, "space:private")
+        } else {
+            (Severity::Low, "space:public")
+        };
+
+        resources.push(ResourceExposure {
+            resource_type: "space".into(),
+            name: space_name,
+            permissions: vec![perm_label.to_string()],
+            risk: severity_to_str(risk).to_string(),
+            reason: if space.private {
+                "Accessible private Space".to_string()
+            } else {
+                "Accessible public Space".to_string()
+            },
+        });
+
+        if space.private {
+            permissions.risky.push(perm_label.to_string());
+        } else {
+            permissions.read_only.push(perm_label.to_string());
+        }
+    }
+
     permissions.admin.sort();
     permissions.admin.dedup();
     permissions.risky.sort();
@@ -208,9 +321,9 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
     permissions.read_only.sort();
     permissions.read_only.dedup();
 
-    let severity = derive_severity(&token_role, &models);
+    let severity = derive_severity(&token_role, &models, &datasets, &spaces);
 
-    if models.is_empty() && whoami.orgs.is_empty() {
+    if models.is_empty() && datasets.is_empty() && spaces.is_empty() && whoami.orgs.is_empty() {
         resources.push(ResourceExposure {
             resource_type: "account".into(),
             name: username.clone(),
@@ -218,7 +331,8 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
             risk: severity_to_str(Severity::Low).to_string(),
             reason: "Hugging Face account associated with the token".into(),
         });
-        risk_notes.push("Token did not enumerate any models or organizations".into());
+        risk_notes
+            .push("Token did not enumerate any models, datasets, Spaces, or organizations".into());
     }
 
     if roles.is_empty() {
@@ -254,13 +368,13 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
     })
 }
 
-async fn list_user_models(client: &Client, token: &str, username: &str) -> Result<Vec<HfModel>> {
+async fn list_models_by_author(client: &Client, token: &str, author: &str) -> Result<Vec<HfModel>> {
     let mut models = Vec::new();
-    let limit = 100;
+    let limit = MAX_HF_RESOURCES_PER_KIND;
 
     let resp = client
         .get(format!("{HUGGINGFACE_API}/models"))
-        .query(&[("author", username), ("limit", &limit.to_string())])
+        .query(&[("author", author), ("limit", &limit.to_string())])
         .header(header::AUTHORIZATION, format!("Bearer {token}"))
         .send()
         .await
@@ -278,12 +392,59 @@ async fn list_user_models(client: &Client, token: &str, username: &str) -> Resul
     Ok(models)
 }
 
-fn derive_severity(token_role: &Option<String>, models: &[HfModel]) -> Severity {
+async fn list_datasets_by_author(
+    client: &Client,
+    token: &str,
+    author: &str,
+) -> Result<Vec<HfDataset>> {
+    let resp = client
+        .get(format!("{HUGGINGFACE_API}/datasets"))
+        .query(&[("author", author), ("limit", &MAX_HF_RESOURCES_PER_KIND.to_string())])
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .send()
+        .await
+        .context("Hugging Face access-map: failed to list datasets")?;
+
+    if !resp.status().is_success() {
+        warn!("Hugging Face access-map: dataset enumeration failed with HTTP {}", resp.status());
+        return Ok(Vec::new());
+    }
+
+    resp.json().await.context("Hugging Face access-map: invalid dataset JSON")
+}
+
+async fn list_spaces_by_author(client: &Client, token: &str, author: &str) -> Result<Vec<HfSpace>> {
+    let resp = client
+        .get(format!("{HUGGINGFACE_API}/spaces"))
+        .query(&[("author", author), ("limit", &MAX_HF_RESOURCES_PER_KIND.to_string())])
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .send()
+        .await
+        .context("Hugging Face access-map: failed to list Spaces")?;
+
+    if !resp.status().is_success() {
+        warn!("Hugging Face access-map: Space enumeration failed with HTTP {}", resp.status());
+        return Ok(Vec::new());
+    }
+
+    resp.json().await.context("Hugging Face access-map: invalid Space JSON")
+}
+
+fn derive_severity(
+    token_role: &Option<String>,
+    models: &[HfModel],
+    datasets: &[HfDataset],
+    spaces: &[HfSpace],
+) -> Severity {
+    let has_private_assets = models.iter().any(|m| m.private)
+        || datasets.iter().any(|d| d.private)
+        || spaces.iter().any(|s| s.private);
+
     if let Some(role) = token_role {
         match role.as_str() {
             "admin" | "fineGrained" => return Severity::High,
             "write" => {
-                if models.iter().any(|m| m.private) {
+                if has_private_assets {
                     return Severity::High;
                 }
                 return Severity::Medium;
@@ -292,7 +453,7 @@ fn derive_severity(token_role: &Option<String>, models: &[HfModel]) -> Severity 
         }
     }
 
-    if models.iter().any(|m| m.private) {
+    if has_private_assets {
         Severity::Medium
     } else {
         Severity::Low

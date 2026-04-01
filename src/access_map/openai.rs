@@ -12,6 +12,7 @@ use super::{
 };
 
 const OPENAI_API: &str = "https://api.openai.com/v1";
+const MAX_OPENAI_SERVICE_RESOURCES: usize = 50;
 
 // ---------------------------------------------------------------------------
 // Deserialization types
@@ -68,6 +69,72 @@ struct OpenAiProject {
     name: Option<String>,
     #[serde(default)]
     archived: bool,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiModelsResponse {
+    #[serde(default)]
+    data: Vec<OpenAiModel>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiModel {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    owned_by: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiFilesResponse {
+    #[serde(default)]
+    data: Vec<OpenAiFile>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiFile {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    filename: Option<String>,
+    #[serde(default)]
+    purpose: Option<String>,
+    #[serde(default)]
+    status: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiAssistantsResponse {
+    #[serde(default)]
+    data: Vec<OpenAiAssistant>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiAssistant {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    model: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiFineTuningJobsResponse {
+    #[serde(default)]
+    data: Vec<OpenAiFineTuningJob>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct OpenAiFineTuningJob {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    model: Option<String>,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    fine_tuned_model: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +532,171 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         }
     }
 
+    if scope_has_read_access(&scope_results, "/v1/models") {
+        let models = list_models(&client, token).await.unwrap_or_else(|err| {
+            warn!("OpenAI access-map: model enumeration failed: {err}");
+            risk_notes.push(format!("Model enumeration failed: {err}"));
+            Vec::new()
+        });
+
+        let truncated = models.len() > MAX_OPENAI_SERVICE_RESOURCES;
+        for model in models.into_iter().take(MAX_OPENAI_SERVICE_RESOURCES) {
+            let model_id = model.id.unwrap_or_else(|| "unknown_model".to_string());
+            let reason = match model.owned_by.as_deref() {
+                Some(owner) if !owner.is_empty() => {
+                    format!("Model readable via this API key (owner: {owner})")
+                }
+                _ => "Model readable via this API key".to_string(),
+            };
+
+            resources.push(ResourceExposure {
+                resource_type: "model".into(),
+                name: model_id,
+                permissions: vec!["model:read".to_string()],
+                risk: severity_to_str(Severity::Low).to_string(),
+                reason,
+            });
+        }
+        if truncated {
+            risk_notes.push(format!(
+                "Model resource list truncated to first {MAX_OPENAI_SERVICE_RESOURCES} visible entries"
+            ));
+        }
+    }
+
+    if scope_has_read_access(&scope_results, "/v1/files") {
+        let files = list_files(&client, token).await.unwrap_or_else(|err| {
+            warn!("OpenAI access-map: file enumeration failed: {err}");
+            risk_notes.push(format!("File enumeration failed: {err}"));
+            Vec::new()
+        });
+
+        let truncated = files.len() > MAX_OPENAI_SERVICE_RESOURCES;
+        let can_write_files = scope_has_write_access(&scope_results, "/v1/files");
+
+        for file in files.into_iter().take(MAX_OPENAI_SERVICE_RESOURCES) {
+            let file_name =
+                file.filename.or(file.id.clone()).unwrap_or_else(|| "unknown_file".to_string());
+            let mut file_permissions = vec!["file:read".to_string()];
+            if can_write_files {
+                file_permissions.push("file:write".to_string());
+            }
+
+            let reason = match (file.purpose.as_deref(), file.status.as_deref()) {
+                (Some(purpose), Some(status)) if !purpose.is_empty() && !status.is_empty() => {
+                    format!("File visible to this API key (purpose: {purpose}, status: {status})")
+                }
+                (Some(purpose), _) if !purpose.is_empty() => {
+                    format!("File visible to this API key (purpose: {purpose})")
+                }
+                _ => "File visible to this API key".to_string(),
+            };
+
+            resources.push(ResourceExposure {
+                resource_type: "file".into(),
+                name: file_name,
+                permissions: file_permissions,
+                risk: if can_write_files { "high".into() } else { "medium".into() },
+                reason,
+            });
+        }
+        if truncated {
+            risk_notes.push(format!(
+                "File resource list truncated to first {MAX_OPENAI_SERVICE_RESOURCES} visible entries"
+            ));
+        }
+    }
+
+    if scope_has_read_access(&scope_results, "/v1/assistants") {
+        let assistants = list_assistants(&client, token).await.unwrap_or_else(|err| {
+            warn!("OpenAI access-map: assistant enumeration failed: {err}");
+            risk_notes.push(format!("Assistant enumeration failed: {err}"));
+            Vec::new()
+        });
+
+        let truncated = assistants.len() > MAX_OPENAI_SERVICE_RESOURCES;
+        let can_write_assistants = scope_has_write_access(&scope_results, "/v1/assistants");
+
+        for assistant in assistants.into_iter().take(MAX_OPENAI_SERVICE_RESOURCES) {
+            let assistant_name = assistant
+                .name
+                .or(assistant.id.clone())
+                .unwrap_or_else(|| "unknown_assistant".to_string());
+            let mut assistant_permissions = vec!["assistant:read".to_string()];
+            if can_write_assistants {
+                assistant_permissions.push("assistant:write".to_string());
+            }
+
+            let reason = match assistant.model.as_deref() {
+                Some(model) if !model.is_empty() => {
+                    format!("Assistant visible to this API key (model: {model})")
+                }
+                _ => "Assistant visible to this API key".to_string(),
+            };
+
+            resources.push(ResourceExposure {
+                resource_type: "assistant".into(),
+                name: assistant_name,
+                permissions: assistant_permissions,
+                risk: if can_write_assistants { "medium".into() } else { "low".into() },
+                reason,
+            });
+        }
+        if truncated {
+            risk_notes.push(format!(
+                "Assistant resource list truncated to first {MAX_OPENAI_SERVICE_RESOURCES} visible entries"
+            ));
+        }
+    }
+
+    if scope_has_read_access(&scope_results, "/v1/fine_tuning") {
+        let jobs = list_fine_tuning_jobs(&client, token).await.unwrap_or_else(|err| {
+            warn!("OpenAI access-map: fine-tuning job enumeration failed: {err}");
+            risk_notes.push(format!("Fine-tuning job enumeration failed: {err}"));
+            Vec::new()
+        });
+
+        let truncated = jobs.len() > MAX_OPENAI_SERVICE_RESOURCES;
+        let can_write_fine_tuning = scope_has_write_access(&scope_results, "/v1/fine_tuning");
+
+        for job in jobs.into_iter().take(MAX_OPENAI_SERVICE_RESOURCES) {
+            let job_name = job
+                .fine_tuned_model
+                .clone()
+                .or(job.id.clone())
+                .unwrap_or_else(|| "unknown_fine_tuning_job".to_string());
+            let mut job_permissions = vec!["fine_tuning:read".to_string()];
+            if can_write_fine_tuning {
+                job_permissions.push("fine_tuning:write".to_string());
+            }
+
+            let reason = match (job.model.as_deref(), job.status.as_deref()) {
+                (Some(model), Some(status)) if !model.is_empty() && !status.is_empty() => {
+                    format!(
+                        "Fine-tuning job visible to this API key (base model: {model}, status: {status})"
+                    )
+                }
+                (Some(model), _) if !model.is_empty() => {
+                    format!("Fine-tuning job visible to this API key (base model: {model})")
+                }
+                _ => "Fine-tuning job visible to this API key".to_string(),
+            };
+
+            resources.push(ResourceExposure {
+                resource_type: "fine_tuning_job".into(),
+                name: job_name,
+                permissions: job_permissions,
+                risk: if can_write_fine_tuning { "high".into() } else { "medium".into() },
+                reason,
+            });
+        }
+        if truncated {
+            risk_notes.push(format!(
+                "Fine-tuning resource list truncated to first {MAX_OPENAI_SERVICE_RESOURCES} visible entries"
+            ));
+        }
+    }
+
     // -- Identity --
     let identity_id = me
         .email
@@ -587,6 +819,101 @@ async fn list_projects(client: &Client, token: &str) -> Result<Vec<OpenAiProject
     }
 }
 
+async fn list_models(client: &Client, token: &str) -> Result<Vec<OpenAiModel>> {
+    let resp = client
+        .get(format!("{OPENAI_API}/models"))
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::ACCEPT, "application/json")
+        .send()
+        .await
+        .context("OpenAI access-map: failed to list models")?;
+
+    match resp.status() {
+        StatusCode::OK => {
+            let body: OpenAiModelsResponse =
+                resp.json().await.context("OpenAI access-map: invalid models JSON")?;
+            Ok(body.data)
+        }
+        StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => Ok(Vec::new()),
+        StatusCode::UNAUTHORIZED => {
+            Err(anyhow!("OpenAI access-map: model listing unauthorized (401)"))
+        }
+        status => Err(anyhow!("OpenAI access-map: model listing failed with HTTP {status}")),
+    }
+}
+
+async fn list_files(client: &Client, token: &str) -> Result<Vec<OpenAiFile>> {
+    let resp = client
+        .get(format!("{OPENAI_API}/files"))
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::ACCEPT, "application/json")
+        .send()
+        .await
+        .context("OpenAI access-map: failed to list files")?;
+
+    match resp.status() {
+        StatusCode::OK => {
+            let body: OpenAiFilesResponse =
+                resp.json().await.context("OpenAI access-map: invalid files JSON")?;
+            Ok(body.data)
+        }
+        StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => Ok(Vec::new()),
+        StatusCode::UNAUTHORIZED => {
+            Err(anyhow!("OpenAI access-map: file listing unauthorized (401)"))
+        }
+        status => Err(anyhow!("OpenAI access-map: file listing failed with HTTP {status}")),
+    }
+}
+
+async fn list_assistants(client: &Client, token: &str) -> Result<Vec<OpenAiAssistant>> {
+    let resp = client
+        .get(format!("{OPENAI_API}/assistants"))
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::ACCEPT, "application/json")
+        .header("OpenAI-Beta", "assistants=v2")
+        .send()
+        .await
+        .context("OpenAI access-map: failed to list assistants")?;
+
+    match resp.status() {
+        StatusCode::OK => {
+            let body: OpenAiAssistantsResponse =
+                resp.json().await.context("OpenAI access-map: invalid assistants JSON")?;
+            Ok(body.data)
+        }
+        StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => Ok(Vec::new()),
+        StatusCode::UNAUTHORIZED => {
+            Err(anyhow!("OpenAI access-map: assistant listing unauthorized (401)"))
+        }
+        status => Err(anyhow!("OpenAI access-map: assistant listing failed with HTTP {status}")),
+    }
+}
+
+async fn list_fine_tuning_jobs(client: &Client, token: &str) -> Result<Vec<OpenAiFineTuningJob>> {
+    let resp = client
+        .get(format!("{OPENAI_API}/fine_tuning/jobs"))
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::ACCEPT, "application/json")
+        .send()
+        .await
+        .context("OpenAI access-map: failed to list fine-tuning jobs")?;
+
+    match resp.status() {
+        StatusCode::OK => {
+            let body: OpenAiFineTuningJobsResponse =
+                resp.json().await.context("OpenAI access-map: invalid fine-tuning jobs JSON")?;
+            Ok(body.data)
+        }
+        StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => Ok(Vec::new()),
+        StatusCode::UNAUTHORIZED => {
+            Err(anyhow!("OpenAI access-map: fine-tuning job listing unauthorized (401)"))
+        }
+        status => {
+            Err(anyhow!("OpenAI access-map: fine-tuning job listing failed with HTTP {status}"))
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Classification helpers
 // ---------------------------------------------------------------------------
@@ -601,6 +928,14 @@ fn detect_token_type(token: &str) -> &'static str {
     } else {
         "api_key"
     }
+}
+
+fn scope_has_read_access(scopes: &[ScopeResult], scope: &str) -> bool {
+    scopes.iter().any(|sr| sr.scope == scope && matches!(sr.permission, "Read" | "Read & Write"))
+}
+
+fn scope_has_write_access(scopes: &[ScopeResult], scope: &str) -> bool {
+    scopes.iter().any(|sr| sr.scope == scope && matches!(sr.permission, "Write" | "Read & Write"))
 }
 
 fn derive_severity(
@@ -628,5 +963,34 @@ fn severity_to_str(severity: Severity) -> &'static str {
         Severity::Medium => "medium",
         Severity::High => "high",
         Severity::Critical => "critical",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{scope_has_read_access, scope_has_write_access, ScopeResult};
+
+    #[test]
+    fn scope_helpers_track_read_and_write_access_independently() {
+        let scopes = vec![
+            ScopeResult { scope: "/v1/models", endpoints: vec!["/v1/models"], permission: "Read" },
+            ScopeResult {
+                scope: "/v1/files",
+                endpoints: vec!["/v1/files"],
+                permission: "Read & Write",
+            },
+            ScopeResult {
+                scope: "/v1/responses",
+                endpoints: vec!["/v1/responses"],
+                permission: "Write",
+            },
+        ];
+
+        assert!(scope_has_read_access(&scopes, "/v1/models"));
+        assert!(!scope_has_write_access(&scopes, "/v1/models"));
+        assert!(scope_has_read_access(&scopes, "/v1/files"));
+        assert!(scope_has_write_access(&scopes, "/v1/files"));
+        assert!(!scope_has_read_access(&scopes, "/v1/responses"));
+        assert!(scope_has_write_access(&scopes, "/v1/responses"));
     }
 }

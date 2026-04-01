@@ -6,11 +6,16 @@ use aws_config::{BehaviorVersion, SdkConfig};
 use aws_credential_types::Credentials;
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_ecr::Client as EcrClient;
 use aws_sdk_iam::{error::SdkError, Client as IamClient};
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_lambda::Client as LambdaClient;
+use aws_sdk_rds::Client as RdsClient;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_secretsmanager::Client as SecretsManagerClient;
+use aws_sdk_sns::Client as SnsClient;
+use aws_sdk_sqs::Client as SqsClient;
+use aws_sdk_ssm::Client as SsmClient;
 use aws_sdk_sts::Client as StsClient;
 use percent_encoding::percent_decode_str;
 use serde_json::Value;
@@ -679,6 +684,250 @@ async fn enumerate_resources(
                 if !handle_access_denied("secretsmanager", &err, risk_notes) {
                     warn!("AWS access-map: failed to enumerate secretsmanager secrets: {err}");
                     risk_notes.push(format!("AWS enumeration failed for secretsmanager: {err}"));
+                }
+            }
+        }
+    }
+
+    if no_permissions || can_read(permissions, "sqs.") {
+        let sqs = SqsClient::new(config);
+        match sqs.list_queues().send().await {
+            Ok(resp) => {
+                let can_send = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("sqs.sendmessage")
+                            || perm.starts_with("sqs.purgequeue")
+                            || perm.starts_with("sqs.deletequeue")
+                            || perm.starts_with("sqs.createqueue")
+                    });
+
+                for queue_url in resp.queue_urls() {
+                    resources.push(ResourceExposure {
+                        resource_type: "sqs_queue".into(),
+                        name: queue_url.to_string(),
+                        permissions: permissions_for_prefix(permissions, "sqs."),
+                        risk: if can_send { "high".into() } else { "medium".into() },
+                        reason: if can_send {
+                            "SQS queue visible and queue messages may be writable or destructive"
+                                .into()
+                        } else {
+                            "SQS queue visible to the identity".into()
+                        },
+                    });
+                }
+            }
+            Err(err) => {
+                if !handle_access_denied("sqs", &err, risk_notes) {
+                    warn!("AWS access-map: failed to enumerate sqs queues: {err}");
+                    risk_notes.push(format!("AWS enumeration failed for sqs: {err}"));
+                }
+            }
+        }
+    }
+
+    if no_permissions || can_read(permissions, "sns.") {
+        let sns = SnsClient::new(config);
+        match sns.list_topics().send().await {
+            Ok(resp) => {
+                let can_publish = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("sns.publish")
+                            || perm.starts_with("sns.createtopic")
+                            || perm.starts_with("sns.deletetopic")
+                            || perm.starts_with("sns.settopicattributes")
+                    });
+
+                for topic in resp.topics() {
+                    if let Some(arn) = topic.topic_arn() {
+                        resources.push(ResourceExposure {
+                            resource_type: "sns_topic".into(),
+                            name: arn.to_string(),
+                            permissions: permissions_for_prefix(permissions, "sns."),
+                            risk: if can_publish { "high".into() } else { "medium".into() },
+                            reason: if can_publish {
+                                "SNS topic visible and publish or topic-management actions appear available"
+                                    .into()
+                            } else {
+                                "SNS topic visible to the identity".into()
+                            },
+                        });
+                    }
+                }
+            }
+            Err(err) => {
+                if !handle_access_denied("sns", &err, risk_notes) {
+                    warn!("AWS access-map: failed to enumerate sns topics: {err}");
+                    risk_notes.push(format!("AWS enumeration failed for sns: {err}"));
+                }
+            }
+        }
+    }
+
+    if no_permissions || can_read(permissions, "rds.") {
+        let rds = RdsClient::new(config);
+        match rds.describe_db_instances().send().await {
+            Ok(resp) => {
+                let can_modify = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("rds.modifydbinstance")
+                            || perm.starts_with("rds.createdbinstance")
+                            || perm.starts_with("rds.deletedbinstance")
+                            || perm.starts_with("rds.restoredbinstance")
+                    });
+
+                for db in resp.db_instances() {
+                    let name = db
+                        .db_instance_arn()
+                        .map(ToString::to_string)
+                        .or_else(|| db.db_instance_identifier().map(ToString::to_string));
+
+                    if let Some(name) = name {
+                        resources.push(ResourceExposure {
+                            resource_type: "rds_instance".into(),
+                            name,
+                            permissions: permissions_for_prefix(permissions, "rds."),
+                            risk: if can_modify { "high".into() } else { "medium".into() },
+                            reason: if can_modify {
+                                "RDS instance visible and instance lifecycle changes appear possible"
+                                    .into()
+                            } else {
+                                "RDS instance visible to the identity".into()
+                            },
+                        });
+                    }
+                }
+            }
+            Err(err) => {
+                if !handle_access_denied("rds", &err, risk_notes) {
+                    warn!("AWS access-map: failed to enumerate rds instances: {err}");
+                    risk_notes.push(format!("AWS enumeration failed for rds: {err}"));
+                }
+            }
+        }
+    }
+
+    if no_permissions || can_read(permissions, "ecr.") {
+        let ecr = EcrClient::new(config);
+        match ecr.describe_repositories().send().await {
+            Ok(resp) => {
+                let can_push = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("ecr.putimage")
+                            || perm.starts_with("ecr.batchdeleteimage")
+                            || perm.starts_with("ecr.setrepositorypolicy")
+                            || perm.starts_with("ecr.deleterepository")
+                            || perm.starts_with("ecr.createrepository")
+                    });
+
+                for repo in resp.repositories() {
+                    let name = repo
+                        .repository_arn()
+                        .map(ToString::to_string)
+                        .or_else(|| repo.repository_name().map(ToString::to_string));
+
+                    if let Some(name) = name {
+                        resources.push(ResourceExposure {
+                            resource_type: "ecr_repository".into(),
+                            name,
+                            permissions: permissions_for_prefix(permissions, "ecr."),
+                            risk: if can_push { "high".into() } else { "medium".into() },
+                            reason: if can_push {
+                                "ECR repository visible and image push or policy changes appear possible"
+                                    .into()
+                            } else {
+                                "ECR repository visible to the identity".into()
+                            },
+                        });
+                    }
+                }
+            }
+            Err(err) => {
+                if !handle_access_denied("ecr", &err, risk_notes) {
+                    warn!("AWS access-map: failed to enumerate ecr repositories: {err}");
+                    risk_notes.push(format!("AWS enumeration failed for ecr: {err}"));
+                }
+            }
+        }
+    }
+
+    if no_permissions || can_read(permissions, "ssm.") {
+        let ssm = SsmClient::new(config);
+        match ssm.describe_parameters().send().await {
+            Ok(resp) => {
+                let can_read_values = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .chain(&permissions.read_only)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("ssm.getparameter")
+                            || perm.starts_with("ssm.getparameters")
+                            || perm.starts_with("ssm.getparametersbypath")
+                    });
+                let can_modify = permissions
+                    .admin
+                    .iter()
+                    .chain(&permissions.privilege_escalation)
+                    .chain(&permissions.risky)
+                    .any(|perm| {
+                        perm == "*"
+                            || perm.starts_with("ssm.putparameter")
+                            || perm.starts_with("ssm.deleteparameter")
+                            || perm.starts_with("ssm.labelparameterversion")
+                    });
+
+                for parameter in resp.parameters() {
+                    if let Some(name) = parameter.name() {
+                        let reason = if can_modify && can_read_values {
+                            "SSM parameter visible and parameter values may be readable and writable"
+                        } else if can_modify {
+                            "SSM parameter visible and parameter metadata suggests write access"
+                        } else if can_read_values {
+                            "SSM parameter visible and parameter values may be readable"
+                        } else {
+                            "SSM parameter visible to the identity"
+                        };
+
+                        resources.push(ResourceExposure {
+                            resource_type: "ssm_parameter".into(),
+                            name: name.to_string(),
+                            permissions: permissions_for_prefix(permissions, "ssm."),
+                            risk: if can_modify || can_read_values {
+                                "high".into()
+                            } else {
+                                "medium".into()
+                            },
+                            reason: reason.into(),
+                        });
+                    }
+                }
+            }
+            Err(err) => {
+                if !handle_access_denied("ssm", &err, risk_notes) {
+                    warn!("AWS access-map: failed to enumerate ssm parameters: {err}");
+                    risk_notes.push(format!("AWS enumeration failed for ssm: {err}"));
                 }
             }
         }
