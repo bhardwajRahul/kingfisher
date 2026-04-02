@@ -91,7 +91,7 @@ pub enum Command {
 pub static RAM_GB: Lazy<Option<f64>> = Lazy::new(|| {
     if sysinfo::IS_SUPPORTED_SYSTEM {
         let s = System::new_with_specifics(
-            RefreshKind::new().with_memory(MemoryRefreshKind::new().with_ram()),
+            RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()),
         );
         Some(s.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0)
     } else {

@@ -131,11 +131,16 @@ Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/
 - After changes, run the narrowest relevant tests first, then broader checks when practical.
 - If validation commands cannot be run, report exactly what was skipped and why.
 - Prefer `kingfisher scan --format toon` when invoking Kingfisher from an LLM or agent workflow; keep `pretty` for interactive human CLI use unless the task explicitly calls for a different format.
+- After markdown/doc changes, verify local documentation links when practical.
 
 ## Documentation Pointers
 - `docs/USAGE.md`
 - `docs/ADVANCED.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ACCESS_MAP.md`
+- `docs/DEPLOYMENT.md`
 - `docs/RULES.md`
 - `docs/INSTALLATION.md`
 - `docs/INTEGRATIONS.md`
 - `docs/LIBRARY.md`
+- `docs/PYPI.md`

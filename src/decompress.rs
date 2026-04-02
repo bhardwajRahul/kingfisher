@@ -348,11 +348,12 @@ pub fn decompress_file_to_temp(path: &Path) -> Result<(CompressedContent, TempDi
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::{fs::File, io::Write};
 
     use flate2::{write::GzEncoder, Compression};
     use tar::Builder;
     use tempfile::tempdir;
+    use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
     use super::{decompress_once, CompressedContent};
 
@@ -449,6 +450,43 @@ mod tests {
                 );
             }
             other => panic!("expected RawFile, got {:?}", other),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_decompress_zip_archive() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let zip_path = dir.path().join("payload.zip");
+        let github_pat = "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"; // this is not a real secret
+
+        {
+            let file = File::create(&zip_path)?;
+            let mut zip = ZipWriter::new(file);
+            let options = SimpleFileOptions::default()
+                .compression_method(CompressionMethod::Deflated)
+                .unix_permissions(0o644);
+
+            zip.start_file("nested/secret.txt", options)?;
+            zip.write_all(format!("token={github_pat}\n").as_bytes())?;
+            zip.finish()?;
+        }
+
+        let tmp = tempdir()?;
+        let content = decompress_once(&zip_path, Some(tmp.path()))?;
+        if let CompressedContent::ArchiveFiles(files) = content {
+            let mut found = false;
+            for (logical, path) in files {
+                if logical.ends_with("!nested/secret.txt") {
+                    let txt = std::fs::read_to_string(&path)?;
+                    assert!(txt.contains(github_pat));
+                    found = true;
+                }
+            }
+            assert!(found, "did not find nested/secret.txt in ArchiveFiles");
+        } else {
+            panic!("expected ArchiveFiles for zip archive, got {:?}", content);
         }
 
         Ok(())

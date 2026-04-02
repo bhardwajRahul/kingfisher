@@ -2,11 +2,18 @@
 
 <p align="center">
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Detection Rules](https://img.shields.io/badge/Detection%20Rules-601-2ea043.svg)](https://github.com/mongodb/kingfisher)<br>
-[![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)<br>
-
+  <br>
+  <a href="https://opensource.org/licenses/Apache-2.0">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
+  </a>
+  <a href="https://github.com/mongodb/kingfisher">
+    <img src="https://img.shields.io/badge/Detection%20Rules-601-2ea043.svg" alt="Detection Rules" />
+  </a>
+  <br>
+  <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
+    <img src="https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher" alt="ghcr downloads" />
+  </a>
+  <br>
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
 
@@ -47,7 +54,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
-- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports AWS, GCP, Azure, GitHub, GitLab, Slack, Microsoft Teams, and more.
+- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 39 providers (see table below).
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **SQLite Database Scanning**: Automatically extracts and scans SQLite database contents for secrets stored in table rows
@@ -74,7 +81,7 @@ NOTE: Replay has been slowed down for demo
 ![Kingfisher secret scanning demo](docs/kingfisher-usage-01.gif)
 
 ## Report Viewer Demo
-Explore Kingfisher's built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, GitLab, Slack, Microsoft Teams, and more) can actually access.
+Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers.
 
 Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
@@ -338,18 +345,20 @@ gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
 
 # Detection Rules
 
-Kingfisher ships with [hundreds of rules](crates/kingfisher-rules/data/rules/) that cover everything from classic cloud keys to the latest AI SaaS tokens. Below is an overview:
+Kingfisher ships with [600+ built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
 
 | Category | What we catch |
 |----------|---------------|
-| **AI SaaS APIs** | OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, together.ai, Zhipu, and more |
-| **Cloud Providers** | AWS, Azure, GCP, Alibaba Cloud, DigitalOcean, IBM Cloud, Cloudflare, Temporal Cloud, and more |
-| **Dev & CI/CD** | GitHub/GitLab tokens, CircleCI, TravisCI, TeamCity, Docker Hub, npm, PyPI, Vercel, and more |
-| **Messaging & Comms** | Slack, Discord, Microsoft Teams, Twilio, Mailgun, SendGrid, Mailchimp, and more |
-| **Databases & Data Ops** | MongoDB Atlas, PlanetScale, Postgres DSNs, Grafana Cloud, Datadog, Dynatrace, and more |
-| **Payments & Billing** | Stripe, PayPal, Square, GoCardless, and more |
-| **Security & DevSecOps** | Snyk, Dependency-Track, CodeClimate, Codacy, OpsGenie, PagerDuty, and more |
-| **Misc. SaaS & Tools** | 1Password, Adobe, Atlassian/Jira, Asana, Netlify, Baremetrics, and more |
+| **Cloud Providers** | AWS, GCP, Azure (Storage, DevOps, OpenAI, Speech, Translator), Alibaba Cloud, DigitalOcean, IBM Cloud, Cloudflare, Heroku, Fly.io, Railway, Render, Temporal Cloud, and more |
+| **AI & ML** | OpenAI, Anthropic, Google Gemini, Azure OpenAI, Cohere, Mistral, DeepSeek, Groq, xAI (Grok), Stability AI, Replicate, ElevenLabs, Ollama, Langchain, Perplexity, Weights & Biases, NVIDIA NIM, Fireworks.ai, Together.ai, Cerebras, Friendli, Hugging Face, Pinecone, Cursor, Zhipu, and more |
+| **Dev & CI/CD** | GitHub, GitLab, Bitbucket, Buildkite, CircleCI, TravisCI, TeamCity, Jenkins, Drone CI, Harness, Docker Hub, npm, PyPI, RubyGems, Crates.io, NuGet, Vercel, Netlify, Pulumi, Terraform, and more |
+| **Databases** | PostgreSQL, MySQL, MongoDB, Redis, PlanetScale, Supabase, Neon, ClickHouse, DataStax Astra, Firebase, JDBC, ODBC, and more |
+| **Messaging & Email** | Slack, Discord, Microsoft Teams, Telegram, Twilio, SendGrid, Mailgun, Mailchimp, Mailjet, Postmark, Brevo (Sendinblue), Resend, and more |
+| **Observability** | Datadog, Grafana, New Relic, Sentry, Dynatrace, Honeycomb, PagerDuty, OpsGenie, Sumo Logic, Better Stack, and more |
+| **Payments & Fintech** | Stripe, PayPal, Square, GoCardless, Flutterwave, Razorpay, Plaid, Coinbase, and more |
+| **Security & Identity** | Snyk, Auth0, Okta, Clerk, LaunchDarkly, 1Password, JFrog Artifactory/Xray, SonarCloud, Endor Labs, Dependency-Track, StackHawk, and more |
+| **CRM & Business SaaS** | Salesforce, HubSpot, Jira, Confluence, Asana, Linear, Monday.com, Zendesk, Intercom, Shopify, and more |
+| **Crypto Material** | Private keys (PEM, PGP/GPG, SSH), JWTs, age encryption keys, WireGuard keys, and more |
 
 ## Write Custom Rules
 
@@ -412,10 +421,10 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 Finding a leaked credential is only the first step. The critical question isn't just "Is this a secret?"—it's "What can an attacker do with it?"
 
-Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, GitLab, Slack, or Microsoft Teams) to map the full extent of the credential's power. 
+Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against the provider to map the full extent of the credential's power.
 
-* Instant Identity Resolution: Immediately identify who the key belongs to—whether it's a specific IAM user, an assumed role, or a service account.
-* Visualize the Blast Radius: See exactly which resources (S3 buckets, EC2 instances, projects, storage containers) are exposed and at risk.
+* **Instant Identity Resolution**: Immediately identify who the key belongs to—whether it's a specific IAM user, an assumed role, or a service account.
+* **Visualize the Blast Radius**: See exactly which resources (S3 buckets, EC2 instances, projects, storage containers) are exposed and at risk.
 
 ```bash
 # Generate access map during scan
@@ -426,6 +435,28 @@ kingfisher view kingfisher.json
 ```
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
+
+### Supported Access Map Providers (39)
+
+| Cloud & Infra | DevOps & CI/CD | SaaS & APIs | Data & Messaging |
+|:---|:---|:---|:---|
+| AWS | GitHub | Airtable | MongoDB |
+| GCP | GitLab | Algolia | MySQL |
+| Azure Storage | Azure DevOps | Auth0 | PostgreSQL |
+| DigitalOcean | Bitbucket | HubSpot | SendGrid |
+| IBM Cloud | Buildkite | Salesforce | Sendinblue / Brevo |
+| Terraform Cloud | CircleCI | Shopify | Slack |
+| | Harness | Zendesk | Microsoft Teams |
+| | JFrog Artifactory | Stripe | |
+| | JFrog Xray | Square | |
+| | Jira | PayPal | |
+| | | Plaid | |
+| | | Fastly | |
+| | | OpenAI | |
+| | | Anthropic | |
+| | | Hugging Face | |
+| | | Weights & Biases | |
+| | | Gitea | |
 
 ## Direct Secret Validation & Revocation
 
@@ -683,7 +714,9 @@ kingfisher scan /tmp/repo --branch feature-1 \
 |----------|-------------|
 | [INSTALLATION.md](docs/INSTALLATION.md) | Complete installation guide including pre-commit hooks setup for git, pre-commit framework, and Husky |
 | [INTEGRATIONS.md](docs/INTEGRATIONS.md) | Platform-specific scanning guide (GitHub, GitLab, AWS S3, Docker, Jira, Confluence, Slack, etc.) |
-| [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (GitHub/GitLab/Slack/AWS/GCP/Azure Storage/Postgres/MongoDB/Microsoft Teams) |
+| [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (39 providers including AWS, GCP, Azure, Stripe, Jira, and more) |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | High-level Mermaid architecture diagram of the CLI, scanner pipeline, validation, access map, and outputs |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment models for self-serve CLI use, CI/pre-commit enforcement, centralized scanning, and embedded library integrations |
 | [ADVANCED.md](docs/ADVANCED.md) | Advanced features: baselines, confidence levels, validation tuning, CI scanning, and more |
 | [RULES.md](docs/RULES.md) | Writing custom detection rules, pattern requirements, and checksum intelligence |
 | [REVOCATION_PROVIDERS.md](docs/REVOCATION_PROVIDERS.md) | Built-in revocation coverage by provider and rule ID |

@@ -11,6 +11,53 @@ There are two ways to produce access maps:
 
 > Access mapping runs additional network requests. Only use it when you are authorized to inspect the target account/workspace.
 
+## How Access Map Works
+
+### Standalone Flow
+
+```mermaid
+flowchart LR
+    CLI[kingfisher access-map] --> Args[Provider and credential input]
+    Args --> Dispatch[Provider dispatch]
+    Dispatch --> Provider[Provider mapper]
+    Provider --> APIs[Provider APIs]
+    APIs --> Result[AccessMapResult]
+    Result --> JSON[JSON stdout or file]
+    Result --> HTML[Optional HTML report]
+```
+
+### Scan-Time Flow
+
+```mermaid
+flowchart LR
+    Scan[kingfisher scan --access-map] --> Detect[Detect findings]
+    Detect --> Validate[Validate supported credentials]
+    Validate --> Collect[AccessMapCollector]
+    Collect --> Requests[AccessMapRequest values]
+    Requests --> Map[access_map::map_requests]
+    Map --> Results[AccessMapResult values]
+    Results --> Report[Report and viewer output]
+```
+
+### Provider Dispatch Model
+
+```mermaid
+flowchart TD
+    Request[Access map request] --> Kind{Credential kind}
+
+    Kind --> Token[Single token providers]
+    Kind --> Complex[Structured credential providers]
+
+    Token --> Trait[TokenAccessMapper]
+    Trait --> Modules[GitHub GitLab Slack Gitea Bitbucket and similar providers]
+
+    Complex --> Custom[Custom provider mapping]
+    Custom --> ComplexModules[AWS GCP Azure Postgres MongoDB and other multi-field providers]
+
+    Modules --> Result[AccessMapResult]
+    ComplexModules --> Result
+```
+
 ## What “supported tokens” means
 
 Access map only runs for credential types Kingfisher knows how to authenticate with and enumerate. In the codebase, these map to `AccessMapRequest` variants recorded from validated findings (see `src/scanner/validation.rs`).
@@ -104,6 +151,8 @@ EOF
 kingfisher access-map aws ./aws.env --json-out aws.access-map.json
 ```
 
+Kingfisher performs read-only enumeration for the IAM principal and, when allowed by the credential, visible resources in several common AWS services including S3, EC2, IAM, Lambda, DynamoDB, KMS, Secrets Manager, SQS, SNS, RDS, ECR, and SSM Parameter Store.
+
 ### GCP (`gcp`)
 
 - **Credential**: a Google Cloud **service account key JSON** file.
@@ -132,6 +181,8 @@ EOF
 
 kingfisher access-map azure ./azure-storage.json --json-out azure.access-map.json
 ```
+
+Kingfisher treats the account key as full-control Storage credentials and performs best-effort enumeration across Blob containers, File shares, and Queue resources reachable with that key.
 
 ### Azure DevOps (scan `--access-map` only)
 
@@ -166,7 +217,7 @@ kingfisher access-map mongodb ./mongodb.uri --json-out mongodb.access-map.json
   - User access tokens (commonly `hf_...`)
   - Organization API tokens (commonly `api_org_...`)
 
-Kingfisher queries the `/api/whoami-v2` endpoint to resolve the token identity, role, and organization memberships. It also enumerates models authored by the user to assess the blast radius.
+Kingfisher queries the `/api/whoami-v2` endpoint to resolve the token identity, role, and organization memberships. It also performs best-effort enumeration of authored models, datasets, and Spaces for the user and visible organizations to assess the blast radius.
 
 #### Standalone example (Hugging Face)
 
@@ -265,11 +316,14 @@ kingfisher access-map harness ./harness.token --json-out harness.access-map.json
 - **Credential**: a single OpenAI API key string (read from a file for `kingfisher access-map openai <FILE>`).
 - **Token types supported**: OpenAI keys accepted by `Authorization: Bearer <TOKEN>` (for example `sk-...`, `sk-proj-...`, `sk-svcacct-...`).
 
-Kingfisher performs read-only scope probing via:
+Kingfisher performs read-only scope probing and best-effort resource enumeration via:
 
-- `GET https://api.openai.com/v1/models` to verify Models API read access and infer organization ownership (it does not enumerate or emit individual model resources in the access map).
+- `GET https://api.openai.com/v1/models` to verify Models API read access and enumerate visible models.
 - `GET https://api.openai.com/v1/me` for token identity metadata when available.
-- `GET https://api.openai.com/v1/organization/projects` for project visibility when the key has permission (best-effort).
+- `GET https://api.openai.com/v1/organization/projects` for project visibility when the key has permission.
+- `GET https://api.openai.com/v1/files` to enumerate visible uploaded files when the key has file-list access.
+- `GET https://api.openai.com/v1/assistants` to enumerate visible assistants when the key has assistant read access.
+- `GET https://api.openai.com/v1/fine_tuning/jobs` to enumerate visible fine-tuning jobs when the key has fine-tuning read access.
 
 #### Standalone example (OpenAI)
 
@@ -281,6 +335,29 @@ kingfisher access-map openai ./openai.token --json-out openai.access-map.json
 #### Notes (OpenAI)
 
 - Access map uses `https://api.openai.com/v1` as the API base.
+
+### Anthropic (`anthropic`)
+
+- **Credential**: a single Anthropic API key string (read from a file for `kingfisher access-map anthropic <FILE>`).
+- **Token types supported**: Anthropic keys accepted via `x-api-key`, including standard API keys and admin-style keys when exposed by Anthropic.
+
+Kingfisher performs read-only enumeration via:
+
+- `GET https://api.anthropic.com/v1/models` to enumerate visible models.
+- `GET https://api.anthropic.com/v1/organizations/api_keys/me` or `GET https://api.anthropic.com/v1/api_keys/me` to introspect the current key when supported.
+- `GET https://api.anthropic.com/v1/organizations/api_keys` to enumerate visible organization API keys when the credential can access them.
+
+#### Standalone example (Anthropic)
+
+```bash
+printf '%s' 'sk-ant-api-example...' > ./anthropic.token
+kingfisher access-map anthropic ./anthropic.token --json-out anthropic.access-map.json
+```
+
+#### Notes (Anthropic)
+
+- Access map uses `https://api.anthropic.com/v1` as the API base.
+- Keys that can enumerate organization API keys are treated as having broader administrative visibility.
 
 ### Salesforce (`salesforce`)
 

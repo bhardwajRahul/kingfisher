@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
 use chrono::Utc;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use quick_xml::{events::Event, Reader};
 use reqwest::{header::HeaderValue, Client};
 use serde_json::Value as JsonValue;
@@ -13,6 +13,39 @@ use super::{
     build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure,
     RoleBinding, Severity,
 };
+
+#[derive(Clone, Copy)]
+enum StorageService {
+    Blob,
+    File,
+    Queue,
+}
+
+impl StorageService {
+    fn endpoint_suffix(self) -> &'static str {
+        match self {
+            StorageService::Blob => "blob.core.windows.net",
+            StorageService::File => "file.core.windows.net",
+            StorageService::Queue => "queue.core.windows.net",
+        }
+    }
+
+    fn resource_type(self) -> &'static str {
+        match self {
+            StorageService::Blob => "storage_container",
+            StorageService::File => "storage_file_share",
+            StorageService::Queue => "storage_queue",
+        }
+    }
+
+    fn display_name(self) -> &'static str {
+        match self {
+            StorageService::Blob => "blob containers",
+            StorageService::File => "file shares",
+            StorageService::Queue => "queues",
+        }
+    }
+}
 
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {
     let path = args
@@ -38,7 +71,7 @@ pub async fn map_access_from_json_with_hints(
 
     let containers = match containers_hint {
         Some(list) if !list.is_empty() => list.to_vec(),
-        _ => match list_containers(&storage_account, &storage_key).await {
+        _ => match list_service_items(&storage_account, &storage_key, StorageService::Blob).await {
             Ok(list) => list,
             Err(err) => {
                 risk_notes.push(format!("Container enumeration failed: {err}"));
@@ -46,6 +79,22 @@ pub async fn map_access_from_json_with_hints(
             }
         },
     };
+    let file_shares =
+        match list_service_items(&storage_account, &storage_key, StorageService::File).await {
+            Ok(list) => list,
+            Err(err) => {
+                risk_notes.push(format!("File share enumeration failed: {err}"));
+                Vec::new()
+            }
+        };
+    let queues =
+        match list_service_items(&storage_account, &storage_key, StorageService::Queue).await {
+            Ok(list) => list,
+            Err(err) => {
+                risk_notes.push(format!("Queue enumeration failed: {err}"));
+                Vec::new()
+            }
+        };
 
     let severity = Severity::Critical;
     let permissions =
@@ -66,26 +115,27 @@ pub async fn map_access_from_json_with_hints(
         reason: "Storage account accessible with shared key".into(),
     });
 
-    if containers.is_empty() {
-        resources.push(ResourceExposure {
-            resource_type: "storage_container".into(),
-            name: String::new(),
-            permissions: vec!["storage:*".into()],
-            risk: "critical".into(),
-            reason: "Container list unavailable; storage account key still grants full access"
-                .into(),
-        });
-    } else {
-        for container in containers {
-            resources.push(ResourceExposure {
-                resource_type: "storage_container".into(),
-                name: container,
-                permissions: vec!["storage:*".into()],
-                risk: "critical".into(),
-                reason: "Container accessible with shared key".into(),
-            });
-        }
-    }
+    push_storage_resources(
+        &mut resources,
+        containers,
+        StorageService::Blob,
+        "Blob container accessible with shared key",
+        "Blob container list unavailable; storage account key still grants full access",
+    );
+    push_storage_resources(
+        &mut resources,
+        file_shares,
+        StorageService::File,
+        "File share accessible with shared key",
+        "File share list unavailable; storage account key still grants full access",
+    );
+    push_storage_resources(
+        &mut resources,
+        queues,
+        StorageService::Queue,
+        "Queue accessible with shared key",
+        "Queue list unavailable; storage account key still grants full access",
+    );
 
     let identity = AccessSummary {
         id: storage_account,
@@ -123,15 +173,50 @@ fn parse_storage_credentials(data: &str) -> Result<(String, String)> {
     Ok((storage_account, storage_key))
 }
 
-async fn list_containers(storage_account: &str, storage_key: &str) -> Result<Vec<String>> {
-    let mut containers = std::collections::BTreeSet::new();
+fn push_storage_resources(
+    resources: &mut Vec<ResourceExposure>,
+    items: Vec<String>,
+    service: StorageService,
+    success_reason: &str,
+    fallback_reason: &str,
+) {
+    if items.is_empty() {
+        resources.push(ResourceExposure {
+            resource_type: service.resource_type().into(),
+            name: String::new(),
+            permissions: vec!["storage:*".into()],
+            risk: "critical".into(),
+            reason: fallback_reason.into(),
+        });
+        return;
+    }
+
+    for item in items {
+        resources.push(ResourceExposure {
+            resource_type: service.resource_type().into(),
+            name: item,
+            permissions: vec!["storage:*".into()],
+            risk: "critical".into(),
+            reason: success_reason.into(),
+        });
+    }
+}
+
+async fn list_service_items(
+    storage_account: &str,
+    storage_key: &str,
+    service: StorageService,
+) -> Result<Vec<String>> {
+    let mut items = std::collections::BTreeSet::new();
     let mut marker: Option<String> = None;
+    let client = Client::builder().build()?;
 
     loop {
         let now_rfc = Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string();
         let mut url = reqwest::Url::parse(&format!(
-            "https://{account}.blob.core.windows.net/",
-            account = storage_account
+            "https://{account}.{suffix}/",
+            account = storage_account,
+            suffix = service.endpoint_suffix()
         ))?;
         {
             let mut query = url.query_pairs_mut();
@@ -170,14 +255,14 @@ async fn list_containers(storage_account: &str, storage_key: &str) -> Result<Vec
             ))?,
         );
 
-        let client = Client::builder().build()?;
         let resp = client.get(url).headers(headers).send().await?;
         let status = resp.status();
         let body_txt = resp.text().await?;
 
         if !status.is_success() {
             return Err(anyhow!(
-                "Azure Storage list containers failed (HTTP {}): {}",
+                "Azure Storage list {} failed (HTTP {}): {}",
+                service.display_name(),
                 status,
                 body_txt
             ));
@@ -195,7 +280,7 @@ async fn list_containers(storage_account: &str, storage_key: &str) -> Result<Vec
                     let text = reader.read_text(e.name())?;
                     let name = text.into_owned();
                     if !name.is_empty() {
-                        containers.insert(name);
+                        items.insert(name);
                     }
                 }
                 Ok(Event::Start(e)) if e.name().as_ref().eq_ignore_ascii_case(b"nextmarker") => {
@@ -217,5 +302,5 @@ async fn list_containers(storage_account: &str, storage_key: &str) -> Result<Vec
         marker = next_marker;
     }
 
-    Ok(containers.into_iter().collect())
+    Ok(items.into_iter().collect())
 }

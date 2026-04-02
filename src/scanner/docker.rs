@@ -177,8 +177,15 @@ impl Docker {
         for p in layer_paths {
             let mut file = File::open(&p)?;
             let mut hasher = Sha256::new();
-            std::io::copy(&mut file, &mut hasher)?;
-            let digest = format!("{:x}", hasher.finalize());
+            let mut buf = [0_u8; 16 * 1024];
+            loop {
+                let read = file.read(&mut buf)?;
+                if read == 0 {
+                    break;
+                }
+                hasher.update(&buf[..read]);
+            }
+            let digest = hex::encode(hasher.finalize());
 
             let new_path = out_dir.join(format!("layer_{digest}.tar"));
             std::fs::rename(&p, &new_path)?;
