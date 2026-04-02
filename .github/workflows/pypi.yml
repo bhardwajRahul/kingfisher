@@ -145,3 +145,4 @@ jobs:
         with:
           packages-dir: dist-pypi
           verbose: true
+          attestations: false
