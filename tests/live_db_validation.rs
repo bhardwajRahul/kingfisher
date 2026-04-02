@@ -8,7 +8,11 @@ use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
 use kingfisher::validation::{validate_mysql, validate_postgres};
-use testcontainers::{clients::Cli, core::WaitFor, GenericImage};
+use testcontainers::{
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
+    GenericImage, ImageExt,
+};
 use tokio::{net::TcpStream, time::sleep};
 
 const HOST_ALIAS: &str = "kingfisherlocal";
@@ -40,15 +44,15 @@ async fn wait_for_port(host: &str, port: u16) -> Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn validates_mysql_secret_against_testcontainer() -> Result<()> {
-    let docker = Cli::default();
-    let image = GenericImage::new("mysql", "8.4")
+    let container = GenericImage::new("mysql", "8.4")
+        .with_exposed_port(3306.tcp())
+        .with_wait_for(WaitFor::message_on_stdout("MySQL init process done. Ready for start up."))
         .with_env_var("MYSQL_ROOT_PASSWORD", "secret")
         .with_env_var("MYSQL_DATABASE", "app")
         .with_env_var("MYSQL_ROOT_HOST", "%")
-        .with_wait_for(WaitFor::message_on_stdout("MySQL init process done. Ready for start up."));
-
-    let container = docker.run(image);
-    let port = container.get_host_port_ipv4(3306);
+        .start()
+        .await?;
+    let port = container.get_host_port_ipv4(3306.tcp()).await?;
 
     wait_for_port(HOST_ALIAS, port).await?;
 
@@ -66,21 +70,19 @@ async fn validates_mysql_secret_against_testcontainer() -> Result<()> {
     );
 
     drop(container);
-    drop(docker);
     Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn validates_postgres_secret_against_testcontainer() -> Result<()> {
-    let docker = Cli::default();
-    let image = GenericImage::new("postgres", "15")
+    let container = GenericImage::new("postgres", "15")
+        .with_exposed_port(5432.tcp())
+        .with_wait_for(WaitFor::message_on_stdout("database system is ready to accept connections"))
         .with_env_var("POSTGRES_PASSWORD", "secret")
-        .with_wait_for(WaitFor::message_on_stdout(
-            "database system is ready to accept connections",
-        ));
-    let container = docker.run(image);
-    let port = container.get_host_port_ipv4(5432);
+        .start()
+        .await?;
+    let port = container.get_host_port_ipv4(5432.tcp()).await?;
 
     wait_for_port(HOST_ALIAS, port).await?;
 
@@ -91,6 +93,5 @@ async fn validates_postgres_secret_against_testcontainer() -> Result<()> {
     assert!(metadata.is_empty(), "expected no metadata but found {metadata:?}");
 
     drop(container);
-    drop(docker);
     Ok(())
 }
