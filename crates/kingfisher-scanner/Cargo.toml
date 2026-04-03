@@ -81,7 +81,6 @@ validation-jwt = [
 # Database validation (MongoDB/MySQL/Postgres/JDBC)
 validation-database = [
     "validation-http",
-    "dep:bson",
     "dep:mongodb",
     "dep:mysql_async",
     "dep:tokio-postgres",
@@ -171,7 +170,6 @@ p256 = { version = "0.13.2", optional = true }
 ed25519-dalek = { version = "2.2", features = ["pkcs8"], optional = true }
 hex = { workspace = true, optional = true }
 url = { version = "2.5.7", optional = true }
-bson = { version = "3.1.0", features = ["serde"], optional = true }
 mongodb = { version = "3.4", default-features = false, features = ["rustls-tls", "aws-auth", "compat-3-0-0", "dns-resolver"], optional = true }
 mysql_async = { version = "0.36.2", default-features = false, features = ["default-rustls"], optional = true }
 tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"], optional = true }

@@ -1,8 +1,9 @@
 // ────────────────────────────────────────────────────────────
 // Global allocator setup
-//   * Default  - mimalloc             (no feature flags)
-//   * Debug    - jemalloc (`use-jemalloc` feature)
-//   * Fallback - system allocator     (`system-alloc` feature)
+//   * Default  - mimalloc on Linux/Windows, system on Darwin/other targets
+//   * Opt-in   - mimalloc             (`use-mimalloc` feature)
+//   * Opt-in   - jemalloc             (`use-jemalloc` feature)
+//   * Explicit - system allocator     (`system-alloc` feature)
 // ────────────────────────────────────────────────────────────
 
 // --- jemalloc (opt-in) ---
@@ -10,21 +11,35 @@
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-// --- mimalloc (default) ---
-#[cfg(all(not(feature = "use-jemalloc"), not(feature = "system-alloc")))]
+// --- mimalloc (default on Linux/Windows, opt-in elsewhere) ---
+#[cfg(all(
+    not(feature = "use-jemalloc"),
+    not(feature = "system-alloc"),
+    any(feature = "use-mimalloc", target_os = "linux", target_os = "windows")
+))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-// --- system allocator (explicit opt-out) ---
-#[cfg(feature = "system-alloc")]
+// --- system allocator (default on Darwin/other targets, explicit elsewhere) ---
+#[cfg(any(
+    feature = "system-alloc",
+    all(
+        not(feature = "use-jemalloc"),
+        not(feature = "system-alloc"),
+        not(any(feature = "use-mimalloc", target_os = "linux", target_os = "windows"))
+    )
+))]
 use std::alloc::System;
-#[cfg(feature = "system-alloc")]
+#[cfg(any(
+    feature = "system-alloc",
+    all(
+        not(feature = "use-jemalloc"),
+        not(feature = "system-alloc"),
+        not(any(feature = "use-mimalloc", target_os = "linux", target_os = "windows"))
+    )
+))]
 #[global_allocator]
 static GLOBAL: System = System;
-
-// use std::alloc::System;
-// #[global_allocator]
-// static GLOBAL: System = System;
 
 use std::{
     io::{IsTerminal, Read, Write},
