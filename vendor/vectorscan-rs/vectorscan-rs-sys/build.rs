@@ -1,18 +1,16 @@
 #[cfg_attr(not(target_os = "windows"), allow(unused_imports))]
 #[cfg(not(target_os = "windows"))]
-use std::{fs::File, process::Command};
+use std::process::Command;
 
 use std::path::PathBuf;
 
 /// Get the environment variable with the given name, panicking if it is not set.
-#[cfg(not(target_os = "windows"))]
 fn env(name: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| panic!("`{}` should be set in the environment", name))
 }
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=vectorscan.patch");
 
     #[cfg(target_os = "windows")]
     {
@@ -21,7 +19,7 @@ fn main() {
 
         // Also propagate it so the compiler sees it during subsequent steps:
         println!("cargo:rustc-env=LIBHS_NO_PKG_CONFIG=1");
-        
+
         // If HYPERSCAN_ROOT not set, try to find hs_runtime.lib by searching typical vcpkg layouts
         if std::env::var_os("HYPERSCAN_ROOT").is_none() {
             if let Some(hs_lib) = find_hs_runtime_lib() {
@@ -33,7 +31,7 @@ fn main() {
                     if trip_name == "x64-windows" || trip_name == "x64-windows-static" {
                         let installed_dir = trip_dir.parent().expect("no installed dir?");
                         if installed_dir.file_name().unwrap() == "installed" {
-                            // That’s our root
+                            // That's our root
                             std::env::set_var("HYPERSCAN_ROOT", trip_dir);
                         }
                     }
@@ -112,11 +110,11 @@ fn main() {
 
     #[cfg(not(target_os = "windows"))]
     {
-        use std::fs::File;
         use std::process::Command;
 
         let manifest_dir = PathBuf::from(env("CARGO_MANIFEST_DIR"));
         let out_dir = PathBuf::from(env("OUT_DIR"));
+
         let include_dir = out_dir
             .join("include")
             .into_os_string()
@@ -143,47 +141,7 @@ fn main() {
             }
         }
 
-        const VERSION: &str = "5.4.11";
-        let tarball_path = manifest_dir.join(format!("{VERSION}.tar.gz"));
-        let vectorscan_src_dir = out_dir.join(format!("vectorscan-vectorscan-{VERSION}"));
-        let patchfile = manifest_dir.join("vectorscan.patch");
-
-        // Extract release tarball
-        {
-            match std::fs::remove_dir_all(&vectorscan_src_dir) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => panic!("Failed to clean Vectorscan source directory: {e}"),
-            }
-            let infile =
-                File::open(tarball_path).expect("Failed to open Vectorscan release tarball");
-            let gz = flate2::read::GzDecoder::new(infile);
-            let mut tar = tar::Archive::new(gz);
-            tar.unpack(&out_dir)
-                .expect("Could not unpack Vectorscan source files");
-            eprintln!("Tarball extracted to {}", out_dir.display());
-        }
-
-        eprintln!(
-            "Vectorscan source directory is at {}",
-            vectorscan_src_dir.display()
-        );
-
-        // Apply patch
-        {
-            let patch_input = File::open(&patchfile).expect("Failed to open patchfile");
-            let output = Command::new("patch")
-                .args(["-p1"])
-                .current_dir(&vectorscan_src_dir)
-                .stdin(patch_input)
-                .output()
-                .expect("Failed to apply patchfile");
-            assert!(output.status.success());
-            eprintln!(
-                "Successfully applied patches to {}",
-                vectorscan_src_dir.display()
-            );
-        }
+        let vectorscan_src_dir = manifest_dir.join("vectorscan");
 
         // Build with cmake
         {
@@ -221,7 +179,7 @@ fn main() {
                 .define("BUILD_TOOLS", "OFF");
 
             cfg_define_feature!("BUILD_UNIT", "unit_hyperscan");
-            cfg_define_feature!("USE_CPU_NAIVE", "cpu_native");
+            cfg_define_feature!("USE_CPU_NATIVE", "cpu_native");
 
             if cfg!(feature = "asan") {
                 cfg.define("SANITIZE", "address");
@@ -231,38 +189,35 @@ fn main() {
                 macro_rules! x86_64_feature {
                     ($feature: tt) => {{
                         #[cfg(target_arch = "x86_64")]
-                        {
-                            if std::arch::is_x86_feature_detected!($feature) {
-                                "ON"
-                            } else {
-                                "OFF"
-                            }
-                        }
-                        #[cfg(not(target_arch = "x86_64"))]
-                        {
+                        if std::arch::is_x86_feature_detected!($feature) {
+                            "ON"
+                        } else {
                             "OFF"
                         }
+                        #[cfg(not(target_arch = "x86_64"))]
+                        "OFF"
                     }};
                 }
+
                 macro_rules! aarch64_feature {
                     ($feature: tt) => {{
                         #[cfg(target_arch = "aarch64")]
-                        {
-                            if std::arch::is_aarch64_feature_detected!($feature) {
-                                "ON"
-                            } else {
-                                "OFF"
-                            }
-                        }
-                        #[cfg(not(target_arch = "aarch64"))]
-                        {
+                        if std::arch::is_aarch64_feature_detected!($feature) {
+                            "ON"
+                        } else {
                             "OFF"
                         }
+                        #[cfg(not(target_arch = "aarch64"))]
+                        "OFF"
                     }};
                 }
+
                 cfg.define("BUILD_AVX2", x86_64_feature!("avx2"));
+                // XXX use avx512vbmi as a proxy for this, as it's not clear which particular avx512
+                // instructions are needed
                 cfg.define("BUILD_AVX512", x86_64_feature!("avx512vbmi"));
                 cfg.define("BUILD_AVX512VBMI", x86_64_feature!("avx512vbmi"));
+
                 cfg.define("BUILD_SVE", aarch64_feature!("sve"));
                 cfg.define("BUILD_SVE2", aarch64_feature!("sve2"));
                 cfg.define("BUILD_SVE2_BITPERM", aarch64_feature!("sve2-bitperm"));

@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.94.0]
+- Updated vendored `vectorscan-rs` from v0.0.5 (Vectorscan 5.4.11) to v0.0.6 (Vectorscan 5.4.12). The upstream crate now ships pre-extracted sources instead of a tarball+patch, and fixes the `cpu_native` feature flag. Local Windows and musl build patches have been re-applied.
+
 ## [v1.93.0]
 - **Access Map: added 21 new blast radius providers**, bringing the total to 39. New providers: Airtable, Algolia, Artifactory, Auth0, CircleCI, DigitalOcean, Fastly, HubSpot, IBM Cloud, Jira, MySQL, PayPal, Plaid, SendGrid, Sendinblue/Brevo, Shopify, Square, Stripe, Terraform Cloud, JFrog Xray, and Zendesk. Each provider maps leaked credentials to their effective identity, permissions, and exposed resources.
 - **Access Map: expanded provider depth** for existing integrations. AWS now enumerates SQS, SNS, RDS, ECR, and SSM Parameter Store in addition to the earlier core services; Azure Storage now maps Blob containers, File shares, and Queues from account keys; OpenAI now enumerates visible models, files, assistants, and fine-tuning jobs; Hugging Face now includes datasets and Spaces alongside models; Anthropic now surfaces visible organization API keys.

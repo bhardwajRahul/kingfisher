@@ -9,7 +9,6 @@ This crate builds a vendored copy of Vectorscan from source.
 ## Dependencies
 - [Boost](https://boost.org) >= 1.57
 - [CMake](https://cmake.org)
-- `patch`
 - Optional: [Clang](https://clang.llvm.org), when building with the `bindgen` feature
 
 This has been tested on x86_64 Linux, x86_64 macOS, and aarch64 macOS.
@@ -24,14 +23,7 @@ The only bindings exposed at present are for Vectorscan's block-based matching A
 The various other APIs such as stream- and vector-based matching are not exposed.
 Other features, such as the Chimera PCRE library, test code, benchmark code, and supporting utilities are disabled.
 
-The source of Vectorscan 5.4.11 is included here in the [`5.4.11.tar.gz`](5.4.11.tar.gz) file.
-
-At build time, a [patch](vectorscan.patch) is applied to the Vectorscan sources.
-This patch does a few things:
-
-- The CMake-based build system is modified to eliminate the build-time dependency on `ragel`
-- The precompiled version of 4 [Ragel](https://github.com/adrian-thurston/ragel) `.rl` files are added to the source tree
-- The CMake-based build system is modified to allow disabling several components that are not used in this crate
+The source of Vectorscan 5.4.12 is included as an extracted source directory in [`vectorscan/`](vectorscan/).
 
 
 ## License

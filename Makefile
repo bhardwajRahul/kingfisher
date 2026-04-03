@@ -51,7 +51,7 @@ endif
 ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
-.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows \
+.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows-test-x64 windows-test-arm64 windows-test windows \
         linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz
 
 default: help
@@ -306,14 +306,19 @@ endif
 	      git make; \
 	  }; \
 	  repo_root="$$(pwd)"; \
-	  test -d /tmp/vectorscan || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan; \
-	  mkdir -p /tmp/vectorscan/build; \
-	  cd /tmp/vectorscan/build; \
-	  cmake .. \
+	  vectorscan_src="$$repo_root/vendor/vectorscan-rs/vectorscan-rs-sys/vectorscan"; \
+	  build_dir=/tmp/vectorscan-build; \
+	  rm -rf "$$build_dir"; \
+	  mkdir -p "$$build_dir"; \
+	  cd "$$build_dir"; \
+	  cmake "$$vectorscan_src" \
 	    -G "MinGW Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_STATIC_LIBS=ON \
+	    -DBUILD_UNIT=OFF \
 	    -DBUILD_TOOLS=OFF \
+	    -DFAT_RUNTIME=OFF \
 	    -DCMAKE_C_COMPILER=gcc \
 	    -DCMAKE_CXX_COMPILER=g++ \
 	    -DCMAKE_INSTALL_PREFIX=/mingw64; \
@@ -333,7 +338,7 @@ endif
 	    "" \
 	    "Name: libhs" \
 	    "Description: Vectorscan regex library (Hyperscan fork)" \
-	    "Version: 5.4.11" \
+	    "Version: 5.4.12" \
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /mingw64/lib/pkgconfig/libhs.pc; \
@@ -434,14 +439,19 @@ endif
 	    mingw-w64-clang-aarch64-python \
 	    git make; \
 	  repo_root="$$(pwd)"; \
-	  test -d /tmp/vectorscan-arm64 || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan-arm64; \
-	  mkdir -p /tmp/vectorscan-arm64/build; \
-	  cd /tmp/vectorscan-arm64/build; \
-	  cmake .. \
+	  vectorscan_src="$$repo_root/vendor/vectorscan-rs/vectorscan-rs-sys/vectorscan"; \
+	  build_dir=/tmp/vectorscan-arm64-build; \
+	  rm -rf "$$build_dir"; \
+	  mkdir -p "$$build_dir"; \
+	  cd "$$build_dir"; \
+	  cmake "$$vectorscan_src" \
 	    -G "MinGW Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_STATIC_LIBS=ON \
+	    -DBUILD_UNIT=OFF \
 	    -DBUILD_TOOLS=OFF \
+	    -DFAT_RUNTIME=OFF \
 	    -DCMAKE_SYSTEM_NAME=Windows \
 	    -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
 	    -DCMAKE_C_COMPILER=clang \
@@ -463,7 +473,7 @@ endif
 	    "" \
 	    "Name: libhs" \
 	    "Description: Vectorscan regex library (Hyperscan fork)" \
-	    "Version: 5.4.11" \
+	    "Version: 5.4.12" \
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /clangarm64/lib/pkgconfig/libhs.pc; \
@@ -520,6 +530,69 @@ endif
 	  echo "Built binary: target/release/$(PROJECT_NAME).exe"; \
 	  echo "Built archive: target/release/$(PROJECT_NAME)-windows-arm64.zip"; \
 	'
+
+windows-test-x64:
+ifeq ($(IS_WINDOWS_HOST),1)
+	@echo "Detected Windows host."
+else
+	$(error "This target can only run on Windows.")
+endif
+	@bash -eu -o pipefail -c '\
+	  case "$${MSYSTEM:-}" in \
+	    MINGW64) toolchain_root=/mingw64; target_triple=x86_64-pc-windows-gnu ;; \
+	    MSYS) export PATH=/mingw64/bin:$$PATH; toolchain_root=/mingw64; target_triple=x86_64-pc-windows-gnu ;; \
+	    *) echo "Run this target from an MSYS2 MinGW64 shell."; exit 1 ;; \
+	  esac; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
+	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    if [ -d "$$cargo_home_candidate" ]; then \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  extra_native_lib_dirs="-L native=/mingw64/lib"; \
+	  if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
+	    libgcc_a_path="$$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"; \
+	    if [ -n "$$libgcc_a_path" ] && [ -f "$$libgcc_a_path" ]; then \
+	      libgcc_dir="$$(dirname "$$libgcc_a_path")"; \
+	      extra_native_lib_dirs="$$extra_native_lib_dirs -L native=$$libgcc_dir"; \
+	      echo "Using libgcc from $$libgcc_dir"; \
+	    fi; \
+	  fi; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} $$extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "▶ cargo test --release --workspace --all-targets --target $$target_triple"; \
+	  cargo test --release --workspace --all-targets --target "$$target_triple"; \
+	'
+
+windows-test-arm64:
+ifeq ($(IS_WINDOWS_HOST),1)
+	@echo "Detected Windows host."
+else
+	$(error "This target can only run on Windows.")
+endif
+	@bash -eu -o pipefail -c '\
+	  case "$${MSYSTEM:-}" in \
+	    CLANGARM64) toolchain_root=/clangarm64; target_triple=aarch64-pc-windows-gnullvm ;; \
+	    MINGW64|MSYS) export PATH=/clangarm64/bin:$$PATH; toolchain_root=/clangarm64; target_triple=aarch64-pc-windows-gnullvm ;; \
+	    *) echo "Run this target from an MSYS2 CLANGARM64 shell."; exit 1 ;; \
+	  esac; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
+	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    if [ -d "$$cargo_home_candidate" ]; then \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "▶ cargo test --release --workspace --all-targets --target $$target_triple"; \
+	  cargo test --release --workspace --all-targets --target "$$target_triple"; \
+	'
+
+windows-test: windows-test-x64 windows-test-arm64
 #
 # =============  DOCKER-BASED BUILDS =============
 # #

@@ -6,15 +6,14 @@ readme = "README.md"
 build = "build.rs"
 links = "hs"
 
-version = "0.0.5"
-authors = ["Brad Larsen <brad@bradlarsen.com>"]
+version = "0.0.6"
+authors = ["Brad Larsen <brad@bradfordlarsen.com>"]
 edition = "2021"
 rust-version = "1.73"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/bradlarsen/vectorscan-rs"
 keywords = ["ffi", "bindings", "text", "regex"]
 categories = ["api-bindings", "parsing", "text-processing"]
-
 
 [features]
 # This feature causes `bindgen` to run to produce the raw Rust bindings to Vectorscan.
@@ -41,8 +40,6 @@ asan = []
 [build-dependencies]
 bindgen = { version = "0.70", optional = true }
 cmake = "0.1"
-flate2 = "1.0"
-tar = "0.4"
 
 [lib]
 doctest = false
