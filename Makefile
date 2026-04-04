@@ -293,18 +293,17 @@ endif
 	      export PATH=/mingw64/bin:$$PATH; \
 	      ;; \
 	  esac; \
-	  command -v mingw32-make >/dev/null 2>&1 || { \
-	    echo "Installing MinGW build dependencies..."; \
-	    pacman --noconfirm --needed -S \
-	      mingw-w64-x86_64-toolchain \
-	      mingw-w64-x86_64-cmake \
-	      mingw-w64-x86_64-boost \
-	      mingw-w64-x86_64-pkg-config \
-	      mingw-w64-x86_64-ragel \
-	      mingw-w64-x86_64-pcre2 \
-	      mingw-w64-x86_64-python \
-	      git make; \
-	  }; \
+	  echo "Ensuring MinGW build dependencies are installed..."; \
+	  pacman --noconfirm --needed -S \
+	    mingw-w64-x86_64-toolchain \
+	    mingw-w64-x86_64-cmake \
+	    mingw-w64-x86_64-boost \
+	    mingw-w64-x86_64-pkg-config \
+	    mingw-w64-x86_64-ragel \
+	    mingw-w64-x86_64-pcre2 \
+	    mingw-w64-x86_64-zlib \
+	    mingw-w64-x86_64-python \
+	    git make; \
 	  repo_root="$$(pwd)"; \
 	  vectorscan_src="$$repo_root/vendor/vectorscan-rs/vectorscan-rs-sys/vectorscan"; \
 	  build_dir=/tmp/vectorscan-build; \
@@ -342,7 +341,9 @@ endif
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /mingw64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig; \
+	  export PKG_CONFIG_LIBDIR=/mingw64/lib/pkgconfig; \
 	  pkg-config --cflags --libs libhs; \
 	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
 	    cargo_home_candidate=""; \
@@ -436,6 +437,7 @@ endif
 	    mingw-w64-clang-aarch64-pkgconf \
 	    mingw-w64-clang-aarch64-ragel \
 	    mingw-w64-clang-aarch64-pcre2 \
+	    mingw-w64-clang-aarch64-zlib \
 	    mingw-w64-clang-aarch64-python \
 	    git make; \
 	  repo_root="$$(pwd)"; \
@@ -477,7 +479,9 @@ endif
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /clangarm64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH=/clangarm64/lib/pkgconfig; \
+	  export PKG_CONFIG_LIBDIR=/clangarm64/lib/pkgconfig; \
 	  pkg-config --cflags --libs libhs; \
 	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
 	    cargo_home_candidate=""; \
@@ -545,7 +549,9 @@ endif
 	  esac; \
 	  export LIBHS_NO_PKG_CONFIG=1; \
 	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  export PKG_CONFIG_LIBDIR="$$toolchain_root/lib/pkgconfig"; \
 	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
 	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
 	    if [ -d "$$cargo_home_candidate" ]; then \
@@ -580,7 +586,9 @@ endif
 	  esac; \
 	  export LIBHS_NO_PKG_CONFIG=1; \
 	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  export PKG_CONFIG_LIBDIR="$$toolchain_root/lib/pkgconfig"; \
 	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
 	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
 	    if [ -d "$$cargo_home_candidate" ]; then \
