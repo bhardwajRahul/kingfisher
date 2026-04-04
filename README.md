@@ -4,10 +4,10 @@
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
   <br>
   <a href="https://opensource.org/licenses/Apache-2.0">
-    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" style="height: 24px;" />
   </a>
   <a href="https://github.com/mongodb/kingfisher">
-    <img src="https://img.shields.io/badge/Detection%20Rules-720-2ea043.svg" alt="Detection Rules" />
+    <img src="https://img.shields.io/badge/Detection%20Rules-720-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
   </a>
   <br>
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
@@ -17,7 +17,7 @@
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
 
-It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with hundreds of built-in rules** to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
+It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with 700+ built-in rules** to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
 
 Designed for offensive security engineers and blue-team defenders alike, Kingfisher helps you scan repositories, cloud storage, chat, docs, and CI pipelines to find and verify exposed secrets quickly.
 
@@ -49,9 +49,9 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 
 </div>
 
-### Performance, Accuracy, and Hundreds of Rules
+### Performance, Accuracy, and 700+ Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
-- **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
+- **Extensible rules**: 700+ built-in rules plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
 - **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 39 providers (see table below).
@@ -362,7 +362,7 @@ Kingfisher ships with [600+ built-in rules](crates/kingfisher-rules/data/rules/)
 
 ## Write Custom Rules
 
-Kingfisher ships with hundreds of rules with HTTP and service‑specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
+Kingfisher ships with 700+ rules with HTTP and service‑specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
 However, you may want to add your own custom rules, or modify a detection to better suit your needs / environment.
 

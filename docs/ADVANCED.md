@@ -6,20 +6,31 @@ This guide covers advanced Kingfisher features for power users.
 
 ## Table of Contents
 
-- [Baseline Management](#baseline-management)
-- [Understanding Confidence Levels](#understanding-confidence-levels)
-- [Filtering and Suppression](#filtering-and-suppression)
-  - [Skip Known False Positives](#skip-known-false-positives)
-  - [Skip Canary Tokens (AWS)](#skip-canary-tokens-aws)
-  - [Inline Ignore Directives](#inline-ignore-directives)
-- [Validation Tuning](#validation-tuning)
-- [Scanning in CI Pipelines](#scanning-in-ci-pipelines)
-- [Custom Rules](#custom-rules)
-- [Rule Performance Profiling](#rule-performance-profiling)
-- [Notable Scan Options](#notable-scan-options)
-- [Finding Fingerprints](#finding-fingerprints)
-- [Update Checks](#update-checks)
-- [Exit Codes](#exit-codes)
+- [Advanced Configuration](#advanced-configuration)
+  - [Table of Contents](#table-of-contents)
+  - [Baseline Management](#baseline-management)
+  - [Understanding Confidence Levels](#understanding-confidence-levels)
+  - [Filtering and Suppression](#filtering-and-suppression)
+    - [Skip Known False Positives](#skip-known-false-positives)
+    - [Skip Canary Tokens (AWS)](#skip-canary-tokens-aws)
+      - [Common CLI flows](#common-cli-flows)
+    - [Inline Ignore Directives](#inline-ignore-directives)
+  - [Validation Tuning](#validation-tuning)
+  - [Scanning in CI Pipelines](#scanning-in-ci-pipelines)
+  - [Custom Rules](#custom-rules)
+    - [Scan with only custom rules](#scan-with-only-custom-rules)
+    - [Add custom rules alongside built-ins](#add-custom-rules-alongside-built-ins)
+    - [Check custom rules](#check-custom-rules)
+    - [Scan using a rule family](#scan-using-a-rule-family)
+  - [Rule Performance Profiling](#rule-performance-profiling)
+  - [Notable Scan Options](#notable-scan-options)
+    - [Exclude specific paths](#exclude-specific-paths)
+    - [Scan while ignoring likely test files](#scan-while-ignoring-likely-test-files)
+    - [Limit maximum file size scanned](#limit-maximum-file-size-scanned)
+    - [Customize the HTTP User-Agent](#customize-the-http-user-agent)
+  - [Finding Fingerprints](#finding-fingerprints)
+  - [Update Checks](#update-checks)
+  - [Exit Codes](#exit-codes)
 
 ## Baseline Management
 
@@ -286,7 +297,7 @@ kingfisher scan ./my-project \
 
 ## Custom Rules
 
-Kingfisher ships with hundreds of rules, but you may want to add your own custom rules or modify existing detection to better suit your needs.
+Kingfisher ships with 700+ rules, but you may want to add your own custom rules or modify existing detection to better suit your needs.
 
 First, review [RULES.md](RULES.md) to learn how to create custom Kingfisher rules.
 
