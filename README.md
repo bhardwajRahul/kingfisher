@@ -345,7 +345,7 @@ gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
 
 # Detection Rules
 
-Kingfisher ships with [600+ built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
+Kingfisher ships with [700+ built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
 
 | Category | What we catch |
 |----------|---------------|
