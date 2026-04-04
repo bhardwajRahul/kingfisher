@@ -1,0 +1,27 @@
+rules:
+  - name: Forest Admin Auth Secret
+    id: kingfisher.forestadmin.1
+    pattern: |
+      (?xi)
+      \b
+      forest[_-]?auth[_-]?secret
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      ['"]*
+      (
+        [A-Za-z0-9+/]{20,96}
+      )
+      ['"\s]
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+    min_entropy: 3.0
+    confidence: high
+    examples:
+      - "forest_auth_secret: CJh5orog8MCU99dBf1TblR"
+      - "FOREST_AUTH_SECRET=CuFtspjuNN6OuTVZNFgmS8wELetNfgMh"
+      - "FOREST_AUTH_SECRET=d9474g33894d755182h8cef87eg80845c06bcg625156gd60"
+    references:
+      - https://docs.forestadmin.com/documentation/reference-guide/how-it-works
+    # No public validation endpoint: Forest Admin auth secrets are used
+    # for local JWT signing and cannot be validated via a standalone HTTP request.

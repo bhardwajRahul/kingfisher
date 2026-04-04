@@ -1,0 +1,31 @@
+rules:
+  - name: DocuSign API Secret Key
+    id: kingfisher.docusign.1
+    pattern: |
+      (?xi)
+      \b
+      docusign
+      (?:.|[\n\r]){0,64}?
+      \b(?:secret[_-]?key|secret|ds[_-]?secret)\b
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      \b
+      (
+        [a-f0-9]{8}-
+        [a-f0-9]{4}-
+        [a-f0-9]{4}-
+        [a-f0-9]{4}-
+        [a-f0-9]{12}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 6
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - "docusign_secret_key = 7a39ce6d-94cf-4bf6-9e9e-9213373c15f4"
+      - "DS_SECRET = 3d2f18c9-2075-4e78-834b-64f57f8757d0"
+    references:
+      - https://developers.docusign.com/platform/build-integration/
+    # No public validation endpoint: DocuSign OAuth secret keys cannot be
+    # validated without a full Authorization Code Grant flow.

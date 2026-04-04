@@ -1,0 +1,26 @@
+rules:
+  - name: MSSQL Credentials
+    id: kingfisher.mssql.1
+    pattern: |
+      (?xi)
+      \b
+      (?:mssql|sqlserver)[_-]?(?:password|passwd|pass|pwd)
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      ['"]*
+      (
+        [^\s"']{6,128}
+      )
+      ['"\s]
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 2.8
+    confidence: medium
+    examples:
+      - "MSSQL_PASSWORD=n53qmpa3xe"
+      - "mssql_password=myS3cur3Passw0rd"
+      - "spring.datasource.password=Tr0ub4dor&3"
+    references:
+      - https://docs.microsoft.com/en-us/sql/
+    # No public validation endpoint: MSSQL is self-hosted;
+    # the host and port are instance-specific.

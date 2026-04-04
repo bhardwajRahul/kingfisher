@@ -1,0 +1,47 @@
+rules:
+  - name: Akamai API Client Token
+    id: kingfisher.akamai.1
+    pattern: |
+      (?x)
+      \b
+      (?i:client[_-]?token|access[_-]?token)
+      \s*=\s*
+      (
+        akab-
+        [A-Za-z0-9_-]{22,30}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: high
+    visible: false
+    examples:
+      - "client-token=akab-sXedJJBTOf0gdHl-27vVOdPvfujdPYyB"
+      - "access-token=akab-xcdseuUf7DY6xJg-YscoeWpIHnInHtV"
+    references:
+      - https://developer.akamai.com/api/getting-started
+
+  - name: Akamai API Client Secret
+    id: kingfisher.akamai.2
+    pattern: |
+      (?xi)
+      \b
+      (?:client[_-]?mysecret|client[_-]?secret)
+      \s*=\s*
+      (
+        [A-Za-z0-9+/]{20,30}[=]{0,2}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - "client-secret=431733QP/lP+-TgxBHB-nH6+alirfy"
+      - "client-mysecret=BcDeFgHi2345JKLM67no+pqRS/tuVW=="
+    references:
+      - https://developer.akamai.com/api/getting-started
+    # No simple validation: Akamai API uses HMAC-SHA256 EdgeGrid signing
+    # with the client token, secret, and access token together.
