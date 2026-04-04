@@ -8,7 +8,7 @@ rules:
       \s*=\s*
       (
         akab-
-        [A-Za-z0-9_-]{22,30}
+        [A-Za-z0-9_-]{18,28}
       )
       \b
     pattern_requirements:
@@ -17,20 +17,20 @@ rules:
     confidence: high
     visible: false
     examples:
-      - "client-token=akab-sXedJJBTOf0gdHl-27vVOdPvfujdPYyB"
-      - "access-token=akab-xcdseuUf7DY6xJg-YscoeWpIHnInHtV"
+      - "client-token=akab-sXedJBTOf0dHl27vVOd"
+      - "access-token=akab-xcsuUf7DY6xJgYscoe"
     references:
       - https://developer.akamai.com/api/getting-started
 
   - name: Akamai API Client Secret
     id: kingfisher.akamai.2
     pattern: |
-      (?xi)
+      (?x)
       \b
-      (?:client[_-]?mysecret|client[_-]?secret)
+      (?i:client[_-]?mysecret|client[_-]?secret)
       \s*=\s*
       (
-        [A-Za-z0-9+/]{20,30}[=]{0,2}
+        [A-Za-z0-9+/=-]{20,36}
       )
       \b
     pattern_requirements:
@@ -39,8 +39,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "client-secret=431733QP/lP+-TgxBHB-nH6+alirfy"
-      - "client-mysecret=BcDeFgHi2345JKLM67no+pqRS/tuVW=="
+      - "client-secret=431733QPkO-TgxBHBnH6alirfy"
+      - "client-mysecret=BcDeFgHi2345JKLM67nopqRS"
     references:
       - https://developer.akamai.com/api/getting-started
     # No simple validation: Akamai API uses HMAC-SHA256 EdgeGrid signing

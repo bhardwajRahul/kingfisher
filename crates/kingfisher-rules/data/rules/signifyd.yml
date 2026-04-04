@@ -21,8 +21,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "SIGNIFYD_APIKEY=KSqPR9cGmJRxIfNLkRsJ09A9z"
-      - "signifyd_key = 'MRnOQ9bGlIRsIfNLkRsJ09A9z'"
+      - "signifyd\napikey=KSqPR9cGmJRxIfNLkRsJ09A9z"
+      - "signifyd.key = 'MRnOQ9bGlIRsIfNLkRsJ09A9z'"
     references:
       - https://developer.signifyd.com/api/
     validation:

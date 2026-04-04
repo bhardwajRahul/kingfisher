@@ -19,9 +19,9 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - "db.password=myStr0ngPass1"
-      - "DB2_PASSWORD=r4ndP@ssw0rd"
-      - "db.url=jdbc:db2://db.example.com/dev db.password=sup3rs3cr3t"
+      - "db2.password=mY5ecureP4ss\n"
+      - "db.url=jdbc:db2://db.example.com/dev\ndb.password=sup3rs3cr3t\n"
+      - "as400.pass=r4ndP@ssw0rd\n"
     references:
       - https://www.ibm.com/products/db2
     # No public validation endpoint: DB2 is self-hosted;

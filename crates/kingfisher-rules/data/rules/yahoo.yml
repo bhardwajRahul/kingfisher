@@ -40,8 +40,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "Yahoo Client Secret 33g773dbe8bg319d86666d4b6137fg4ece272431"
-      - "YAHOO_CLIENT_SECRET=44h884ecf9ch42ae97777e5c7248gh5fdf383542"
+      - "Yahoo Client Secret 33a773dbe8ba319d86666d4b6137fa4ece272431 "
+      - "Yahoo Client Secret 44b884ecf9cb42ae97777e5c7248ab5fdf383542 "
     references:
       - https://developer.yahoo.com/oauth2/guide/
     # No simple validation: Yahoo OAuth2 requires both client_id and

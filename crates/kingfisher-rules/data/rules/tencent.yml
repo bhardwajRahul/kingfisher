@@ -48,8 +48,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "tencent_secret_key => '7aHHkz236LOYu0nRuBwn5PwT0x3km7LE'"
-      - "TENCENT_SECRET_KEY=AbCdEf1234GhIjKl5678MnOpQr90StUv"
+      - "tencent.secret_key => '7aHHkz236LOYu0nRuBwn5PwT0x3km7LE'"
+      - "tencent\nsecret_key=AbCdEf1234GhIjKl5678MnOpQr90StUv"
     references:
       - https://intl.cloud.tencent.com/product/api
     # No simple validation: Tencent Cloud API uses TC3-HMAC-SHA256 request

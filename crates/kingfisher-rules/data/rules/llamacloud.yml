@@ -15,7 +15,7 @@ rules:
     confidence: high
     examples:
       - "LLAMA_CLOUD_API_KEY=llx-b3D8GhZgQ2iAY4qYvwueaOkedPrstZpASP4P4KrBaeeuR4CE"
-      - "llama_api_key = 'llx-M0nQ3rS9tU5xZ7aB2dE4fG6hI1jK8lN0oPqRsT4w'"
+      - "llama_api_key = 'llx-M0nQ3rS9tU5xZ7aB2dE4fG6hI1jK8lN0oPqRsT4wXyZa'"
     references:
       - https://docs.llmapi.com/quickstart
     # No public validation endpoint documented.

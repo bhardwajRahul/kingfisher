@@ -6,7 +6,7 @@ rules:
       \b
       snowflake[a-z+.-]*
       ://
-      ([A-Za-z0-9_.@%+!-]+)       # username
+      [A-Za-z0-9_.@%+!-]+       # username (non-capturing)
       :
       ([^@\s"'<>]{6,128}?)        # password (captured)
       @
@@ -19,7 +19,7 @@ rules:
     confidence: medium
     examples:
       - 'CONNECTION_URI="db:snowflake://myuser:P4ssw0rd!@xyz123.us-east-1.snowflakecomputing.com/mydb"'
-      - 'engine = create_engine("snowflake://admin:S3cr3tP@ss@acct987.snowflakecomputing.com/warehouse")'
+      - 'engine = create_engine("snowflake://admin:S3cr3tPassw0rd@acct987.snowflakecomputing.com/warehouse")'
     references:
       - https://docs.snowflake.com/en/
       - https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api

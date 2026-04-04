@@ -21,8 +21,8 @@ rules:
     confidence: low
     visible: false
     examples:
-      - "integration_key=AMTRZFKBPWH3QNGLVWCY"
-      - "duo_ikey = 'BNUSGLLCQXI4RNHMWXDZ'"
+      - "duo\nintegration_key=AMTRZFKBPWH3QNGLVWCY"
+      - "duo\nikey = 'BNUSGLLCQXI4RNHMWXDZ'"
     references:
       - https://duo.com/docs/authapi
 
@@ -48,8 +48,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "secret_key=Rfy1qffwffwpQfjcjfuipjDjpj3jfjuaqjffvuVi"
-      - "duo_skey = 'Lg4kCffwffjpQfjcjfuipjDjpj3jgjuaqjffwyCb'"
+      - "duo\nsecret_key=Rf14qf2wwf3pQfj4jfuipjDjpj3jfjuaqjff5uVi"
+      - "duo\nskey = 'Lg4k2ffwff3pQfj4jfuipjDjpj3jgju5qjffwyCb'"
     references:
       - https://duo.com/docs/authapi
       - https://duo.com/docs/adminapi

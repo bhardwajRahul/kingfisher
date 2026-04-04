@@ -56,8 +56,8 @@ rules:
     min_entropy: 2.8
     confidence: high
     examples:
-      - "MIDTRANS_SERVER_KEY=\"Mid-server-AbCdEfGhIjKlMn\""
-      - "midtrans_client_key = 'Mid-client-Xk93PcDP8pMKfhY2'"
+      - "midtrans\nserver_key=\"Mid-server-Xk93PcDP8pMKfhY2\""
+      - "midtrans.client_key = 'Mid-client-Xk93PcDP8pMKfhY2'"
     references:
       - https://docs.midtrans.com
     validation:

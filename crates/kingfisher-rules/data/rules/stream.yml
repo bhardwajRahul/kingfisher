@@ -45,8 +45,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "const client = stream.connect('og8lrq3kyc14', 'bgv804hi3feioqendjza50sq54t9iez8vzned3rvn3sqsei6vciey4lt3wwadyift', '71748')"
-      - "STREAM_SECRET=7k2m4nqpxyz89abc3def5ghijklmnopqrstuvwx012345678901234567890abc"
+      - "const client = stream.connect('og8lrq3kyc14', secret='bgv804hi3feioqendjza50sq54t9iez8vzned3rvn3sqsei6vciey4lt3wwadyif', '71748')"
+      - "stream.api_secret=7k2m4nqpxyz89abc3def5ghijklmnopqrstuvwx0123456789012345678901abc "
     references:
       - https://getstream.io/docs_rest/
       - https://getstream.io/dashboard

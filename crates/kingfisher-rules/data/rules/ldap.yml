@@ -20,7 +20,7 @@ rules:
     examples:
       - "ldap_pass = \"zX#mK91wP$3n=Q7!\""
       - "ldap_pwd = 'Tr0ub4dor&3!'"
-      - "LDAP_PASSWORD=s3cur3P@ssw0rd"
+      - "LDAP_PASSWORD=s3cur3P@ssw0rd\n"
     references:
       - https://tools.ietf.org/html/rfc2251
     # No public validation endpoint: LDAP servers are self-hosted;

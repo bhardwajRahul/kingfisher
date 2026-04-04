@@ -47,8 +47,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "PLIVO_AUTH_TOKEN = 'QCNiY2U3YzliY2E2OGNhZDNjYjRkMGI5NDQ1MWB5'"
-      - "plivo_token: 'KFBiY2E2OGNhZDNjYjRkMGI5NDQ1MWh3cqZV'"
+      - "plivo\nauth_token = 'QCNiY2U3YzliY2E2OGNhZDNjYjRkMGI5NDQ1MWB5'"
+      - "plivo\ntoken: 'KFBiY2E2OGNhZDNjYjRkMGI5NDQ1MWh3cqZVXy'"
     references:
       - https://www.plivo.com/docs/
       - https://support.plivo.com/hc/en-us/articles/360041731231

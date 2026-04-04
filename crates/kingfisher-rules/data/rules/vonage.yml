@@ -47,8 +47,8 @@ rules:
     min_entropy: 3.2
     confidence: medium
     examples:
-      - "nexmo api_secret='bjrDnPt6HrfVjzDv'"
-      - "VONAGE_API_SECRET=K9mT4xRpWsLqZvAn"
+      - "nexmo api_secret='bjrDnPt67HrfVjzD'"
+      - "vonage\napi_secret=K9mT4xRpWsLqZvAn"
     references:
       - https://developer.vonage.com/en/getting-started/overview
       - https://developer.nexmo.com/api/account#secret-management

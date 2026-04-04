@@ -17,9 +17,9 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - "EMAIL_HOST_PASSWORD = Nftu435p2634"
-      - "smtp_password = s3cureEmAilP@ss"
-      - "EMAIL_HOST_PASSWORD=aXyz789#Secure"
+      - "EMAIL_HOST_PASSWORD = Nftu435p2634\n"
+      - "smtp_password = s3cureEmAilP@ss\n"
+      - "EMAIL_HOST_PASSWORD=aXyz789#Secure\n"
     references:
       - https://datatracker.ietf.org/doc/html/rfc5321
     # No public validation endpoint: SMTP credentials are server-specific.

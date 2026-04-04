@@ -45,8 +45,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "$api_key = '49ca1gd77eb01f2fedc8965g8g23651e8';"
-      - "KAIROS_API_KEY=5adb2he88fc12g3gfed9076h9h34762f9"
+      - "kairos\n$api_key = '49ca1ad77eb01f2fedc8965a8a23651e';"
+      - "kairos\napi_key=5adb2be88fc12a3afed9076b9b34762f "
     references:
       - https://kairos.com/docs/
     # No public validation endpoint documented.

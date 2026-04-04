@@ -20,8 +20,8 @@ rules:
     confidence: low
     visible: false
     examples:
-      - AGORA_APP_ID=78b8de76d5678a6geb2605721c0aefbe
-      - 'agora_app_id = "cfg0de76d5430a6gbc2605721c0aefbe"'
+      - AGORA_APP_ID=78b8de76d5678a6feb2605721c0aefbe
+      - 'agora_app_id = "cf80de76d5430a6fbc2605721c0aefbe"'
     references:
       - https://docs.agora.io/en/rtc/restfulapi
 
@@ -45,8 +45,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - AGORA_APP_CERTIFICATE=397a3af3db1950bdbd84f4e4ecg8ebef
-      - 'agora_app_secret = "127a3af3db1950b8dbd4fe44ecg8ebef"'
+      - "agora.app_certificate=397a3af3db1950bdbd84f4e4ec18ebef"
+      - "agora.app_secret = \"127a3af3db1950b8dbd4fe440c28ebef\""
     references:
       - https://docs.agora.io/en/rtc/restfulapi
       - https://docs.agora.io/en/video-calling/reference/authentication-workflow

@@ -19,9 +19,9 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - "mariadb.password=mY5ecureP4ss"
-      - "MARIADB_PASSWORD=Tr0ub4dor&3"
-      - "db.url=jdbc:mariadb://db.example.com mariadb.password=r8tqvmx1kp!"
+      - "mariadb.password=mY5ecureP4ss\n"
+      - "mariadb\npassword=Tr0ub4dor&3\n"
+      - "db.url=jdbc:mariadb://db.example.com mariadb.password=r8tqvmx1kp!\n"
     references:
       - https://mariadb.org/documentation/
     # No public validation endpoint: MariaDB is self-hosted;

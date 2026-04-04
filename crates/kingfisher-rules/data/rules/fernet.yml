@@ -18,8 +18,8 @@ rules:
     min_entropy: 3.5
     confidence: high
     examples:
-      - "AIRFLOW__CORE__FERNET_KEY=gAAAAAB_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AA="
-      - "fernet_key = 'xK9mP2qRsT4wY6zA1cD3eF5gH7iJ0kLmN8oP+Q2rS5tU='"
+      - "AIRFLOW__CORE__FERNET_KEY=AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCDEFG= "
+      - "fernet_key = 'MbDfFhHjJlLnNpPrRtTvVxXzZ0123456789MbDFHJLN='"
     references:
       - https://cryptography.io/en/latest/fernet/
       - https://airflow.apache.org/docs/apache-airflow/stable/security/secrets/fernet.html

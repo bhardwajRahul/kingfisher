@@ -16,7 +16,7 @@ rules:
     min_entropy: 3.5
     confidence: high
     examples:
-      - "STATSIG_SERVER_KEY=\"secret-K9mT4xRpWsLqZvAnBcDeFgHiJkLmNoPqRsTuVw\""
+      - "STATSIG_SERVER_KEY=\"secret-K9mT4xRpWsLqZvAnBcDeFgHiJkLmNoPqRsTuVwXy\""
       - "statsig.initialize(\"secret-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCD\", options)"
     references:
       - https://docs.statsig.com/

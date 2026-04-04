@@ -1,17 +1,25 @@
 // ────────────────────────────────────────────────────────────
 // Global allocator setup
-//   * Default  - mimalloc on Linux/Windows, system on Darwin/other targets
-//   * Opt-in   - mimalloc             (`use-mimalloc` feature)
-//   * Opt-in   - jemalloc             (`use-jemalloc` feature)
-//   * Explicit - system allocator     (`system-alloc` feature)
+//   * Default  - mimalloc (`use-mimalloc`)
+//   * Opt-in   - jemalloc (`use-jemalloc`) for one-off debugging
+//   * Explicit - system allocator on Darwin (`system-alloc`)
 // ────────────────────────────────────────────────────────────
+
+#[cfg(all(feature = "use-jemalloc", feature = "system-alloc"))]
+compile_error!("`use-jemalloc` and `system-alloc` are mutually exclusive");
+
+#[cfg(all(feature = "use-jemalloc", feature = "use-mimalloc"))]
+compile_error!("`use-jemalloc` and `use-mimalloc` are mutually exclusive");
+
+#[cfg(all(feature = "system-alloc", not(target_os = "macos")))]
+compile_error!("`system-alloc` is only supported on Darwin targets");
 
 // --- jemalloc (opt-in) ---
 #[cfg(feature = "use-jemalloc")]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-// --- mimalloc (default on Linux/Windows, opt-in elsewhere) ---
+// --- mimalloc (default) ---
 #[cfg(all(
     not(feature = "use-jemalloc"),
     not(feature = "system-alloc"),
@@ -20,7 +28,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-// --- system allocator (default on Darwin/other targets, explicit elsewhere) ---
+// --- system allocator (fallback, explicit on Darwin) ---
 #[cfg(any(
     feature = "system-alloc",
     all(

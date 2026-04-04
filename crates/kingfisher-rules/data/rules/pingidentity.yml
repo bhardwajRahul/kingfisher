@@ -24,8 +24,8 @@ rules:
     confidence: medium
     visible: false
     examples:
-      - "pingone client_id = 7fe9Gf06-7F40-CE8D-6EBF-55ggFe4d9bF4"
-      - "PINGONE_CLIENT_ID=8gf0Hg17-8G51-DF9E-7FCG-66hhGf5e0cG5"
+      - "pingone client_id = 7fe9af06-7f40-ce8d-6ebf-55aafe4d9bf4 "
+      - "pingone\nclient_id=8af0ba17-8a51-df9e-7fca-66bbaf5e0ca5 "
     references:
       - https://docs.pingidentity.com/r/en-us/pingone/p1_c_environments
 
@@ -50,8 +50,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "pingone client_secret = 5dGwD6ZxOQj.~XD9Pd82I.q79zA8rSk9sscgHQ."
-      - "PINGONE_CLIENT_SECRET=6eHxE7AyPRk.~YE0Qe93J.r80AB9sTo0ttdhIR."
+      - "pingone client_secret = 5dGwD6ZxOQj.~XD9Pd82I.q79zA8rSk9sscgHQ. "
+      - "pingone\nclient_secret=6eHxE7AyPRk.~YE0Qe93J.r80AB9sTo0ttdhIR. "
     references:
       - https://docs.pingidentity.com/r/en-us/pingone/p1_c_environments
     # No simple validation: PingOne OAuth2 requires both client_id and

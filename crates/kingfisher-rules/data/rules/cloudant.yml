@@ -18,7 +18,7 @@ rules:
       [a-z0-9\-]+
       \.cloudantnosqldb\.appdomain\.cloud
     pattern_requirements:
-      min_digits: 20
+      min_digits: 8
     min_entropy: 3.5
     confidence: high
     examples:

@@ -19,8 +19,8 @@ rules:
     min_entropy: 3.5
     confidence: high
     examples:
-      - "export PACKET_API_TOKEN=bRniGMGkhjH0x2a0aHdxddyNDReH7Za3"
-      - "EQUINIX_PACKET_API_TOKEN=cSojHNHliII1y3b1bIeyeezOESiH8Ab4"
+      - "export PACKET_API_TOKEN=bRniGMGkhjH0x2a0aHdxddyNDReH7Za3\n"
+      - "EQUINIX_PACKET_API_TOKEN=cSojHNHliII1y3b1bIeyeezOESiH8Ab4\n"
     references:
       - https://metal.equinix.com/developers/api/
     validation:

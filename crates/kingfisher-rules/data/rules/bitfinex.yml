@@ -21,7 +21,7 @@ rules:
     visible: false
     examples:
       - "bitfinex\nkey = 3d2c8965468f2a10a3797dafe46adcb34c1d1c294ca"
-      - "BITFINEX_KEY=1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2"
+      - "bitfinex\napi-key = 1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2"
     references:
       - https://docs.bitfinex.com/docs
 
@@ -46,7 +46,7 @@ rules:
     confidence: medium
     examples:
       - "bitfinex\nsecret = 8d7c3965318b8d20f7648dbda96fbfa23f4d1c449aa"
-      - "BITFINEX_SECRET=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2"
+      - "bitfinex\napi-secret = 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1d2"
     references:
       - https://docs.bitfinex.com/docs
       - https://docs.bitfinex.com/docs/rest-auth

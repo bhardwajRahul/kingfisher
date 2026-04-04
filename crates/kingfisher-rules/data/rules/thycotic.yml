@@ -19,8 +19,8 @@ rules:
     min_entropy: 2.5
     confidence: medium
     examples:
-      - "base_url_tss='https://myorg.secretservercloud.com'\npassword = bsfijgbfbf"
-      - "THYCOTIC_PASSWORD=s3cur3V@ultPass"
+      - "base_url_tss='https://myorg.secretserver.com'\npassword = bs1ijgb2bf\n"
+      - "thycotic\npassword=s3cur3V@ultPass\n"
     references:
       - https://docs.delinea.com/online-help/secret-server/
     # No public validation endpoint: Secret Server is self-hosted or

@@ -20,8 +20,8 @@ rules:
     min_entropy: 4.0
     confidence: medium
     examples:
-      - 'INFLUX_TOKEN=nxft2SEGZrEH2-jwDIea6tDSiX6TqHn50u0kOcDqSRnUdnK35VYauC1buWdwh-UFq7dgeb7qf3pMyKg6sbf6zg=='
-      - "INFLUX_TOKEN='z62qZYqGCOCI1zx3cFZYFcosWJoGw9XKIeEcF_GWwhfefRBSMjQfl3M5-ZDZN1FOFvWJPJHVi2-bZ6hPaQWvpw=='"
+      - "influx\ntoken=nxft2SEGZrEH2-jwDIea6tDSiX6TqHn50u0kOcDqSRnUdnK35VYauC1buWdwh-UFq7dgeb7qf3pMyKg6sbf6zg=="
+      - "influxdb\ntoken='z62qZYqGCOCI1zx3cFZYFcosWJoGw9XKIeEcF_GWwhfefRBSMjQfl3M5-ZDZN1FOFvWJPJHVi2-bZ6hPaQWvpw=='"
     references:
       - https://docs.influxdata.com/
       - https://docs.influxdata.com/influxdb/cloud/security/tokens/

@@ -5,7 +5,7 @@ rules:
       (?xi)
       \b
       ftps?://
-      ([^:@\s]{1,64})
+      [^:@\s]{1,64}
       :
       ([^@\s]{6,128})
       @
@@ -16,7 +16,7 @@ rules:
     confidence: medium
     examples:
       - "ftp://johndoe:pg9stqu2018@files.example.edu.cn"
-      - "BACKUP_URL=ftps://backupuser:$5ecureP@ss2024@ftp.corp.example.com"
+      - "BACKUP_URL=ftps://backupuser:S5ec4rePassWord@ftp.corp.example.com"
     references:
       - https://datatracker.ietf.org/doc/html/rfc959
     # No public validation endpoint: FTP servers are instance-specific.

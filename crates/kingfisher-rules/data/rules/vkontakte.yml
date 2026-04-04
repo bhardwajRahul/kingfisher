@@ -14,8 +14,8 @@ rules:
     min_entropy: 4.0
     confidence: high
     examples:
-      - "VK_TOKEN=vk1.a.DlL6WTIGQ4BrnY7s1bGmeRDTHQbR_PN4NAKOIwGORABmDrOVmM-zL4wDFT37LuH-3FlJKY1rYVdl9RT7N_qEceyhu1By"
-      - "vk_access_token = 'vk1.a.BcDeFgHiJkLmNoPqRsTuVwXy2345678901-_bcdefghijklmnopqrstuvwxyz1234567890BCDEFGHIJKLMNOPQRSTUVWXYZA'"
+      - "VK_TOKEN=vk1.a.DlL6WTIGQ4BrnY7s1bGmeRDTHQbR_PN4NAKOIwGORABmDrOVmM-zL4wDFT37LuH-3FlJKY1rYVdl9RT7N_qEceyhu1ByAbCdEfGh"
+      - "vk_access_token = 'vk1.a.BcDeFgHiJkLmNoPqRsTuVwXy2345678901-_bcdefghijklmnopqrstuvwxyz1234567890BCDEFGHIJKLMNOPQRSTUVWXYZAabc'"
     references:
       - https://dev.vk.com/en/api/access-token/getting-started
     validation:

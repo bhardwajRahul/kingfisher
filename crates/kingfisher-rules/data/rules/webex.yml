@@ -45,8 +45,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "webex_secret = 8ab9b3c77035e1121e2d7d64529749682b3ce5b93dc1f1e6677f0800dcf00d1e"
-      - "WEBEX_CLIENT_SECRET=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b"
+      - "webex.secret = 8ab9b3c77035e1121e2d7d64529749682b3ce5b93dc1f1e6677f0800dcf00d1e"
+      - "webex\nclient_secret=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b"
     references:
       - https://developer.webex.com/docs/platform-introduction
       - https://developer.webex.com/docs/integrations

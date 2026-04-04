@@ -22,8 +22,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'Authorization: Token 4283FEFC63f0cd0E873a0000C6d07ef7b77E90d3593ad699fC1f7Cd5bB2e35cbf0f19C5 for https://enterprise.gitguardian.com/api/v1/incidents'
-      - 'gitguardian public monitoring key = "122B598615DcBe810bEAcd557705a54B5EDbBbE5cE7F8fBEeBEf7A58F99D96fb2A06311"'
+      - 'host: enterprise.gitguardian.com\nAuthorization: Token 4283fefc63f0cd0e873a0000c6d07ef7b77e90d3593ad699fc1f7cd5bb2e35cbf0f19c5'
+      - 'gitguardian public monitoring key = "122b598615dcbe810beacd557705a54b5edbbbe5ce7f8fbeebef7a58f99d96fb2a06311"'
     references:
       - https://enterprise.gitguardian.com/api/docs
       - https://enterprise.gitguardian.com/docs
@@ -69,8 +69,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'GG_API_URL=https://api.gitguardian.com/v1 api_key = "aE075528A220e087D35b92558589eaFfc09cad68386D070C415ed7E70CaD19465922995"'
-      - 'ggshield auth login --method token --token 74bF20f8b6ffC474Ec0251908FCdcE4Bc14F68d9dcbd7a085a368932ff2b2d407dd311C'
+      - 'GG_API_URL=https://api.gitguardian.com/v1 authorization = "ae075528a220e087d35b92558589eaffc09cad68386d070c415ed7e70cad19465922995"'
+      - 'ggshield auth login --method token --token 74bf20f8b6ffc474ec0251908fcdce4bc14f68d9dcbd7a085a368932ff2b2d407dd311c'
     references:
       - https://api.gitguardian.com/docs
     validation:

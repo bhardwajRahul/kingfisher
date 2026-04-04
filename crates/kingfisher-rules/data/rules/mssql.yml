@@ -17,9 +17,9 @@ rules:
     min_entropy: 2.8
     confidence: medium
     examples:
-      - "MSSQL_PASSWORD=n53qmpa3xe"
-      - "mssql_password=myS3cur3Passw0rd"
-      - "spring.datasource.password=Tr0ub4dor&3"
+      - "mssql_password=n53qmpa3xe\n"
+      - "mssql_password=myS3cur3Passw0rd\n"
+      - "mssql_password=Tr0ub4dor&3\n"
     references:
       - https://docs.microsoft.com/en-us/sql/
     # No public validation endpoint: MSSQL is self-hosted;

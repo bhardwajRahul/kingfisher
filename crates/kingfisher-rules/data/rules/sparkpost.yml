@@ -18,11 +18,7 @@ rules:
     confidence: medium
     examples:
       - sparkpost_api_key = "14ac5499cfdd2bb2859e4476d2e5b1d2bad079bf"
-      - |
-        headers = {
-          "Authorization": "3f2c1a7b5d9e8c60124fab37d8519ce20ab46d7f",
-          "X-Service": "sparkpost"
-        }
+      - "\"X-Service\": \"sparkpost\",\n\"Authorization\": \"3f2c1a7b5d9e8c60124fab37d8519ce20ab46d7f\"\n"
     references:
       - https://developers.sparkpost.com/api/
     validation:

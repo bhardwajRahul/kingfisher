@@ -20,8 +20,8 @@ rules:
     confidence: medium
     visible: false
     examples:
-      - "dwolla id = 4d1d4076479b7c21h8751eceb57bcge34b5d2d356fbb265671"
-      - "DWOLLA_CLIENT_ID=7e4e5187580c7d32i9862fdfcg8dcgf45c6e3e467gcc376782"
+      - "dwolla id = 4d1d4076479b7c21a8751eceb57bc1e34b5d2d356fbb265671\n"
+      - "dwolla\nclient_id = 7e4e5187580c7d329862fdfca8dc1f45c6e3e467a0c376782\n"
     references:
       - https://developers.dwolla.com/
 
@@ -45,8 +45,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "dwolla secret = 4d1d407752bfd562bZ=9b7c21f8862fdfc57bcge45"
-      - "DWOLLA_CLIENT_SECRET=7e4e5297691dg673cA=0c7d43j9973gecgh8dcgf56"
+      - "dwolla secret = 4d1d407752bfd562bZ=9b7c21f8862fdfc57bc1e45\n"
+      - "dwolla\nclient_secret = 7e4e5297691a673cA=0c7d43b997ec1h8dcaf56\n"
     references:
       - https://developers.dwolla.com/
     # No simple validation: Dwolla OAuth2 requires both client_id and

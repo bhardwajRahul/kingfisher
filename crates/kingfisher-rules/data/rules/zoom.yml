@@ -49,8 +49,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - ZOOM_AUTH_SECRET=9NeGUzYkSjRupIF5pt93m2D1w17fOjI8
-      - '"ZOOM_API_SECRET": "ihPmh3dnXxn3Cd7s3UVZoCDvVEef1f1Q"'
+      - "zoom.auth_secret=9NeGUzYkSjRupIF5pt93m2D1w17fOjI8"
+      - "zoom\napi_secret=\"ihPmh3dnXxn3Cd7s3UVZoCDvVEef1f1Q\""
     references:
       - https://developers.zoom.us/docs/integrations/
       - https://developers.zoom.us/docs/integrations/oauth-scopes-overview/

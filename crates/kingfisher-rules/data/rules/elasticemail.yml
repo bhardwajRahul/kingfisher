@@ -23,8 +23,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "'apikey' => '8a2d35a4-2e83-41c2-9509-5c6e116ebc2b'"
-      - "ELASTICEMAIL_API_KEY=7b1f46a3-3d92-52b1-a81e-6d7f227fcd3c"
+      - "elasticemail\napikey => '8a2d35a4-2e83-41c2-9509-5c6e116ebc2b'"
+      - "elasticemail\napi-key = 7b1f46a3-3d92-52b1-a81e-6d7f227fcd3c"
     references:
       - https://api.elasticemail.com/public/help
       - https://elasticemail.com/developers/api-documentation/

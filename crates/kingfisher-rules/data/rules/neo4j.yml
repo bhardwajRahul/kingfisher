@@ -19,7 +19,7 @@ rules:
     confidence: medium
     examples:
       - "spring.data.neo4j.password: Tr0ub4dor&3xampL"
-      - "neo4j_password: zeoh!zafFEa"
+      - "neo4j.password: ze0h!zafFEa"
     references:
       - https://neo4j.com/docs/getting-started/current/
       - https://neo4j.com/docs/operations-manual/current/authentication-authorization/

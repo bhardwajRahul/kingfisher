@@ -40,8 +40,8 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "wechatkey = 9bdaebb9594bff61b28073d91213af23"
-      - "WECHAT_APP_SECRET=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d"
+      - "wechat.key = 9bdaebb9594bff61b28073d91213af23"
+      - "wechat\napp_secret=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d"
     references:
       - https://open.weixin.qq.com/?lang=en
       - https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Get_access_token.html

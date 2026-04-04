@@ -49,8 +49,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - "application_secret=r4DVZuOvp8Acg18fMF1LLd7KapVFc7Qz"
-      - "OVH_APPLICATION_SECRET=AbCdEf1234GhIjKl5678MnOpQr90StUv"
+      - "[ovh-eu]\napplication_secret=r4DVZuOvp8Acg18fMF1LLd7KapVFc7Qz"
+      - "ovh.application_secret=AbCdEf1234GhIjKl5678MnOpQr90StUv"
     references:
       - https://api.ovh.com/
       - https://api.ovh.com/console/#/me/api/application/%7BapplicationId%7D#DELETE

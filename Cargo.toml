@@ -267,10 +267,10 @@ version = "0.6"
 optional = true
 
 [features]
-default = []
+default = ["use-mimalloc"]
 use-mimalloc = []
 use-jemalloc = ["tikv-jemallocator"]
-system-alloc = [] # forces System allocator
+system-alloc = [] # Darwin-only: force the system allocator
 
 [dev-dependencies]
 pretty_assertions = "1.4"
