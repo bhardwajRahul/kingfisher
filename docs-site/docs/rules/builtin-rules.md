@@ -1,6 +1,6 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 734+ built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 633+ built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
