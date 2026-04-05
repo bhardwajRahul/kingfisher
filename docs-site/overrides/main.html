@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Kingfisher",
+    "description": "Open source secret scanner with live validation. 734+ detection rules, blast radius mapping, and credential revocation.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Linux, macOS, Windows",
+    "license": "https://opensource.org/licenses/Apache-2.0",
+    "url": "https://mongodb.github.io/kingfisher",
+    "author": {
+      "@type": "Organization",
+      "name": "MongoDB",
+      "url": "https://www.mongodb.com"
+    },
+    "codeRepository": "https://github.com/mongodb/kingfisher",
+    "programmingLanguage": "Rust",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+{% endblock %}
