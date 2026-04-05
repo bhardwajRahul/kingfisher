@@ -293,45 +293,7 @@ jobs:
 
       - name: Run tests
         shell: msys2 {0}
-        run: |
-          set -eu -o pipefail
-
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            toolchain_root=/clangarm64
-            target_triple=aarch64-pc-windows-gnullvm
-          else
-            toolchain_root=/mingw64
-            target_triple=x86_64-pc-windows-gnu
-          fi
-
-          export LIBHS_NO_PKG_CONFIG=1
-          export HYPERSCAN_ROOT="$(cygpath -m "$toolchain_root")"
-          export PKG_CONFIG_PATH="$toolchain_root/lib/pkgconfig"
-
-          if ! command -v cargo >/dev/null 2>&1 && [ -n "${USERPROFILE:-}" ]; then
-            cargo_home_candidate="$(cygpath -u "${USERPROFILE}")/.cargo/bin"
-            if [ -d "$cargo_home_candidate" ]; then
-              export PATH="$cargo_home_candidate:$PATH"
-            fi
-          fi
-
-          if [ "${{ matrix.arch }}" = "x64" ]; then
-            extra_native_lib_dirs="-L native=/mingw64/lib"
-            if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
-              libgcc_a_path="$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"
-              if [ -n "$libgcc_a_path" ] && [ -f "$libgcc_a_path" ]; then
-                libgcc_dir="$(dirname "$libgcc_a_path")"
-                extra_native_lib_dirs="$extra_native_lib_dirs -L native=$libgcc_dir"
-                echo "Using libgcc from $libgcc_dir"
-              fi
-            fi
-            export RUSTFLAGS="${RUSTFLAGS:-} $extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"
-          else
-            export RUSTFLAGS="${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"
-          fi
-
-          echo "▶ cargo test --release --workspace --all-targets --target $target_triple"
-          cargo test --release --workspace --all-targets --target "$target_triple"
+        run: make windows-test-${{ matrix.arch }}
 
       - name: Build
         shell: msys2 {0}

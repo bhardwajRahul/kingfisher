@@ -1,0 +1,53 @@
+rules:
+  - name: Dwolla Client ID
+    id: kingfisher.dwolla.1
+    pattern: |
+      (?xi)
+      \b
+      dwolla
+      (?:.|[\n\r]){0,32}?
+      \b(?:id|client[_-]?id|key|app[_-]?id)\b
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      ['"]*
+      (
+        [0-9a-f]{40,52}
+      )
+      ['"\s]
+    pattern_requirements:
+      min_digits: 6
+    min_entropy: 3.0
+    confidence: medium
+    visible: false
+    examples:
+      - "dwolla id = 4d1d4076479b7c21a8751eceb57bc1e34b5d2d356fbb265671\n"
+      - "dwolla\nclient_id = 7e4e5187580c7d329862fdfca8dc1f45c6e3e467a0c376782\n"
+    references:
+      - https://developers.dwolla.com/
+
+  - name: Dwolla Client Secret
+    id: kingfisher.dwolla.2
+    pattern: |
+      (?xi)
+      \b
+      dwolla
+      (?:.|[\n\r]){0,64}?
+      \b(?:secret|client[_-]?secret|app[_-]?secret)\b
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      ['"]*
+      (
+        [0-9a-zA-Z/+=_-]{28,48}
+      )
+      ['"\s]
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - "dwolla secret = 4d1d407752bfd562bZ=9b7c21f8862fdfc57bc1e45\n"
+      - "dwolla\nclient_secret = 7e4e5297691a673cA=0c7d43b997ec1h8dcaf56\n"
+    references:
+      - https://developers.dwolla.com/
+    # No simple validation: Dwolla OAuth2 requires both client_id and
+    # client_secret together for the token endpoint.

@@ -1,0 +1,27 @@
+rules:
+  - name: LDAP Credentials
+    id: kingfisher.ldap.1
+    pattern: |
+      (?xi)
+      \b
+      ldap(?:s)?[_-]?(?:pass(?:word)?|pwd|secret|bind[_-]?pw)
+      (?:.|[\n\r]){0,16}?
+      [=:"'\s]
+      ['"]*
+      (
+        [^\s"']{8,128}
+      )
+      ['"\s]
+    pattern_requirements:
+      min_digits: 1
+      min_special_chars: 1
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - "ldap_pass = \"zX#mK91wP$3n=Q7!\""
+      - "ldap_pwd = 'Tr0ub4dor&3!'"
+      - "LDAP_PASSWORD=s3cur3P@ssw0rd\n"
+    references:
+      - https://tools.ietf.org/html/rfc2251
+    # No public validation endpoint: LDAP servers are self-hosted;
+    # the host, port, and DN are instance-specific.

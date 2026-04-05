@@ -13,7 +13,6 @@ rules:
     min_entropy: 3.3
     confidence: medium
     examples:
-      - PMAK-5dd543842789bd0036bf98c1-a5a9b8f1dfda8fbf18a4664ebe558b04ed
       - PMAK-642a58a823faa300316566d1-6715a3a826ce5d5d62be8539d6ac357146
       - PMAK-642a9b9084d6110029e75d7d-09efdcb872587f6f67696f02929647d9c6
       - "// ('x-api-key', 'PMAK-629c73facbc064567cbf6970-f56e8b4cd0bb14d00962f17afc158dc2a2')"

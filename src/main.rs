@@ -1,9 +1,18 @@
 // ────────────────────────────────────────────────────────────
 // Global allocator setup
-//   * Default  - mimalloc             (no feature flags)
-//   * Debug    - jemalloc (`use-jemalloc` feature)
-//   * Fallback - system allocator     (`system-alloc` feature)
+//   * Default  - mimalloc (`use-mimalloc`)
+//   * Opt-in   - jemalloc (`use-jemalloc`) for one-off debugging
+//   * Explicit - system allocator on Darwin (`system-alloc`)
 // ────────────────────────────────────────────────────────────
+
+#[cfg(all(feature = "use-jemalloc", feature = "system-alloc"))]
+compile_error!("`use-jemalloc` and `system-alloc` are mutually exclusive");
+
+#[cfg(all(feature = "use-jemalloc", feature = "use-mimalloc"))]
+compile_error!("`use-jemalloc` and `use-mimalloc` are mutually exclusive");
+
+#[cfg(all(feature = "system-alloc", not(target_os = "macos")))]
+compile_error!("`system-alloc` is only supported on Darwin targets");
 
 // --- jemalloc (opt-in) ---
 #[cfg(feature = "use-jemalloc")]
@@ -11,20 +20,34 @@
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 // --- mimalloc (default) ---
-#[cfg(all(not(feature = "use-jemalloc"), not(feature = "system-alloc")))]
+#[cfg(all(
+    not(feature = "use-jemalloc"),
+    not(feature = "system-alloc"),
+    any(feature = "use-mimalloc", target_os = "linux", target_os = "windows")
+))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-// --- system allocator (explicit opt-out) ---
-#[cfg(feature = "system-alloc")]
+// --- system allocator (fallback, explicit on Darwin) ---
+#[cfg(any(
+    feature = "system-alloc",
+    all(
+        not(feature = "use-jemalloc"),
+        not(feature = "system-alloc"),
+        not(any(feature = "use-mimalloc", target_os = "linux", target_os = "windows"))
+    )
+))]
 use std::alloc::System;
-#[cfg(feature = "system-alloc")]
+#[cfg(any(
+    feature = "system-alloc",
+    all(
+        not(feature = "use-jemalloc"),
+        not(feature = "system-alloc"),
+        not(any(feature = "use-mimalloc", target_os = "linux", target_os = "windows"))
+    )
+))]
 #[global_allocator]
 static GLOBAL: System = System;
-
-// use std::alloc::System;
-// #[global_allocator]
-// static GLOBAL: System = System;
 
 use std::{
     io::{IsTerminal, Read, Write},

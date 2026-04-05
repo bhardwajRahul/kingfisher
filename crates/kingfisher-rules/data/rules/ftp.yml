@@ -1,0 +1,22 @@
+rules:
+  - name: FTP Connection URI Credentials
+    id: kingfisher.ftp.1
+    pattern: |
+      (?xi)
+      \b
+      ftps?://
+      [^:@\s]{1,64}
+      :
+      ([^@\s]{6,128})
+      @
+      [^\s/"']{4,128}
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 2.5
+    confidence: medium
+    examples:
+      - "ftp://johndoe:pg9stqu2018@files.example.edu.cn"
+      - "BACKUP_URL=ftps://backupuser:S5ec4rePassWord@ftp.corp.example.com"
+    references:
+      - https://datatracker.ietf.org/doc/html/rfc959
+    # No public validation endpoint: FTP servers are instance-specific.

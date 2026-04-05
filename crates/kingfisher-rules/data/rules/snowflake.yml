@@ -1,0 +1,26 @@
+rules:
+  - name: Snowflake Connection URI Credentials
+    id: kingfisher.snowflake.1
+    pattern: |
+      (?xi)
+      \b
+      snowflake[a-z+.-]*
+      ://
+      [A-Za-z0-9_.@%+!-]+       # username (non-capturing)
+      :
+      ([^@\s"'<>]{6,128}?)        # password (captured)
+      @
+      [A-Za-z0-9_.-]+             # host
+      (?:\.snowflakecomputing\.com)?
+      [/\s"'?]
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 2.5
+    confidence: medium
+    examples:
+      - 'CONNECTION_URI="db:snowflake://myuser:P4ssw0rd!@xyz123.us-east-1.snowflakecomputing.com/mydb"'
+      - 'engine = create_engine("snowflake://admin:S3cr3tPassw0rd@acct987.snowflakecomputing.com/warehouse")'
+    references:
+      - https://docs.snowflake.com/en/
+      - https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api
+    # Snowflake credentials are endpoint-specific; no public REST endpoint for standalone validation.

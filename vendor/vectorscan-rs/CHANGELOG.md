@@ -2,16 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+## [v0.0.6](https://github.com/bradlarsen/vectorscan-rs/releases/v0.0.6) (2026-03-12)
+
+### Changes
+- Upgraded vendored version of Vectorscan from 5.4.11 to 5.4.12 ([#11](https://github.com/bradlarsen/vectorscan-rs/pull/11)).
+
+- Vectorscan is now redistributed as an extracted source directory within the vectorscan-rs-sys tree.
+  This replaces the previous pristine tarball + build-time `patch` approach.
+  This change was necessary to keep the crate size below the 10MB limit imposed by Crates.io.
+
+- Updated GitHub Actions `checkout` and `upload-artifact` steps to the latest versions.
+
+### Fixes
+- Fixed a typo in the build script that caused the `cpu_native` feature to not work ([#12](https://github.com/bradlarsen/vectorscan-rs/pull/12)).
 
 
 ## [v0.0.5](https://github.com/bradlarsen/vectorscan-rs/releases/v0.0.5) (2024-12-09)
 
 ### Additions
-- Added `BlockDatabase::size` and `StreamingDatabase::size`, which return the size in bytes of the database
-- Added `StreamingDatabase::stream_size`, which returns the size in bytes of a stream for the database
-- A new `asan` feature enables Address Sanitizer in the vendored version of `vectorscan`
+- Added `BlockDatabase::size` and `StreamingDatabase::size`, which return the size in bytes of the database.
+- Added `StreamingDatabase::stream_size`, which returns the size in bytes of a stream for the database.
+- A new `asan` feature enables Address Sanitizer in the vendored version of `vectorscan`.
 
 
 ## [v0.0.4](https://github.com/bradlarsen/vectorscan-rs/releases/v0.0.4) (2024-11-07)

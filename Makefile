@@ -51,7 +51,7 @@ endif
 ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
-.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows \
+.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows-test-x64 windows-test-arm64 windows-test windows \
         linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz
 
 default: help
@@ -293,27 +293,31 @@ endif
 	      export PATH=/mingw64/bin:$$PATH; \
 	      ;; \
 	  esac; \
-	  command -v mingw32-make >/dev/null 2>&1 || { \
-	    echo "Installing MinGW build dependencies..."; \
-	    pacman --noconfirm --needed -S \
-	      mingw-w64-x86_64-toolchain \
-	      mingw-w64-x86_64-cmake \
-	      mingw-w64-x86_64-boost \
-	      mingw-w64-x86_64-pkg-config \
-	      mingw-w64-x86_64-ragel \
-	      mingw-w64-x86_64-pcre2 \
-	      mingw-w64-x86_64-python \
-	      git make; \
-	  }; \
+	  echo "Ensuring MinGW build dependencies are installed..."; \
+	  pacman --noconfirm --needed -S \
+	    mingw-w64-x86_64-toolchain \
+	    mingw-w64-x86_64-cmake \
+	    mingw-w64-x86_64-boost \
+	    mingw-w64-x86_64-pkg-config \
+	    mingw-w64-x86_64-ragel \
+	    mingw-w64-x86_64-pcre2 \
+	    mingw-w64-x86_64-zlib \
+	    mingw-w64-x86_64-python \
+	    git make; \
 	  repo_root="$$(pwd)"; \
-	  test -d /tmp/vectorscan || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan; \
-	  mkdir -p /tmp/vectorscan/build; \
-	  cd /tmp/vectorscan/build; \
-	  cmake .. \
+	  vectorscan_src="$$repo_root/vendor/vectorscan-rs/vectorscan-rs-sys/vectorscan"; \
+	  build_dir=/tmp/vectorscan-build; \
+	  rm -rf "$$build_dir"; \
+	  mkdir -p "$$build_dir"; \
+	  cd "$$build_dir"; \
+	  cmake "$$vectorscan_src" \
 	    -G "MinGW Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_STATIC_LIBS=ON \
+	    -DBUILD_UNIT=OFF \
 	    -DBUILD_TOOLS=OFF \
+	    -DFAT_RUNTIME=OFF \
 	    -DCMAKE_C_COMPILER=gcc \
 	    -DCMAKE_CXX_COMPILER=g++ \
 	    -DCMAKE_INSTALL_PREFIX=/mingw64; \
@@ -333,11 +337,13 @@ endif
 	    "" \
 	    "Name: libhs" \
 	    "Description: Vectorscan regex library (Hyperscan fork)" \
-	    "Version: 5.4.11" \
+	    "Version: 5.4.12" \
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /mingw64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig; \
+	  export PKG_CONFIG_LIBDIR=/mingw64/lib/pkgconfig; \
 	  pkg-config --cflags --libs libhs; \
 	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
 	    cargo_home_candidate=""; \
@@ -388,7 +394,7 @@ endif
 	    echo "WINDOWS_ONLY_DEPS=1 set; skipping cargo build and packaging."; \
 	    exit 0; \
 	  fi; \
-	  "$$CARGO_BIN" build --release --target x86_64-pc-windows-gnu --features system-alloc; \
+	  "$$CARGO_BIN" build --release --target x86_64-pc-windows-gnu; \
 	  mkdir -p target/release; \
 	  cp target/x86_64-pc-windows-gnu/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \
 	  cd target/release; \
@@ -431,17 +437,23 @@ endif
 	    mingw-w64-clang-aarch64-pkgconf \
 	    mingw-w64-clang-aarch64-ragel \
 	    mingw-w64-clang-aarch64-pcre2 \
+	    mingw-w64-clang-aarch64-zlib \
 	    mingw-w64-clang-aarch64-python \
 	    git make; \
 	  repo_root="$$(pwd)"; \
-	  test -d /tmp/vectorscan-arm64 || git clone --depth 1 --branch vectorscan/5.4.11 https://github.com/VectorCamp/vectorscan.git /tmp/vectorscan-arm64; \
-	  mkdir -p /tmp/vectorscan-arm64/build; \
-	  cd /tmp/vectorscan-arm64/build; \
-	  cmake .. \
+	  vectorscan_src="$$repo_root/vendor/vectorscan-rs/vectorscan-rs-sys/vectorscan"; \
+	  build_dir=/tmp/vectorscan-arm64-build; \
+	  rm -rf "$$build_dir"; \
+	  mkdir -p "$$build_dir"; \
+	  cd "$$build_dir"; \
+	  cmake "$$vectorscan_src" \
 	    -G "MinGW Makefiles" \
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DBUILD_SHARED_LIBS=OFF \
+	    -DBUILD_STATIC_LIBS=ON \
+	    -DBUILD_UNIT=OFF \
 	    -DBUILD_TOOLS=OFF \
+	    -DFAT_RUNTIME=OFF \
 	    -DCMAKE_SYSTEM_NAME=Windows \
 	    -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
 	    -DCMAKE_C_COMPILER=clang \
@@ -463,11 +475,13 @@ endif
 	    "" \
 	    "Name: libhs" \
 	    "Description: Vectorscan regex library (Hyperscan fork)" \
-	    "Version: 5.4.11" \
+	    "Version: 5.4.12" \
 	    "Libs: -L\$${libdir} -lhs" \
 	    "Cflags: -I\$${includedir}" \
 	    > /clangarm64/lib/pkgconfig/libhs.pc; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
 	  export PKG_CONFIG_PATH=/clangarm64/lib/pkgconfig; \
+	  export PKG_CONFIG_LIBDIR=/clangarm64/lib/pkgconfig; \
 	  pkg-config --cflags --libs libhs; \
 	  if ! command -v rustup >/dev/null 2>&1 && ! command -v rustup.exe >/dev/null 2>&1; then \
 	    cargo_home_candidate=""; \
@@ -509,7 +523,7 @@ endif
 	    echo "WINDOWS_ONLY_DEPS=1 set; skipping cargo build and packaging."; \
 	    exit 0; \
 	  fi; \
-	  "$$CARGO_BIN" build --release --target aarch64-pc-windows-gnullvm --features system-alloc; \
+	  "$$CARGO_BIN" build --release --target aarch64-pc-windows-gnullvm; \
 	  mkdir -p target/release; \
 	  cp target/aarch64-pc-windows-gnullvm/release/$(PROJECT_NAME).exe target/release/$(PROJECT_NAME).exe; \
 	  cd target/release; \
@@ -520,6 +534,73 @@ endif
 	  echo "Built binary: target/release/$(PROJECT_NAME).exe"; \
 	  echo "Built archive: target/release/$(PROJECT_NAME)-windows-arm64.zip"; \
 	'
+
+windows-test-x64:
+ifeq ($(IS_WINDOWS_HOST),1)
+	@echo "Detected Windows host."
+else
+	$(error "This target can only run on Windows.")
+endif
+	@bash -eu -o pipefail -c '\
+	  case "$${MSYSTEM:-}" in \
+	    MINGW64) toolchain_root=/mingw64; target_triple=x86_64-pc-windows-gnu ;; \
+	    MSYS) export PATH=/mingw64/bin:$$PATH; toolchain_root=/mingw64; target_triple=x86_64-pc-windows-gnu ;; \
+	    *) echo "Run this target from an MSYS2 MinGW64 shell."; exit 1 ;; \
+	  esac; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
+	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  export PKG_CONFIG_LIBDIR="$$toolchain_root/lib/pkgconfig"; \
+	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
+	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    if [ -d "$$cargo_home_candidate" ]; then \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  extra_native_lib_dirs="-L native=/mingw64/lib"; \
+	  if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
+	    libgcc_a_path="$$(x86_64-w64-mingw32-gcc -print-libgcc-file-name 2>/dev/null || true)"; \
+	    if [ -n "$$libgcc_a_path" ] && [ -f "$$libgcc_a_path" ]; then \
+	      libgcc_dir="$$(dirname "$$libgcc_a_path")"; \
+	      extra_native_lib_dirs="$$extra_native_lib_dirs -L native=$$libgcc_dir"; \
+	      echo "Using libgcc from $$libgcc_dir"; \
+	    fi; \
+	  fi; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} $$extra_native_lib_dirs -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "▶ cargo test --release --workspace --all-targets --target $$target_triple"; \
+	  cargo test --release --workspace --all-targets --target "$$target_triple"; \
+	'
+
+windows-test-arm64:
+ifeq ($(IS_WINDOWS_HOST),1)
+	@echo "Detected Windows host."
+else
+	$(error "This target can only run on Windows.")
+endif
+	@bash -eu -o pipefail -c '\
+	  case "$${MSYSTEM:-}" in \
+	    CLANGARM64) toolchain_root=/clangarm64; target_triple=aarch64-pc-windows-gnullvm ;; \
+	    MINGW64|MSYS) export PATH=/clangarm64/bin:$$PATH; toolchain_root=/clangarm64; target_triple=aarch64-pc-windows-gnullvm ;; \
+	    *) echo "Run this target from an MSYS2 CLANGARM64 shell."; exit 1 ;; \
+	  esac; \
+	  export LIBHS_NO_PKG_CONFIG=1; \
+	  export HYPERSCAN_ROOT="$$(cygpath -m "$$toolchain_root")"; \
+	  export PKG_CONFIG_ALLOW_CROSS=1; \
+	  export PKG_CONFIG_PATH="$$toolchain_root/lib/pkgconfig"; \
+	  export PKG_CONFIG_LIBDIR="$$toolchain_root/lib/pkgconfig"; \
+	  if ! command -v cargo >/dev/null 2>&1 && [ -n "$${USERPROFILE:-}" ]; then \
+	    cargo_home_candidate="$$(cygpath -u "$${USERPROFILE}")/.cargo/bin"; \
+	    if [ -d "$$cargo_home_candidate" ]; then \
+	      export PATH="$$cargo_home_candidate:$$PATH"; \
+	    fi; \
+	  fi; \
+	  export RUSTFLAGS="$${RUSTFLAGS:-} -L native=/clangarm64/lib -C target-feature=+crt-static -C link-arg=-static"; \
+	  echo "▶ cargo test --release --workspace --all-targets --target $$target_triple"; \
+	  cargo test --release --workspace --all-targets --target "$$target_triple"; \
+	'
+
+windows-test: windows-test-x64 windows-test-arm64
 #
 # =============  DOCKER-BASED BUILDS =============
 # #
