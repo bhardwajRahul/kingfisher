@@ -1,11 +1,12 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 633+ built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 734 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **633 detection rules** across **465 providers**.
+Kingfisher ships with **734 detection rules** across **465 providers**
+(654 detectors + 80 dependent rules).
 Of these, **462** include live validation and **43** support direct revocation.
 
 !!! tip "Search"
@@ -68,9 +69,25 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Adobe</td>
+<td>Adobe IO Product ID</td>
+<td><code>kingfisher.adobe.2</code></td>
+<td>Unknown</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Adobe</td>
 <td>Adobe OAuth Client Secret</td>
 <td><code>kingfisher.adobe.3</code></td>
 <td>Unknown</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Age</td>
+<td>Age Recipient (X25519 public key)</td>
+<td><code>kingfisher.age.1</code></td>
+<td>High</td>
 <td></td>
 <td></td>
 </tr>
@@ -84,9 +101,25 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Age</td>
+<td>Age Recipient (MLKEM768-X25519 public key)</td>
+<td><code>kingfisher.age.3</code></td>
+<td>High</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Age</td>
 <td>Age Identity (MLKEM768-X25519 secret key)</td>
 <td><code>kingfisher.age.4</code></td>
 <td>High</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Agora</td>
+<td>Agora App ID</td>
+<td><code>kingfisher.agora.1</code></td>
+<td>Low</td>
 <td></td>
 <td></td>
 </tr>
@@ -148,6 +181,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Akamai</td>
+<td>Akamai API Client Token</td>
+<td><code>kingfisher.akamai.1</code></td>
+<td>High</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Akamai</td>
 <td>Akamai API Client Secret</td>
 <td><code>kingfisher.akamai.2</code></td>
 <td>Medium</td>
@@ -168,6 +209,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.algolia.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Algolia</td>
+<td>Algolia Application ID</td>
+<td><code>kingfisher.algolia.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Alibaba</td>
+<td>Alibaba Access Key ID</td>
+<td><code>kingfisher.alibabacloud.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -252,6 +309,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Artifactory</td>
+<td>Artifactory JFrog URL</td>
+<td><code>kingfisher.artifactory.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Artifactory</td>
 <td>Artifactory Identity Reference Token</td>
 <td><code>kingfisher.artifactory.3</code></td>
 <td>Medium</td>
@@ -332,10 +397,26 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Auth0</td>
+<td>Auth0 Client ID</td>
+<td><code>kingfisher.auth0.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Auth0</td>
 <td>Auth0 Client Secret</td>
 <td><code>kingfisher.auth0.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Auth0</td>
+<td>Auth0 Domain</td>
+<td><code>kingfisher.auth0.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -352,6 +433,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.aviationstack.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Aws</td>
+<td>AWS Access Key ID</td>
+<td><code>kingfisher.aws.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -412,6 +501,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Azure</td>
+<td>Azure Container Registry URL</td>
+<td><code>kingfisher.azure.4</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azure</td>
 <td>Azure Container Registry Password</td>
 <td><code>kingfisher.azure.5</code></td>
 <td>Medium</td>
@@ -420,10 +517,42 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Azure Notification Hub</td>
+<td>Azure Notification Hub Namespace Host</td>
+<td><code>kingfisher.azure.notificationhub.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azure Notification Hub</td>
+<td>Azure Notification Hub Name</td>
+<td><code>kingfisher.azure.notificationhub.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azure Notification Hub</td>
+<td>Azure Notification Hub SAS Key Name</td>
+<td><code>kingfisher.azure.notificationhub.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azure Notification Hub</td>
 <td>Azure Notification Hub Access Key</td>
 <td><code>kingfisher.azure.notificationhub.4</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Azuredevops</td>
+<td>Azure DevOps Organization</td>
+<td><code>kingfisher.azure.devops.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -440,6 +569,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.azureopenai.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Azureopenai</td>
+<td>Azure OpenAI Host</td>
+<td><code>kingfisher.azureopenai.host.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -460,6 +597,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Azurespeech</td>
+<td>Azure Speech Region</td>
+<td><code>kingfisher.azurespeech.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azurespeech</td>
 <td>Azure Speech API Key</td>
 <td><code>kingfisher.azurespeech.2</code></td>
 <td>Medium</td>
@@ -468,10 +613,26 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Azurestorage</td>
+<td>Azure Storage Account Name</td>
+<td><code>kingfisher.azurestorage.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Azurestorage</td>
 <td>Azure Storage Account Key</td>
 <td><code>kingfisher.azurestorage.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Azuretranslator</td>
+<td>Azure Translator Region</td>
+<td><code>kingfisher.azuretranslator.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -528,6 +689,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.bitbucket.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Bitfinex</td>
+<td>Bitfinex API Key</td>
+<td><code>kingfisher.bitfinex.1</code></td>
+<td>Low</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -619,6 +788,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Branchio</td>
+<td>Branch.io Secret</td>
+<td><code>kingfisher.branchio.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Brave</td>
 <td>Brave Search API Key</td>
 <td><code>kingfisher.brave.1</code></td>
@@ -641,6 +818,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
+</tr>
+<tr>
+<td>Browserstack</td>
+<td>BrowserStack Username</td>
+<td><code>kingfisher.browserstack.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
 </tr>
 <tr>
 <td>Buildkite</td>
@@ -771,11 +956,27 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Clickhouse</td>
+<td>ClickHouse Cloud Key ID</td>
+<td><code>kingfisher.clickhouse.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Clockwork</td>
 <td>Clockwork SMS API Key</td>
 <td><code>kingfisher.clockwork.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Clojars</td>
+<td>Clojars Username</td>
+<td><code>kingfisher.clojars.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -816,6 +1017,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.cloudinary.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Cloudinary</td>
+<td>Cloudinary API Key</td>
+<td><code>kingfisher.cloudinary.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Cloudinary</td>
+<td>Cloudinary Cloud Name</td>
+<td><code>kingfisher.cloudinary.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -900,6 +1117,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Confluent</td>
+<td>Confluent Client ID</td>
+<td><code>kingfisher.confluent.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Confluent</td>
 <td>Confluent API Secret</td>
 <td><code>kingfisher.confluent.2</code></td>
 <td>Medium</td>
@@ -939,11 +1164,27 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Contentstack</td>
+<td>Contentstack API Key</td>
+<td><code>kingfisher.contentstack.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Couchbase</td>
 <td>Couchbase Capella API Key</td>
 <td><code>kingfisher.couchbase.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Coveralls</td>
+<td>Coveralls Repo Identifier</td>
+<td><code>kingfisher.coveralls.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1035,6 +1276,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Cypress</td>
+<td>Cypress Project ID</td>
+<td><code>kingfisher.cypress.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Daily</td>
 <td>Daily API Key</td>
 <td><code>kingfisher.daily.1</code></td>
@@ -1064,6 +1313,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.databricks.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Databricks</td>
+<td>Databricks Domain</td>
+<td><code>kingfisher.databricks.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Datadog</td>
+<td>Datadog Site Domain</td>
+<td><code>kingfisher.datadog.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1235,6 +1500,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Discord</td>
+<td>Discord Bot ID</td>
+<td><code>kingfisher.discord.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Disqus</td>
 <td>Disqus API Key</td>
 <td><code>kingfisher.disqus.1</code></td>
@@ -1264,6 +1537,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.dockerhub.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Dockerhub</td>
+<td>Docker Hub Username</td>
+<td><code>kingfisher.dockerhub.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1356,6 +1637,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Duo</td>
+<td>Duo Security Integration Key</td>
+<td><code>kingfisher.duo.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Duo</td>
 <td>Duo Security Secret Key</td>
 <td><code>kingfisher.duo.2</code></td>
 <td>Medium</td>
@@ -1366,6 +1655,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td>Duplocloud</td>
 <td>DuploCloud API Key</td>
 <td><code>kingfisher.duplocloud.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Dwolla</td>
+<td>Dwolla Client ID</td>
+<td><code>kingfisher.dwolla.1</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -1408,6 +1705,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.elevenlabs.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Endorlabs</td>
+<td>Endor Labs API Key</td>
+<td><code>kingfisher.endorlabs.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1456,6 +1761,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.exa.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Facebook</td>
+<td>Facebook App ID</td>
+<td><code>kingfisher.facebook.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1652,6 +1965,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Foursquare</td>
+<td>Foursquare Client ID</td>
+<td><code>kingfisher.foursquare.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Foursquare</td>
 <td>Foursquare Client Secret</td>
 <td><code>kingfisher.foursquare.2</code></td>
 <td>Medium</td>
@@ -1680,6 +2001,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.freshbooks.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Freshdesk</td>
+<td>Freshdesk Domain</td>
+<td><code>kingfisher.freshdesk.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -1908,6 +2237,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Github</td>
+<td>GitHub Client ID</td>
+<td><code>kingfisher.github.7</code></td>
+<td>Unknown</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Github</td>
 <td>GitHub Legacy Secret Key</td>
 <td><code>kingfisher.github.8</code></td>
 <td>Unknown</td>
@@ -1968,6 +2305,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.godaddy.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Google</td>
+<td>Google Client ID</td>
+<td><code>kingfisher.google.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2048,6 +2393,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.grafana.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Grafana</td>
+<td>Grafana Domain</td>
+<td><code>kingfisher.grafana.4</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2196,6 +2549,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Helpscout</td>
+<td>Help Scout Client ID</td>
+<td><code>kingfisher.helpscout.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Helpscout</td>
 <td>Help Scout OAuth Client Secret</td>
 <td><code>kingfisher.helpscout.2</code></td>
 <td>Medium</td>
@@ -2246,6 +2607,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td>Http</td>
 <td>HTTP Bearer Token</td>
 <td><code>kingfisher.http.2</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Huawei</td>
+<td>Huawei Open Platform Client ID</td>
+<td><code>kingfisher.huawei.1</code></td>
 <td>Low</td>
 <td></td>
 <td></td>
@@ -2348,6 +2717,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Intra42</td>
+<td>Intra42 Client ID</td>
+<td><code>kingfisher.intra42.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Intra42</td>
 <td>Intra42 Client Secret (s-s4t2ud/af)</td>
 <td><code>kingfisher.intra42.2</code></td>
 <td>Medium</td>
@@ -2396,6 +2773,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Jfrog</td>
+<td>JFrog Cloud Host</td>
+<td><code>kingfisher.jfrog.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Jfrog</td>
 <td>JFrog API Key</td>
 <td><code>kingfisher.jfrog.2</code></td>
 <td>Medium</td>
@@ -2416,6 +2801,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.jina.1</code></td>
 <td>High</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Jira Domain</td>
+<td><code>kingfisher.jira.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2460,6 +2853,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Kairos</td>
+<td>Kairos API App ID</td>
+<td><code>kingfisher.kairos.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Kairos</td>
 <td>Kairos API Key</td>
 <td><code>kingfisher.kairos.2</code></td>
 <td>Medium</td>
@@ -2472,6 +2873,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.keenio.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Keenio</td>
+<td>Keen.io Project ID</td>
+<td><code>kingfisher.keenio.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Keycloak</td>
+<td>Keycloak Client ID</td>
+<td><code>kingfisher.keycloak.1</code></td>
+<td>Low</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2516,6 +2933,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Kubernetes</td>
+<td>Kubernetes API Server URL</td>
+<td><code>kingfisher.kubernetes.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Kubernetes</td>
 <td>Kubernetes Bootstrap Token</td>
 <td><code>kingfisher.kubernetes.2</code></td>
 <td>Medium</td>
@@ -2542,6 +2967,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td>Kucoin</td>
 <td>KuCoin API Secret</td>
 <td><code>kingfisher.kucoin.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Lacework</td>
+<td>Lacework API Key ID</td>
+<td><code>kingfisher.lacework.1</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -2576,6 +3009,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.langfuse.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Langfuse</td>
+<td>Langfuse Public Key</td>
+<td><code>kingfisher.langfuse.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2708,6 +3149,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Looker</td>
+<td>Looker Base URL</td>
+<td><code>kingfisher.looker.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Looker</td>
 <td>Looker Client ID</td>
 <td><code>kingfisher.looker.2</code></td>
 <td>Medium</td>
@@ -2804,6 +3253,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Mattermost</td>
+<td>Mattermost URL</td>
+<td><code>kingfisher.mattermost.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mattermost</td>
 <td>Mattermost Access Token</td>
 <td><code>kingfisher.mattermost.2</code></td>
 <td>Medium</td>
@@ -2816,6 +3273,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.maxmind.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Maxmind</td>
+<td>MaxMind Account ID</td>
+<td><code>kingfisher.maxmind.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2948,6 +3413,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Mongodb</td>
+<td>MongoDB API PUBLIC Key</td>
+<td><code>kingfisher.mongodb.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mongodb</td>
 <td>MongoDB URI Connection String</td>
 <td><code>kingfisher.mongodb.3</code></td>
 <td>Unknown</td>
@@ -2976,6 +3449,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.mux.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Mux</td>
+<td>Mux Access Token ID</td>
+<td><code>kingfisher.mux.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3155,11 +3636,27 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Nylas</td>
+<td>Nylas API URI</td>
+<td><code>kingfisher.nylas.api_uri.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Nytimes</td>
 <td>New York Times API Key</td>
 <td><code>kingfisher.nytimes.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Octopusdeploy</td>
+<td>Octopus Deploy Server URL</td>
+<td><code>kingfisher.octopusdeploy.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3184,6 +3681,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.okta.1</code></td>
 <td>Unknown</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Okta</td>
+<td>Okta Domain</td>
+<td><code>kingfisher.okta.2</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3252,6 +3757,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Openshift</td>
+<td>OpenShift API Server URL</td>
+<td><code>kingfisher.openshift.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Openshift</td>
 <td>OpenShift OAuth Access Token</td>
 <td><code>kingfisher.openshift.2</code></td>
 <td>Medium</td>
@@ -3287,6 +3800,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td>Oracle Database Connection URI</td>
 <td><code>kingfisher.oracle.1</code></td>
 <td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Ovh</td>
+<td>OVH Application Key</td>
+<td><code>kingfisher.ovh.1</code></td>
+<td>Low</td>
 <td></td>
 <td></td>
 </tr>
@@ -3344,6 +3865,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.pastebin.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Paypal</td>
+<td>PayPal OAuth Client ID</td>
+<td><code>kingfisher.paypal.1</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3436,6 +3965,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Pingidentity</td>
+<td>PingOne Client ID</td>
+<td><code>kingfisher.pingidentity.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Pingidentity</td>
 <td>PingOne Client Secret</td>
 <td><code>kingfisher.pingidentity.2</code></td>
 <td>Medium</td>
@@ -3448,6 +3985,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.pipedrive.1</code></td>
 <td>High</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Plaid</td>
+<td>Plaid Client ID (helper)</td>
+<td><code>kingfisher.plaid.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3491,11 +4036,43 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Planetscale</td>
+<td>PlanetScale Username</td>
+<td><code>kingfisher.planetscale.2</code></td>
+<td>Unknown</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Plivo</td>
+<td>Plivo Auth ID</td>
+<td><code>kingfisher.plivo.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Plivo</td>
 <td>Plivo Auth Token</td>
 <td><code>kingfisher.plivo.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Polymarket</td>
+<td>Polymarket Builder Secret</td>
+<td><code>kingfisher.polymarket.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Polymarket</td>
+<td>Polymarket Builder Passphrase</td>
+<td><code>kingfisher.polymarket.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3644,6 +4221,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Pusher</td>
+<td>Pusher Channels App Key</td>
+<td><code>kingfisher.pusher.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Pusher</td>
 <td>Pusher Channels App Secret</td>
 <td><code>kingfisher.pusher.2</code></td>
 <td>Medium</td>
@@ -3712,6 +4297,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.razorpay.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Razorpay</td>
+<td>Razorpay API Secret</td>
+<td><code>kingfisher.razorpay.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3812,8 +4405,24 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Ringcentral</td>
+<td>RingCentral Client ID</td>
+<td><code>kingfisher.ringcentral.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Ringcentral</td>
 <td>RingCentral Client Secret</td>
 <td><code>kingfisher.ringcentral.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Riot</td>
+<td>Riot Platform Host</td>
+<td><code>kingfisher.riot.1</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -3856,6 +4465,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.salesforce.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Salesforce</td>
+<td>Salesforce Instance URL</td>
+<td><code>kingfisher.salesforce.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3932,6 +4549,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Sauce</td>
+<td>Sauce Labs Username</td>
+<td><code>kingfisher.saucelabs.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Sauce</td>
+<td>Sauce Labs API Endpoint</td>
+<td><code>kingfisher.saucelabs.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Sauce</td>
 <td>Sauce Labs Access Key</td>
 <td><code>kingfisher.saucelabs.3</code></td>
 <td>Medium</td>
@@ -4000,6 +4633,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.segment.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Sendbird</td>
+<td>Sendbird Application ID</td>
+<td><code>kingfisher.sendbird.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4104,6 +4745,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.shopify.1</code></td>
 <td>Unknown</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Shopify</td>
+<td>Shopify Domain</td>
+<td><code>kingfisher.shopify.2</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4224,6 +4873,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.sonarqube.1</code></td>
 <td>Unknown</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Sonarqube</td>
+<td>SonarQube Host</td>
+<td><code>kingfisher.sonarqube.2</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4396,6 +5053,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Stream</td>
+<td>Stream.io API Key</td>
+<td><code>kingfisher.stream.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Stream</td>
 <td>Stream.io API Secret</td>
 <td><code>kingfisher.stream.2</code></td>
 <td>Medium</td>
@@ -4420,10 +5085,26 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Stytch</td>
+<td>Stytch Project ID</td>
+<td><code>kingfisher.stytch.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Stytch</td>
 <td>Stytch Project Secret</td>
 <td><code>kingfisher.stytch.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Sumologic</td>
+<td>Sumo Logic Access ID</td>
+<td><code>kingfisher.sumologic.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4448,6 +5129,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.supabase.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Supabase</td>
+<td>Supabase Project URL</td>
+<td><code>kingfisher.supabase.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4516,6 +5205,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Tencent</td>
+<td>Tencent Cloud Secret ID</td>
+<td><code>kingfisher.tencent.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Tencent</td>
 <td>Tencent Cloud Secret Key</td>
 <td><code>kingfisher.tencent.2</code></td>
 <td>Medium</td>
@@ -4536,6 +5233,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.testkube.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Testkube</td>
+<td>Testkube Organization ID</td>
+<td><code>kingfisher.testkube.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Testkube</td>
+<td>Testkube Environment ID</td>
+<td><code>kingfisher.testkube.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4644,10 +5357,26 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Truenas</td>
+<td>TrueNAS Instance URL</td>
+<td><code>kingfisher.truenas.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Truenas</td>
 <td>TrueNAS API Key (keyword proximity)</td>
 <td><code>kingfisher.truenas.4</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Twilio</td>
+<td>Twilio API ID</td>
+<td><code>kingfisher.twilio.1</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4672,6 +5401,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.twitter.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Twitter</td>
+<td>Twitter Consumer Key</td>
+<td><code>kingfisher.twitter.2</code></td>
+<td>Unknown</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4852,6 +5589,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Vonage</td>
+<td>Vonage (Nexmo) API Key</td>
+<td><code>kingfisher.vonage.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Vonage</td>
 <td>Vonage (Nexmo) API Secret</td>
 <td><code>kingfisher.vonage.2</code></td>
 <td>Medium</td>
@@ -4900,6 +5645,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Webex</td>
+<td>Webex Integration Client ID</td>
+<td><code>kingfisher.webex.1</code></td>
+<td>Low</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Webex</td>
 <td>Webex Integration Client Secret</td>
 <td><code>kingfisher.webex.2</code></td>
 <td>Medium</td>
@@ -4912,6 +5665,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.webflow.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Wechat</td>
+<td>WeChat App ID</td>
+<td><code>kingfisher.wechat.1</code></td>
+<td>Low</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4964,6 +5725,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Wiz</td>
+<td>Wiz Client ID</td>
+<td><code>kingfisher.wiz.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Wiz</td>
 <td>Wiz Client Secret</td>
 <td><code>kingfisher.wiz.2</code></td>
 <td>Medium</td>
@@ -4987,11 +5756,27 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Wpengine</td>
+<td>WPEngine Account Name</td>
+<td><code>kingfisher.wpengine.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Xai</td>
 <td>xAI (Grok) API Key</td>
 <td><code>kingfisher.xai.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Yahoo</td>
+<td>Yahoo OAuth2 Client ID</td>
+<td><code>kingfisher.yahoo.1</code></td>
+<td>High</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -5044,6 +5829,22 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Zendesk</td>
+<td>Zendesk Subdomain</td>
+<td><code>kingfisher.zendesk.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Zendesk</td>
+<td>Zendesk Account Email</td>
+<td><code>kingfisher.zendesk.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Zendesk</td>
 <td>Zendesk API Token</td>
 <td><code>kingfisher.zendesk.3</code></td>
 <td>Medium</td>
@@ -5072,6 +5873,14 @@ Of these, **462** include live validation and **43** support direct revocation.
 <td><code>kingfisher.zohocrm.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Zoom</td>
+<td>Zoom OAuth Client ID</td>
+<td><code>kingfisher.zoom.1</code></td>
+<td>Low</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
