@@ -298,7 +298,7 @@ endif
 	    mingw-w64-x86_64-toolchain \
 	    mingw-w64-x86_64-cmake \
 	    mingw-w64-x86_64-boost \
-	    mingw-w64-x86_64-pkg-config \
+	    mingw-w64-x86_64-pkgconf \
 	    mingw-w64-x86_64-ragel \
 	    mingw-w64-x86_64-pcre2 \
 	    mingw-w64-x86_64-zlib \
@@ -812,10 +812,38 @@ fuzz:
 	done
 	@echo "🎉 All fuzz targets passed"
 
+# =============  DOCUMENTATION  =============
+
+docs-build:
+	@echo "📝 Preparing documentation…"
+	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+		python3 docs-site/scripts/prepare-docs.py
+	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+		python3 docs-site/scripts/generate-rules-page.py
+	@echo "🔨 Building site…"
+	@cd docs-site && uv run --with mkdocs-material --with mkdocs-minify-plugin \
+		mkdocs build
+	@echo "✅ Site built at docs-site/site/"
+
+docs-serve:
+	@echo "📝 Preparing documentation…"
+	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+		python3 docs-site/scripts/prepare-docs.py
+	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+		python3 docs-site/scripts/generate-rules-page.py
+	@echo "🌐 Starting dev server at http://127.0.0.1:8000/"
+	@cd docs-site && uv run --with mkdocs-material --with mkdocs-minify-plugin \
+		mkdocs serve
+
+docs-clean:
+	@rm -rf docs-site/site
+	@echo "🧹 Cleaned docs-site/site/"
+
 clean:
 	@echo "Cleaning build artifacts..."
 	cargo clean
 	rm -f .dockerignore
+	rm -rf docs-site/site
 
 notices:
 	@echo "Generating third-party notices..."
