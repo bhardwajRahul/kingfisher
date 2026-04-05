@@ -8,7 +8,6 @@ Copies documentation from /docs/ into docs-site/docs/ with transformations:
 
 import os
 import re
-import shutil
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DOCS_SRC = os.path.join(REPO_ROOT, "docs")
@@ -156,6 +155,10 @@ def rewrite_links(content: str) -> str:
     content = content.replace("](./runtime-comparison.png", "](../assets/images/runtime-comparison.png")
     content = content.replace('src="./runtime-comparison.png"', 'src="../assets/images/runtime-comparison.png"')
     content = content.replace("](./assets/icons/", "](../assets/icons/")
+
+    # Rewrite links to files that live at non-standard site locations
+    content = content.replace("](../README.md)", "](../getting-started/quick-start.md)")
+    content = content.replace("](../CHANGELOG.md)", "](../changelog.md)")
     return content
 
 

@@ -815,25 +815,27 @@ fuzz:
 
 # =============  DOCUMENTATION  =============
 
+DOCS_REQUIREMENTS := docs-site/requirements.txt
+
 docs-build:
 	@echo "📝 Preparing documentation…"
-	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+	@uv run --with-requirements $(DOCS_REQUIREMENTS) \
 		python3 docs-site/scripts/prepare-docs.py
-	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+	@uv run --with-requirements $(DOCS_REQUIREMENTS) \
 		python3 docs-site/scripts/generate-rules-page.py
 	@echo "🔨 Building site…"
-	@cd docs-site && uv run --with mkdocs-material --with mkdocs-minify-plugin \
+	@cd docs-site && uv run --with-requirements requirements.txt \
 		mkdocs build
 	@echo "✅ Site built at docs-site/site/"
 
 docs-serve:
 	@echo "📝 Preparing documentation…"
-	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+	@uv run --with-requirements $(DOCS_REQUIREMENTS) \
 		python3 docs-site/scripts/prepare-docs.py
-	@uv run --with mkdocs-material --with mkdocs-minify-plugin --with pyyaml \
+	@uv run --with-requirements $(DOCS_REQUIREMENTS) \
 		python3 docs-site/scripts/generate-rules-page.py
 	@echo "🌐 Starting dev server at http://127.0.0.1:8000/"
-	@cd docs-site && uv run --with mkdocs-material --with mkdocs-minify-plugin \
+	@cd docs-site && uv run --with-requirements requirements.txt \
 		mkdocs serve
 
 docs-clean:

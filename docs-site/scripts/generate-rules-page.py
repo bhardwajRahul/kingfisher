@@ -4,9 +4,10 @@ Reads all YAML rule definition files from crates/kingfisher-rules/data/rules/
 and generates a searchable markdown page listing all built-in rules.
 """
 
-import os
-import yaml
+from html import escape
 from pathlib import Path
+
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 RULES_DIR = REPO_ROOT / "crates" / "kingfisher-rules" / "data" / "rules"
@@ -107,15 +108,18 @@ def generate_markdown(rules):
     for rule in sorted(rules, key=lambda r: (r["provider"].lower(), r["id"])):
         validates = "Yes" if rule["validates"] else ""
         revokes = "Yes" if rule["revokes"] else ""
-        confidence = rule["confidence"].capitalize()
-        lines.append(f'<tr>')
-        lines.append(f'<td>{rule["provider"]}</td>')
-        lines.append(f'<td>{rule["name"]}</td>')
-        lines.append(f'<td><code>{rule["id"]}</code></td>')
+        confidence = escape(rule["confidence"].capitalize())
+        provider = escape(rule["provider"])
+        name = escape(rule["name"])
+        rule_id = escape(rule["id"])
+        lines.append('<tr>')
+        lines.append(f'<td>{provider}</td>')
+        lines.append(f'<td>{name}</td>')
+        lines.append(f'<td><code>{rule_id}</code></td>')
         lines.append(f'<td>{confidence}</td>')
         lines.append(f'<td>{validates}</td>')
         lines.append(f'<td>{revokes}</td>')
-        lines.append(f'</tr>')
+        lines.append('</tr>')
 
     lines.extend([
         '</tbody>',

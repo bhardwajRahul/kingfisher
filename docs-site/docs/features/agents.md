@@ -84,15 +84,18 @@ kingfisher scan . --since-commit origin/main --format json
 For deep integration, use Kingfisher as a library in your Rust-based agent:
 
 ```rust
-use kingfisher_scanner::ScannerBuilder;
-use kingfisher_rules::RuleDatabase;
+use std::sync::Arc;
+use kingfisher_rules::defaults::get_builtin_rules;
+use kingfisher_rules::RulesDatabase;
+use kingfisher_scanner::Scanner;
 
-// Build a scanner with default rules
-let rules = RuleDatabase::from_default_rules()?;
-let scanner = ScannerBuilder::new(&rules).build()?;
+// Load the built-in rules and compile the scanner database
+let rules = get_builtin_rules(None)?;
+let rules_db = Arc::new(RulesDatabase::from_rules(rules.into_rules())?);
+let mut scanner = Scanner::new(rules_db);
 
-// Scan a string
-let findings = scanner.scan_blob("my text with secrets")?;
+// Scan a byte slice for secrets
+let findings = scanner.scan_bytes(b"AKIA...");
 ```
 
 See [Rust Library Crates](../reference/library.md) for complete documentation.

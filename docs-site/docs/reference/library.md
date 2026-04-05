@@ -868,6 +868,6 @@ These crates are currently internal to Kingfisher. The API may change between ve
 
 ## See Also
 
-- [Main README](../README.md) - CLI usage and installation
+- [Main README](../getting-started/quick-start.md) - CLI usage and installation
 - [Rule Format](../features/fingerprints.md) - Rule definition details
-- [Changelog](../CHANGELOG.md) - Version history
+- [Changelog](../changelog.md) - Version history
