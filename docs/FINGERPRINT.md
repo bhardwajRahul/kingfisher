@@ -44,7 +44,7 @@ This fingerprint is what you see reported in the finding output.
 
 ---
 
-### Why the rule’s SHA-1 is used (and not the secret)
+### Why content-based hashing is used
 
 The fingerprint is a [XXH3-64](https://github.com/Cyan4973/xxHash) hash of the following components concatenated together:
 

@@ -52,7 +52,8 @@ ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
 .PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows-test-x64 windows-test-arm64 windows-test windows \
-        linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz
+        linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz \
+        docs-build docs-serve docs-clean
 
 default: help
 
