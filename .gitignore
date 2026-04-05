@@ -18,6 +18,7 @@ logs/*
 *.rej
 *.html
 !docs/access-map-viewer/index.html
+!docs-site/overrides/*.html
 *.dot
 fuzz/*
 !fuzz/Cargo.toml

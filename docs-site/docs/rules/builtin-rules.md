@@ -2485,7 +2485,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Service Token (< v1.10)</td>
+<td>Hashicorp Vault Service Token (&lt; v1.10)</td>
 <td><code>kingfisher.hashicorp.1</code></td>
 <td>Medium</td>
 <td></td>
@@ -2493,7 +2493,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Batch Token (< v1.10)</td>
+<td>Hashicorp Vault Batch Token (&lt; v1.10)</td>
 <td><code>kingfisher.hashicorp.2</code></td>
 <td>Medium</td>
 <td></td>
@@ -2501,7 +2501,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Recovery Token (< v1.10)</td>
+<td>Hashicorp Vault Recovery Token (&lt; v1.10)</td>
 <td><code>kingfisher.hashicorp.3</code></td>
 <td>Medium</td>
 <td></td>
@@ -2509,7 +2509,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Service Token (>= v1.10)</td>
+<td>Hashicorp Vault Service Token (&gt;= v1.10)</td>
 <td><code>kingfisher.hashicorp.4</code></td>
 <td>Medium</td>
 <td></td>
@@ -2517,7 +2517,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Batch Token (>= v1.10)</td>
+<td>Hashicorp Vault Batch Token (&gt;= v1.10)</td>
 <td><code>kingfisher.hashicorp.5</code></td>
 <td>Medium</td>
 <td></td>
@@ -2525,7 +2525,7 @@ Of these, **462** include live validation and **43** support direct revocation.
 </tr>
 <tr>
 <td>Hashicorp</td>
-<td>Hashicorp Vault Recovery Token (>= v1.10)</td>
+<td>Hashicorp Vault Recovery Token (&gt;= v1.10)</td>
 <td><code>kingfisher.hashicorp.6</code></td>
 <td>Medium</td>
 <td></td>

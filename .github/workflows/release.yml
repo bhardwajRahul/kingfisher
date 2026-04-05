@@ -411,7 +411,7 @@ jobs:
 
   provenance:
     name: Generate SLSA provenance
-    needs: [hash]
+    needs: [hash, release]
     permissions:
       actions: read
       id-token: write
@@ -419,28 +419,8 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
     with:
       base64-subjects: "${{ needs.hash.outputs.hashes }}"
-      upload-assets: false
-
-  upload-provenance:
-    name: Upload provenance to release
-    needs: [provenance, release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download provenance artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: ${{ needs.provenance.outputs.provenance-name }}
-      - name: Upload to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.release.outputs.tag }}
-          PROVENANCE_FILE: ${{ needs.provenance.outputs.provenance-name }}
-        run: |
-          gh release upload "${TAG}" "${PROVENANCE_FILE}" \
-            --repo "${{ github.repository }}" \
-            --clobber
+      upload-assets: true
+      upload-tag-name: "${{ needs.release.outputs.tag }}"
 
   # ──────────────── Publish Docker image ────────────────
   publish-docker:
