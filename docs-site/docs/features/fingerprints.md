@@ -1,6 +1,9 @@
-# Finding Fingerprints
+---
+title: "Finding Fingerprints"
+description: "Stable fingerprints for deduplication and tracking of discovered secrets across scans."
+---
 
-[← Back to README](../README.md)
+# Finding Fingerprints
 
 Every reported finding carries a **64-bit fingerprint** that acts as a stable, privacy-safe ID.
 It lets the scanner **deduplicate** repeated hits of the *same logical issue* while still treating different locations as distinct.
