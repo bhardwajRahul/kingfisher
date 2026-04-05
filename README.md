@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" style="height: 24px;" />
   </a>
   <a href="https://github.com/mongodb/kingfisher">
-    <img src="https://img.shields.io/badge/Detection%20Rules-720-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
+    <img src="https://img.shields.io/badge/Detection%20Rules-734-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
   </a>
   <br>
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">

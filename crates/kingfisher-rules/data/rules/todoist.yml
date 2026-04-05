@@ -1,0 +1,41 @@
+rules:
+  - name: Todoist API Token
+    id: kingfisher.todoist.1
+    pattern: |
+      (?x)
+      \b
+      (?i:todoist)
+      (?:.|[\n\r]){0,32}?
+      (?i:TOKEN|API)
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+        [0-9a-f]{40}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'TODOIST_API_TOKEN="0123456789abcdef0123456789abcdef01234567"'
+      - |
+        todoist_token = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0'
+    negative_examples:
+      - 'TODOIST_URL="https://api.todoist.com"'
+    references:
+      - https://developer.todoist.com/rest/v2/#overview
+      - https://developer.todoist.com/guides/#developing-with-todoist
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.todoist.com/rest/v2/projects
+          headers:
+            Authorization: 'Bearer {{ TOKEN }}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

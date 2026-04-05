@@ -1,0 +1,55 @@
+rules:
+  - name: RingCentral Client ID
+    id: kingfisher.ringcentral.1
+    pattern: |
+      (?x)
+      \b
+      (?i:ringcentral|ring.?central)
+      (?:.|[\n\r]){0,32}?
+      (?i:CLIENT.?ID|APP.?KEY|APP.?ID)
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+        [A-Za-z0-9_-]{22}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    visible: false
+    examples:
+      - 'RINGCENTRAL_CLIENT_ID="aB1cD2eF3gH4iJ5kL6mN7o"'
+    negative_examples:
+      - 'RINGCENTRAL_URL="https://platform.ringcentral.com"'
+    references:
+      - https://developers.ringcentral.com/api-reference/
+
+  - name: RingCentral Client Secret
+    id: kingfisher.ringcentral.2
+    pattern: |
+      (?x)
+      \b
+      (?i:ringcentral|ring.?central)
+      (?:.|[\n\r]){0,32}?
+      (?i:CLIENT.?SECRET|APP.?SECRET)
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+        [A-Za-z0-9_-]{22}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'RINGCENTRAL_CLIENT_SECRET="xY9zW8vU7tS6rQ5pO4nM3l"'
+    negative_examples:
+      - 'RINGCENTRAL_URL="https://platform.ringcentral.com"'
+    references:
+      - https://developers.ringcentral.com/api-reference/

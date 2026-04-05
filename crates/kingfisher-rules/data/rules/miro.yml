@@ -1,0 +1,42 @@
+rules:
+  - name: Miro Access Token
+    id: kingfisher.miro.1
+    pattern: |
+      (?x)
+      \b
+      (
+        eyJtaXJv
+        [A-Za-z0-9_=-]{10,}
+        _
+        [A-Za-z0-9_-]{20,}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - eyJtaXJvLm9yaWdpbiI6ImV1MDEifQ_o-P91OccaII0A63CDSK--x21xiI
+      - 'MIRO_TOKEN="eyJtaXJvLm9yaWdpbiI6InVzMDEifQ_kL8m2Nq7RpWxYz3AbCdEfGhI"'
+    negative_examples:
+      - eyJtaXJv
+      - eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9
+    references:
+      - https://developers.miro.com/docs/rest-api-authorization
+      - https://developers.miro.com/reference/get-token-info
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.miro.com/v1/oauth-token
+          headers:
+            Accept: application/json
+            Authorization: 'Bearer {{ TOKEN }}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
