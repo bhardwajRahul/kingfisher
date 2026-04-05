@@ -1,0 +1,248 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+
+  <style>
+    /* Hide header title on landing page */
+    .md-header__topic { display: none; }
+  </style>
+
+  <!-- Hero -->
+  <section class="kf-hero">
+    <div class="kf-hero__inner md-grid">
+      <div class="kf-hero__content">
+        <img src="{{ 'assets/images/kingfisher_logo.png' | url }}" alt="Kingfisher Logo" class="kf-hero__logo" width="126" height="173">
+        <h1 class="kf-hero__title">Kingfisher</h1>
+        <p class="kf-hero__subtitle">Open Source Secret Scanner with Live Validation</p>
+        <p class="kf-hero__tagline">
+          Detect, validate, and revoke leaked credentials across your codebase,
+          Git history, cloud storage, and developer platforms.
+          Built in Rust by MongoDB.
+        </p>
+        <div class="kf-hero__actions">
+          <a href="{{ 'getting-started/installation/' | url }}" class="md-button md-button--primary">
+            Get Started
+          </a>
+          <a href="https://github.com/mongodb/kingfisher" class="md-button">
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats bar -->
+  <section class="kf-stats">
+    <div class="kf-stats__inner md-grid">
+      <div class="kf-stats__item">
+        <span class="kf-stats__number">734+</span>
+        <span class="kf-stats__label">Detection Rules</span>
+      </div>
+      <div class="kf-stats__item">
+        <span class="kf-stats__number">39</span>
+        <span class="kf-stats__label">Access Map Providers</span>
+      </div>
+      <div class="kf-stats__item">
+        <span class="kf-stats__number">15+</span>
+        <span class="kf-stats__label">Scan Targets</span>
+      </div>
+      <div class="kf-stats__item">
+        <span class="kf-stats__number">20+</span>
+        <span class="kf-stats__label">Revocation Providers</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="kf-features">
+    <div class="kf-features__inner md-grid">
+      <h2 class="kf-section__title">Why Kingfisher?</h2>
+
+      <div class="kf-features__grid">
+        <div class="kf-feature">
+          <h3>Scan Everything</h3>
+          <p>
+            Files, Git repos, GitHub, GitLab, Azure Repos, Bitbucket, Gitea,
+            Hugging Face, Docker images, AWS S3, Google Cloud Storage, Jira,
+            Confluence, Slack, and Microsoft Teams.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Live Validation</h3>
+          <p>
+            Automatically validate discovered credentials against provider APIs.
+            Eliminate false positives by confirming which secrets are actually live
+            and active.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Blast Radius Mapping</h3>
+          <p>
+            Go beyond detection. Map leaked keys to their effective cloud identities
+            and exposed resources with <code>--access-map</code>.
+            See exactly what an attacker could access.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Direct Revocation</h3>
+          <p>
+            Revoke compromised credentials directly from the CLI for 20+ providers
+            including GitHub, GitLab, Slack, AWS, GCP, Heroku, and Cloudflare.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Built for Accuracy</h3>
+          <p>
+            Tree-sitter language-aware parsing across 13+ languages reduces false positives
+            at the detection layer. Combined with entropy filtering, checksum verification,
+            and live validation, Kingfisher delivers high-signal results you can act on.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Built for AI</h3>
+          <p>
+            Detects and validates tokens for 35+ AI/ML providers including OpenAI,
+            Anthropic, Google Gemini, Mistral, Cohere, and more. Purpose-built TOON
+            output format for token-efficient LLM and agent workflows.
+          </p>
+        </div>
+
+        <div class="kf-feature">
+          <h3>Built for Speed</h3>
+          <p>
+            Rust-powered with Intel Hyperscan SIMD-accelerated regex. Multithreaded
+            scanning handles massive codebases while making minimal network requests
+            through intelligent validation.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benchmark -->
+  <section class="kf-benchmark">
+    <div class="kf-benchmark__inner md-grid">
+      <h2 class="kf-section__title">Performance</h2>
+      <p class="kf-section__desc">
+        Kingfisher scans the Linux kernel in 205 seconds and the GitLab monorepo
+        with just 17 HTTP validation requests. Intelligent validation means fewer
+        API calls and faster results at scale.
+      </p>
+      <img src="{{ 'assets/images/runtime-comparison.png' | url }}" alt="Kingfisher Runtime Comparison across major open source repositories" class="kf-benchmark__chart">
+      <p class="kf-benchmark__link">
+        <a href="{{ 'reference/comparison/' | url }}">See full benchmark methodology and results</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Scan Targets -->
+  <section class="kf-targets">
+    <div class="kf-targets__inner md-grid">
+      <h2 class="kf-section__title">Scan Targets</h2>
+      <div class="kf-targets__grid">
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/files.svg' | url }}" alt="Files" height="40">
+          <span>Files / Dirs</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/local-git.svg' | url }}" alt="Git" height="40">
+          <span>Local Git</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/github.svg' | url }}" alt="GitHub" height="40">
+          <span>GitHub</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/gitlab.svg' | url }}" alt="GitLab" height="40">
+          <span>GitLab</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/azure-devops.svg' | url }}" alt="Azure Repos" height="40">
+          <span>Azure Repos</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/bitbucket.svg' | url }}" alt="Bitbucket" height="40">
+          <span>Bitbucket</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/gitea.svg' | url }}" alt="Gitea" height="40">
+          <span>Gitea</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/huggingface.svg' | url }}" alt="Hugging Face" height="40">
+          <span>Hugging Face</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/docker.svg' | url }}" alt="Docker" height="40">
+          <span>Docker</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/jira.svg' | url }}" alt="Jira" height="40">
+          <span>Jira</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/confluence.svg' | url }}" alt="Confluence" height="40">
+          <span>Confluence</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/slack.svg' | url }}" alt="Slack" height="40">
+          <span>Slack</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/teams.svg' | url }}" alt="Microsoft Teams" height="40">
+          <span>Teams</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/aws-s3.svg' | url }}" alt="AWS S3" height="40">
+          <span>AWS S3</span>
+        </div>
+        <div class="kf-target">
+          <img src="{{ 'assets/icons/gcs.svg' | url }}" alt="Google Cloud Storage" height="40">
+          <span>Cloud Storage</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="kf-install">
+    <div class="kf-install__inner md-grid">
+      <h2 class="kf-section__title">Install in Seconds</h2>
+      <div class="kf-install__tabs">
+        <div class="kf-install__tab">
+          <h4>Homebrew</h4>
+          <div class="highlight"><pre><code>brew install kingfisher</code></pre></div>
+        </div>
+        <div class="kf-install__tab">
+          <h4>PyPI</h4>
+          <div class="highlight"><pre><code>uv tool install kingfisher-bin</code></pre></div>
+        </div>
+        <div class="kf-install__tab">
+          <h4>Docker</h4>
+          <div class="highlight"><pre><code>docker run --rm -v "$PWD":/src ghcr.io/mongodb/kingfisher:latest scan /src</code></pre></div>
+        </div>
+        <div class="kf-install__tab">
+          <h4>Script</h4>
+          <div class="highlight"><pre><code>curl -sSL https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher.sh | bash</code></pre></div>
+        </div>
+      </div>
+      <div class="kf-install__cta">
+        <a href="{{ 'getting-started/installation/' | url }}" class="md-button md-button--primary">
+          Full Installation Guide
+        </a>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block content %}{% endblock %}
+{% block footer %}
+  {{ super() }}
+{% endblock %}
