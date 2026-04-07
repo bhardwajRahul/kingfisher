@@ -4,6 +4,9 @@ rules:
     pattern: |
       (?x)
       \b
+      (?i:highnote)
+      (?:.|[\n\r]){0,24}?
+      \b
       (
         (?:sk|rk)_(?:live|test)_[a-zA-Z0-9]{20,60}
       )
