@@ -857,6 +857,7 @@ pub async fn run_direct_validation(
                     &globals,
                     &client,
                     use_lax_tls,
+                    global_args.allow_internal_ips,
                 )
                 .await
                 {

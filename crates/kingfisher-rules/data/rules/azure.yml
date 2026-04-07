@@ -70,6 +70,30 @@ rules:
       - |
         if __name__ == "__main__":
             ado_pat =  "iyfmob6xjrfmit67anxbot64umfx2clwx7dz5ynxi4q2z3uqegvq"
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.1
+          headers:
+            Authorization: 'Basic {{ ":" | append: TOKEN | b64enc }}'
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - '"id"'
+                - '"displayName"'
+    # Revocation not added: Azure DevOps PAT lifecycle management is documented
+    # separately and is not a self-revoke flow driven solely by the PAT itself.
+    references:
+      - https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops
+      - https://learn.microsoft.com/en-us/rest/api/azure/devops/profile/profiles/get?view=azure-devops-rest-7.1
   - name: Azure Container Registry URL
     id: kingfisher.azure.4
     pattern: |

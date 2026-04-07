@@ -29,6 +29,8 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 use url::Url;
 
+use crate::validation::http_validation::check_url_resolvable;
+
 pub struct RawValidationOutcome {
     pub valid: bool,
     pub status: StatusCode,
@@ -104,7 +106,20 @@ pub async fn validate_raw(
     globals: &Object,
     client: &Client,
     use_lax_tls: bool,
+    allow_internal_ips: bool,
 ) -> Result<RawValidationOutcome> {
+    if let Some(url) = raw_validation_target_url(kind, globals)? {
+        if let Err(e) = check_url_resolvable(&url, allow_internal_ips).await {
+            return Ok(RawValidationOutcome {
+                valid: false,
+                status: StatusCode::PRECONDITION_REQUIRED,
+                body: format!(
+                    "Validation skipped - raw validation target blocked or not resolvable: {e}"
+                ),
+            });
+        }
+    }
+
     match kind {
         "azurebatch" => validate_azure_batch(globals, client).await,
         "ftp" => validate_ftp(globals, use_lax_tls).await,
@@ -117,6 +132,18 @@ pub async fn validate_raw(
             status: StatusCode::NOT_IMPLEMENTED,
             body: format!("Raw validator `{other}` is not implemented."),
         }),
+    }
+}
+
+fn raw_validation_target_url(kind: &str, globals: &Object) -> Result<Option<Url>> {
+    match kind {
+        "azurebatch" => string_var(globals, "BATCH_URL")
+            .map(|s| Url::parse(&s).context("invalid BATCH_URL"))
+            .transpose(),
+        "ftp" | "ldap" | "rabbitmq" | "redis" => string_var(globals, "TOKEN")
+            .map(|s| Url::parse(&s).context("invalid raw validation URI"))
+            .transpose(),
+        _ => Ok(None),
     }
 }
 

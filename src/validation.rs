@@ -1311,7 +1311,7 @@ async fn timed_validate_single_match<'a>(
                     "(skip list entry) AWS validation not attempted for account {}.",
                     account_id
                 ));
-                m.validation_response_status = StatusCode::CONTINUE;
+                m.validation_response_status = StatusCode::PRECONDITION_REQUIRED;
                 cache.insert(
                     cache_key,
                     CachedResponse {
@@ -1488,6 +1488,7 @@ async fn timed_validate_single_match<'a>(
                 &globals,
                 client,
                 clients.should_use_lax(rule_syntax.tls_mode),
+                clients.allow_internal_ips,
             )
             .await
             {

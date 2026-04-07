@@ -30,6 +30,7 @@ Strongly recommended fields:
 
 ## Pattern Quality Rules
 - Prefer specific anchors/prefixes and provider context over broad generic regex.
+- Keep helper/context regex narrow. Avoid patterns that match generic URLs, hostnames, query params, or assignments without strong provider-specific constraints; broad helpers can create huge match counts and cause major memory/time regressions on large repos and git history.
 - When the token format is generic or common-looking (for example bare 32-hex keys), prefer contextual patterns of the form: provider keyword -> short flexible gap -> key/secret label -> short flexible gap -> token. A good default is:
   - `\b`
   - provider identifier (for example `amplitude`, `azure`, `speech`, `translator`)
@@ -83,6 +84,9 @@ Strongly recommended fields:
   - `cargo test -p kingfisher-rules`
 - Broader regression check:
   - `cargo test --workspace --all-targets`
+- Match-volume check on a realistic large target:
+  - `kingfisher scan <large-repo-or-test-corpus> --rule-stats`
+  - Review unexpected high-match helper/generic rules before submitting.
 - **Warning-free build**: `cargo check` (or `make darwin` / `make linux`) must produce zero warnings. Address all `dead_code`, `unused_*`, and other warnings before submitting. Use `#[allow(dead_code)]` on individual struct fields kept for deserialization completeness, and remove truly unused code.
 - Behavioral check against sample content:
   - `kingfisher scan ./testdata --rule <rule-family-or-id> --rule-stats`

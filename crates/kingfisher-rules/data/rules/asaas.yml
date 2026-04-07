@@ -14,5 +14,34 @@ rules:
     examples:
       - 'ASAAS_API_KEY=$aact_prod_abcdefghijklmnop1234567890ABCDEF'
       - 'api_token: $aact_hmlg_abcdefghijklmnop1234567890ABCDEF'
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: >
+            {%- if TOKEN contains "$aact_hmlg_" -%}
+            https://api-sandbox.asaas.com/v3/myAccount/commercialInfo/
+            {%- else -%}
+            https://api.asaas.com/v3/myAccount/commercialInfo/
+            {%- endif -%}
+          headers:
+            Accept: application/json
+            User-Agent: kingfisher
+            access_token: "{{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - '"object"'
+                - '"commercialInfo"'
+    # Revocation not added: Asaas documents key deletion in the dashboard and
+    # parent-driven sub-account key management, but not a self-revoke endpoint
+    # for the current access_token alone.
     references:
       - https://docs.asaas.com/docs/authentication-2
+      - https://docs.asaas.com/docs/change-the-name-of-a-business-subaccount-via-api

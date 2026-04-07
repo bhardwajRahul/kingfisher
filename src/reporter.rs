@@ -942,7 +942,11 @@ impl DetailsReporter {
 
         let validation_status = if rm.validation_success {
             "Active Credential".to_string()
-        } else if rm.validation_response_status == StatusCode::CONTINUE.as_u16() {
+        } else if matches!(
+            rm.validation_response_status,
+            status if status == StatusCode::CONTINUE.as_u16()
+                || status == StatusCode::PRECONDITION_REQUIRED.as_u16()
+        ) {
             "Not Attempted".to_string()
         } else {
             "Inactive Credential".to_string()
@@ -1975,7 +1979,7 @@ mod tests {
 
         let (report_match, _) = sample_report_match(
             "(skip list entry) AWS validation not attempted for account 111122223333.",
-            StatusCode::CONTINUE.as_u16(),
+            StatusCode::PRECONDITION_REQUIRED.as_u16(),
             false,
         );
         let scan_args = sample_scan_args();

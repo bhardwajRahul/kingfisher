@@ -213,6 +213,27 @@ rules:
       - 'CI_JOB_TOKEN=glcbt-a1b2c_3dEfGhIjKlMnOpQrStUv'
     references:
       - https://docs.gitlab.com/ci/jobs/ci_job_token/
+      - https://docs.gitlab.com/api/jobs/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://gitlab.com/api/v4/job
+          headers:
+            JOB-TOKEN: '{{ TOKEN }}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - '"id"'
+                - '"status"'
+    # Revocation not added: CI/CD job tokens are short-lived and automatically
+    # invalidated when the job finishes.
 
   - name: GitLab Deploy Token
     id: kingfisher.gitlab.6
