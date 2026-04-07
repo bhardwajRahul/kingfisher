@@ -223,7 +223,7 @@ bloomfilter = "3.0.1"
 uuid = "1.19.0"
 rand = "0.10.0"
 percent-encoding = "2.3.2"
-self_update = { version = "0.43.1", default-features = false, features = ["reqwest", "rustls", "archive-tar", "archive-zip", "compression-flate2"] }
+self_update = { version = "0.44.0", default-features = false, features = ["reqwest", "rustls", "archive-tar", "archive-zip", "compression-flate2"] }
 semver = "1.0.27"
 globset = "0.4.18"
 jsonwebtoken = { version = "10.3.0", features = ["aws-lc-rs"] }
