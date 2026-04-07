@@ -22,7 +22,6 @@ Key capabilities:
 ## Repository Structure
 - `src/`: main binary source
 - `src/cli/commands/`: CLI command implementations
-- `src/validation/`: provider-specific credential validators
 - `src/matcher/`: pattern matching engine
 - `src/scanner/`: core scanning logic
 - `src/parser/`: language-aware parsing (`tree-sitter`)
@@ -32,6 +31,7 @@ Key capabilities:
 - `crates/kingfisher-rules/`: rule loading and rule data
 - `crates/kingfisher-rules/data/rules/`: YAML detection rules
 - `crates/kingfisher-scanner/`: embeddable high-level scanning API
+- `crates/kingfisher-scanner/src/validation/`: shared typed and raw credential validators
 - `tests/`: integration/e2e tests
 - `testdata/`: test fixtures
 - `docs/`: user and developer docs
@@ -81,18 +81,21 @@ Key capabilities:
   - `use-mimalloc` (default)
   - `use-jemalloc`
   - `system-alloc`
-- Validation modules live in `crates/kingfisher-scanner/src/validation/`; optional validation feature sets are defined in `crates/kingfisher-scanner/Cargo.toml` (e.g., `validation-aws`, `validation-gcp`, `validation-database`, `validation-all`).
+- Validation modules live in `crates/kingfisher-scanner/src/validation/`; optional validation feature sets are defined in `crates/kingfisher-scanner/Cargo.toml` (e.g., `validation-raw`, `validation-aws`, `validation-gcp`, `validation-database`, `validation-all`).
 
 ## Validation and Revocation Policy
-- Default rule: define validation logic in rule YAML (`validation:` block), not Rust code.
-- Code-based validation in `crates/kingfisher-scanner/src/validation/` is an exception path for cases that cannot be expressed reliably in YAML alone (for example AWS, GCP, Coinbase, MongoDB, and similar complex/provider-specific flows).
+- Default rule: define validation logic in rule YAML (`validation:` block), especially `Http` or `Grpc`, not Rust code.
+- Typed validators are first-class schema variants (`AWS`, `AzureStorage`, `Coinbase`, `GCP`, `MongoDB`, `MySQL`, `Postgres`, `Jdbc`, `JWT`) for stable, reusable validation families.
+- Raw validators use `validation: { type: Raw, content: <name> }` and are the ad-hoc exception path for provider-specific or protocol-specific validation that cannot be expressed reliably in YAML alone. Implement them in `crates/kingfisher-scanner/src/validation/raw.rs`.
 - Treat Rust validation additions as rare; prefer extending YAML-based validation first.
+- If a Rust exception path is required, prefer adding a raw validator before introducing a new typed validator. Add a new typed validator only when it represents a reusable schema-level validation family.
+- Do not convert existing typed validators to `Raw` just for consistency.
 - For rules that include validation, add a `revocation:` section whenever the third-party API safely supports revocation.
 
 ## Common Development Tasks
 - Add a detection rule: follow the workflow below and validate with relevant tests.
 - Add a CLI command: implement under `src/cli/commands/` and register in the CLI command wiring.
-- Add a validator (rare exception path): implement in `crates/kingfisher-scanner/src/validation/` and wire feature flags/dependencies in `crates/kingfisher-scanner/Cargo.toml` only when YAML validation cannot express the required logic.
+- Add a validator (rare exception path): implement it in `crates/kingfisher-scanner/src/validation/`, prefer `raw.rs` for one-off provider flows, and wire the narrowest feature/dependencies in `crates/kingfisher-scanner/Cargo.toml` only when YAML validation cannot express the required logic.
 
 ## Rule Authoring Workflow
 Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/`.
@@ -105,7 +108,7 @@ Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/
    - `pattern_requirements` (e.g., `min_digits`, `min_uppercase`, `min_lowercase`, `min_special_chars`, `ignore_if_contains`) when format constraints are known.
    - `pattern_requirements.checksum` when provider formats include check digits/signatures.
 5. Add `validation` only when a reliable provider/API check exists.
-6. Put validation in YAML by default; only use Rust validator logic for rare, justified exceptions.
+6. Put validation in YAML by default. If YAML cannot express the check, use an existing typed validator or `type: Raw` exception path; add new Rust validator logic only for rare, justified cases.
 7. Add `revocation` when the provider API supports safe revocation and the flow is well understood.
 8. If a rule needs context from another match (for example ID + secret pair), use `depends_on_rule` and consider `visible: false` on the helper rule.
 9. Verify locally:

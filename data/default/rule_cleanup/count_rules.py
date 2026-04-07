@@ -38,6 +38,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_RULES_DIR,
         help="Directory containing rule YAML files (default: %(default)s)",
     )
+    parser.add_argument(
+        "--list-validators",
+        action="store_true",
+        help="Print the names of detectors with and without a validator",
+    )
     return parser.parse_args()
 
 
@@ -74,6 +79,8 @@ def main() -> int:
 
     total_rules = 0
     dependent_rules = 0
+    with_validator: list[str] = []
+    without_validator: list[str] = []
 
     for path in rule_files:
         try:
@@ -86,14 +93,28 @@ def main() -> int:
         dependent_rules += sum(
             1 for rule in rules if rule.get("depends_on_rule")
         )
+        if any(rule.get("validation") for rule in rules):
+            with_validator.append(path.stem)
+        else:
+            without_validator.append(path.stem)
 
     detector_rules = total_rules - dependent_rules
 
     print(f"Rules directory: {rules_dir}")
-    print(f"Rule files: {len(rule_files)}")
+    print(f"Detectors: {len(rule_files)}")
+    print(f"Detectors with validator: {len(with_validator)}")
+    print(f"Detectors without validator: {len(without_validator)}")
     print(f"Total rules: {total_rules}")
     print(f"Dependent rules: {dependent_rules}")
-    print(f"Detectors: {detector_rules}")
+    print(f"Non-dependent rules: {detector_rules}")
+
+    if args.list_validators:
+        print(f"\nWith validator ({len(with_validator)}):")
+        for name in with_validator:
+            print(f"  {name}")
+        print(f"\nWithout validator ({len(without_validator)}):")
+        for name in without_validator:
+            print(f"  {name}")
 
     return 0
 

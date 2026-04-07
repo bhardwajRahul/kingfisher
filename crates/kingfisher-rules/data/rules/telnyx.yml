@@ -1,0 +1,31 @@
+rules:
+  - name: Telnyx API V2 Key
+    id: kingfisher.telnyx.1
+    pattern: |
+      (?x)
+      \b
+      (
+        KEY[0-9A-Za-z_-]{55}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'TELNYX_API_KEY=KEYabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRS'
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.telnyx.com/v2/balance
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+    references:
+      - https://developers.telnyx.com/development/api-fundamentals/authentication

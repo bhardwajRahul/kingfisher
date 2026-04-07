@@ -1,0 +1,19 @@
+rules:
+  - name: OpenVSX Access Token
+    id: kingfisher.openvsx.1
+    pattern: |
+      (?x)
+      \b
+      (
+        (?:ovsxat|ovsxp)_[a-zA-Z0-9_-]{20,80}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: medium
+    categories: [api, key]
+    examples:
+      - 'OVSX_PAT=ovsxat_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
+    references:
+      - https://github.com/eclipse/openvsx/wiki/Publishing-Extensions

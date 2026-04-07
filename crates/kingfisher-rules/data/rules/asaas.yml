@@ -1,0 +1,18 @@
+rules:
+  - name: Asaas API Token
+    id: kingfisher.asaas.1
+    pattern: |
+      (?x)
+      (
+        \$aact_(?:prod|hmlg)_[a-zA-Z0-9_-]{20,100}
+      )
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'ASAAS_API_KEY=$aact_prod_abcdefghijklmnop1234567890ABCDEF'
+      - 'api_token: $aact_hmlg_abcdefghijklmnop1234567890ABCDEF'
+    references:
+      - https://docs.asaas.com/docs/authentication-2

@@ -114,3 +114,25 @@ rules:
         variable: ACR_USERNAME
     references:
       - https://learn.microsoft.com/en-us/azure/container-registry/container-registry-authentication
+
+  - name: Azure AD Client Secret (Microsoft Entra ID)
+    id: kingfisher.azure.6
+    pattern: |
+      (?x)
+      (?:^|['"\x60\s>=:(,])
+      (
+        [a-zA-Z0-9_~.]{3}
+        \d
+        Q~
+        [a-zA-Z0-9_~.\-]{31,34}
+      )
+      (?:$|['"\x60\s<),])
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - '"aBc4Q~xY9kLmNpQrStUvWxYz01234567890abcd"'
+      - 'AZURE_CLIENT_SECRET=xY14Q~abcdefghijklmnopqrstuvwxyz01234'
+    references:
+      - https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app

@@ -1,0 +1,22 @@
+rules:
+  - name: Proof API Key
+    id: kingfisher.proof.1
+    pattern: |
+      (?x)
+      \b
+      (
+        prf_(?:(?:cli_)?test_)?[a-zA-Z0-9_-]{20,80}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'PROOF_API_KEY=prf_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
+      - 'proof_key: prf_test_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
+      - 'proof_key: prf_cli_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
+      - 'proof_key: prf_cli_test_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
+    references:
+      - https://dev.proof.com/docs/api-keys

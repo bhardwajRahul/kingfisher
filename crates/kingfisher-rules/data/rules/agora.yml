@@ -47,6 +47,28 @@ rules:
     examples:
       - "agora.app_certificate=397a3af3db1950bdbd84f4e4ec18ebef"
       - "agora.app_secret = \"127a3af3db1950b8dbd4fe440c28ebef\""
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.agora.io/dev/v1/projects
+          headers:
+            Accept: application/json
+            Authorization: "Basic {{ AGORA_ID | append: ':' | append: TOKEN | b64enc }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: false
+              words:
+                - '"projects"'
+                - '"vendor_key"'
+    depends_on_rule:
+      - rule_id: kingfisher.agora.1
+        variable: AGORA_ID
     references:
+      - https://docs.agora.io/en/voice-calling/reference/agora-console-rest-api
       - https://docs.agora.io/en/rtc/restfulapi
-      - https://docs.agora.io/en/video-calling/reference/authentication-workflow

@@ -57,8 +57,11 @@ Strongly recommended fields:
 ## Validation Policy (Important)
 - Default: define validation logic in YAML under `validation:`.
 - Do not move validation logic into Rust unless YAML cannot reliably express it.
-- Code-backed validation types (for example AWS, GCP, Coinbase, MongoDB) are notable exceptions and should remain rare.
 - For new rules, first attempt `Http`/`Grpc` YAML validation before considering exception paths.
+- Typed validation kinds such as `AWS`, `AzureStorage`, `Coinbase`, `GCP`, `MongoDB`, `MySQL`, `Postgres`, `Jdbc`, and `JWT` are schema-level validator families. Use them when an existing typed validator already matches the problem.
+- `validation: { type: Raw, content: <name> }` is the ad-hoc exception path for provider-specific or protocol-specific flows that cannot be expressed cleanly in YAML. Raw implementations live in `crates/kingfisher-scanner/src/validation/raw.rs`.
+- When Rust validation is unavoidable for a one-off provider, prefer adding a raw validator instead of inventing a new typed validator.
+- Do not convert existing typed validators to `Raw` just for consistency.
 
 ## Revocation Policy
 - If a rule has validation and the provider API safely supports revocation, add `revocation:` in the same YAML rule.
@@ -70,7 +73,7 @@ Strongly recommended fields:
 1. Choose the target provider file (or add a new provider file if no suitable file exists).
 2. Copy a structurally similar rule from this directory.
 3. Implement/adjust `pattern`, `examples`, and filtering (`pattern_requirements`, `min_entropy`).
-4. Add YAML `validation` (default path).
+4. Add YAML `validation` (default path). Prefer `Http`/`Grpc`; if that fails, use an existing typed validator or `type: Raw` only when justified.
 5. Add YAML `revocation` when supported.
 6. Add `references` for token format/API behavior.
 7. Verify locally (below).

@@ -35,3 +35,38 @@ rules:
           url: https://api.dropboxapi.com/2/users/get_current_account
     references:
       - https://www.dropbox.com/developers/documentation/http/documentation#auth
+
+  - name: Dropbox Long-Lived API Token
+    id: kingfisher.dropbox.2
+    pattern: |
+      (?x)
+      \b
+      (
+        [a-z0-9]{11}
+        AAAAAAAAAA
+        [a-z0-9\-_=]{43}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'ab3cd5ef7g9AAAAAAAAAAbcdefghij-klmnopqrstuvwxyz01234567890abcdef'
+    validation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+          method: POST
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"account_id":'
+                - '"email":'
+          url: https://api.dropboxapi.com/2/users/get_current_account
+    references:
+      - https://www.dropbox.com/developers/documentation/http/documentation#auth

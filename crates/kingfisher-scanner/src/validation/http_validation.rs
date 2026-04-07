@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, future::Future, net::IpAddr, str::FromStr, time
 use anyhow::{anyhow, Error, Result};
 use http::StatusCode;
 use liquid::Object;
+use liquid_core::Value;
 use quick_xml::de::from_str as xml_from_str;
 use reqwest::{
     header,
@@ -11,6 +12,7 @@ use reqwest::{
 };
 use serde::de::IgnoredAny;
 use sha1::{Digest, Sha1};
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use tokio::{net::lookup_host, time::sleep};
 use tracing::debug;
 
@@ -66,6 +68,33 @@ pub fn generate_http_cache_key_parts(
 /// Parse an HTTP method from a string.
 pub fn parse_http_method(method_str: &str) -> Result<Method, String> {
     Method::from_str(method_str).map_err(|_| format!("Invalid HTTP method: {}", method_str))
+}
+
+fn format_rfc1123(now: OffsetDateTime) -> String {
+    let rendered =
+        now.format(&Rfc2822).unwrap_or_else(|_| "Thu, 01 Jan 1970 00:00:00 +0000".to_string());
+    rendered.strip_suffix(" +0000").map(|prefix| format!("{prefix} GMT")).unwrap_or(rendered)
+}
+
+/// Clone `globals` and add stable request-scoped values for templated request rendering.
+///
+/// These values are computed once so the same generated timestamp can be reused across the URL,
+/// headers, body, and multipart parts of a single request.
+pub fn with_request_template_globals(globals: &Object) -> Object {
+    let mut out = globals.clone();
+    let now = OffsetDateTime::now_utc();
+
+    if !out.contains_key("REQUEST_RFC1123_DATE") {
+        out.insert("REQUEST_RFC1123_DATE".into(), Value::scalar(format_rfc1123(now)));
+    }
+    if !out.contains_key("REQUEST_UNIX_MILLIS") {
+        out.insert(
+            "REQUEST_UNIX_MILLIS".into(),
+            Value::scalar((now.unix_timestamp_nanos() / 1_000_000).to_string()),
+        );
+    }
+
+    out
 }
 
 /// Build a reqwest RequestBuilder using the provided parameters.
@@ -566,7 +595,36 @@ pub async fn check_url_resolvable_safe(url: &Url) -> Result<(), Box<dyn std::err
 #[cfg(test)]
 mod tests {
     use super::*;
+    use liquid_core::ValueView;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+    use time::OffsetDateTime;
+
+    #[test]
+    fn request_template_globals_add_stable_values() {
+        let globals = Object::new();
+        let rendered = with_request_template_globals(&globals);
+
+        let date = rendered.get("REQUEST_RFC1123_DATE").unwrap().to_kstr().to_string();
+        let millis = rendered.get("REQUEST_UNIX_MILLIS").unwrap().to_kstr().to_string();
+
+        assert!(date.ends_with(" GMT"), "unexpected date format: {date}");
+        assert!(OffsetDateTime::parse(&date.replace(" GMT", " +0000"), &Rfc2822).is_ok());
+
+        let millis_val: i128 = millis.parse().unwrap();
+        assert!(millis_val > 0);
+    }
+
+    #[test]
+    fn request_template_globals_preserve_explicit_overrides() {
+        let mut globals = Object::new();
+        globals.insert("REQUEST_RFC1123_DATE".into(), Value::scalar("custom-date"));
+        globals.insert("REQUEST_UNIX_MILLIS".into(), Value::scalar("123"));
+
+        let rendered = with_request_template_globals(&globals);
+
+        assert_eq!(rendered.get("REQUEST_RFC1123_DATE").unwrap().to_kstr(), "custom-date");
+        assert_eq!(rendered.get("REQUEST_UNIX_MILLIS").unwrap().to_kstr(), "123");
+    }
 
     #[test]
     fn rejects_ipv4_loopback() {

@@ -20,6 +20,8 @@
 //! - **Azure**: Azure Storage credential validation (requires `validation-azure` feature)
 //! - **Databases**: MongoDB, MySQL, Postgres, JDBC (requires `validation-database` feature)
 //! - **JWT**: JWT token validation (requires `validation-jwt` feature)
+//! - **Raw**: provider/protocol-specific validators that need custom logic
+//!   (requires `validation-raw` feature)
 
 mod utils;
 mod validation_body;
@@ -54,6 +56,9 @@ pub mod mysql;
 #[cfg(feature = "validation-database")]
 pub mod postgres;
 
+#[cfg(feature = "validation-raw")]
+pub mod raw;
+
 // Re-exports
 pub use utils::{find_closest_variable, process_captures};
 pub use validation_body::{as_str, clone_as_string, from_string, ValidationResponseBody};
@@ -62,8 +67,11 @@ pub use validation_body::{as_str, clone_as_string, from_string, ValidationRespon
 pub use http_validation::{
     build_request_builder, check_url_resolvable, generate_http_cache_key_parts, is_ssrf_safe_ip,
     parse_http_method, process_headers, retry_multipart_request, retry_request, validate_response,
-    SsrfBlockedError,
+    with_request_template_globals, SsrfBlockedError,
 };
+
+#[cfg(feature = "validation-raw")]
+pub use raw::{required_vars as raw_required_vars, validate_raw, RawValidationOutcome};
 
 #[cfg(feature = "validation-http")]
 #[allow(deprecated)]

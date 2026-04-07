@@ -168,8 +168,28 @@ revocation:
 | visible                 | false to hide non‑secret captures (e.g. IDs)                         |
 | depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
 | pattern_requirements  | Require character types and/or exclude placeholder words from matches |
-| validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
+| validation              | Configure `Http`, `Grpc`, typed validators (`AWS`, `GCP`, etc.), or `Raw` exception-path checks to verify live validity |
 | revocation              | Configure HTTP, AWS, or multi-step revocation for a detected secret  |
+
+## Validation Types
+
+Kingfisher supports three validation buckets:
+
+1. `Http` and `Grpc`: YAML-native validation flows. Prefer these first.
+2. Typed validators: schema-level validation families already modeled in the rule schema, such as `AWS`, `AzureStorage`, `Coinbase`, `GCP`, `MongoDB`, `MySQL`, `Postgres`, `Jdbc`, and `JWT`.
+3. Raw validators: provider-specific or protocol-specific exception paths dispatched through `validation: type: Raw`.
+
+Raw validation looks like this:
+
+```yaml
+validation:
+  type: Raw
+  content: kraken
+```
+
+Use `Raw` only when the provider check cannot be expressed reliably with `Http` or `Grpc` and does not justify a new reusable validator family. Raw validator implementations live in `crates/kingfisher-scanner/src/validation/raw.rs`.
+
+Typed validators are safer and more reusable because the validator kind is part of the schema. `Raw` validators are string-dispatched and fail at runtime if the `content` name is unknown. If you need a Rust-backed exception path for one provider, prefer `Raw`; reserve new typed validators for stable validation families that can be reused across rules.
 
 ## gRPC Validation (Grpc)
 
@@ -468,6 +488,7 @@ Below is the complete list of Liquid filters available in Kingfisher, along with
 | `hmac_sha1`           | `key` (string)                               | Computes HMAC-SHA1 over the input, returns Base64-encoded result.                                              | `{{ TOKEN \| hmac_sha1: "secret-key" }}`                             |
 | `hmac_sha256`         | `key` (string)                               | Computes HMAC-SHA256 over the input, returns Base64-encoded result.                                            | `{{ TOKEN \| hmac_sha256: "secret-key" }}`                           |
 | `hmac_sha384`         | `key` (string)                               | Computes HMAC-SHA384 over the input, returns Base64-encoded result.                                            | `{{ TOKEN \| hmac_sha384: "secret-key" }}`                           |
+| `hmac_sha384_hex`     | `key` (string)                               | Computes HMAC-SHA384 over the input, returns lowercase hexadecimal output.                                     | `{{ TOKEN \| hmac_sha384_hex: "secret-key" }}`                       |
 | `hmac_sha256_b64key`  | `key` (string, base64-encoded)               | Decodes the key from Base64 to raw bytes, then computes HMAC-SHA256. Returns Base64. Use for Azure SAS and other protocols where the signing key is base64-encoded. | `{{ to_sign \| hmac_sha256_b64key: TOKEN }}`                         |
 | `random_string`       | `len` (integer, optional)                    | Generates a cryptographically-secure random alphanumeric string of the specified length (default: 32).        | `{{ "" \| random_string: 16 }}`                                      |
 | `prefix`              | `len` (integer, optional)                    | Returns the first `len` characters from the string (default: full).                                            | `{{ TOKEN \| prefix: 6 }}`                                           |
@@ -476,8 +497,10 @@ Below is the complete list of Liquid filters available in Kingfisher, along with
 | `url_encode`          | –                                            | Percent-encodes the input according to RFC 3986.                                                                | `{{ TOKEN \| url_encode }}`                                          |
 | `json_escape`         | –                                            | Escapes special characters so a string can be safely injected into JSON contexts.                              | `{{ TOKEN \| json_escape }}`                                         |
 | `unix_timestamp`      | –                                            | Returns the current Unix epoch time in seconds (UTC).                                                          | `{{ "" \| unix_timestamp }}`                                         |
+| `unix_timestamp_ms`   | –                                            | Returns the current Unix epoch time in milliseconds (UTC).                                                     | `{{ "" \| unix_timestamp_ms }}`                                      |
 | `iso_timestamp`       | –                                            | Returns the current UTC timestamp in full ISO-8601 format (may include fractional seconds).                    | `{{ "" \| iso_timestamp }}`                                          |
 | `iso_timestamp_no_frac` | –                                          | Current ISO-8601 timestamp (UTC) **without** fractional seconds.                                               | `{{ "" \| iso_timestamp_no_frac }}`                                  |
+| `rfc1123_date`        | –                                            | Returns the current RFC-1123 timestamp in GMT.                                                                 | `{{ "" \| rfc1123_date }}`                                           |
 | `uuid`                | –                                            | Generates a random UUIDv4 string.                                                                              | `{{ "" \| uuid }}`                                                   |
 | `jwt_header`          | –                                            | Builds a minimal JWT header JSON (`{"typ":"JWT","alg":…}`) and Base64URL-encodes it.                           | `{{ "HS256" \| jwt_header }}`                                        |
 | `replace`             | `from` (string), `to` (string)               | Replaces every occurrence of `from` with `to` in the input string.                                             | `{{ "hello world" \| replace: "world", "mars" }}`                    |
@@ -492,6 +515,11 @@ Authorization: Basic {{ "api:" | append: TOKEN | b64enc }}
 ```
 
 **Runtime Values:** Filters like unix_timestamp and uuid are evaluated at runtime, enabling nonces, timestamps, and unique IDs in your requests.
+
+**Stable Request Values:** HTTP and gRPC validation requests also expose stable per-request template variables. Use these when the same generated value must appear in multiple places within one request. Currently:
+- `REQUEST_RFC1123_DATE`
+- `REQUEST_UNIX_MILLIS`
+
 ### How depends_on_rule Works
 
 - **Dependency Declaration:**  
@@ -738,7 +766,7 @@ When writing custom rules, consider the following best practices:
 
 1. **Multi-line Regex:** Write your regex patterns over multiple lines for clarity. Use the `(?x)` flag to enable free-spacing mode.
 2. **Optimize for Performance:** Structure your regex to minimize backtracking. Use non-capturing groups where possible and keep the pattern as concise as possible.
-3. **Validation Integration:** Define a `validation` section if you want to verify the detected secret. You can use Liquid templating to insert dynamic values—use the unnamed capture as `TOKEN` and any named captures in uppercase.
+3. **Validation Integration:** Define a `validation` section if you want to verify the detected secret. Prefer `Http` or `Grpc`; use an existing typed validator when the rule matches a supported validator family; use `Raw` only for rare provider-specific exception paths. You can use Liquid templating to insert dynamic values where supported. Use the unnamed capture as `TOKEN` and any named captures in uppercase.
 4. **Revocation Integration:** Define a `revocation` section if you want to revoke a detected secret. It uses the same HTTP request format and template variables as `validation`.
 5. **Test with Examples:** Always include examples that should match and, optionally, negative examples to ensure your rule behaves as expected.
 

@@ -86,6 +86,10 @@ fn extract_template_vars(text: &str) -> BTreeSet<String> {
     vars
 }
 
+fn is_auto_provided_request_var(var: &str) -> bool {
+    matches!(var, "REQUEST_RFC1123_DATE" | "REQUEST_UNIX_MILLIS")
+}
+
 fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeSet<String> {
     use crate::rules::Validation;
     let mut vars = BTreeSet::new();
@@ -133,10 +137,12 @@ fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeS
             vars.insert("TOKEN".to_string());
             vars.insert("CRED_NAME".to_string());
         }
-        Validation::Raw(_) => {
-            vars.insert("TOKEN".to_string());
+        Validation::Raw(raw) => {
+            vars.extend(kingfisher_scanner::validation::raw::required_vars(raw));
         }
     }
+
+    vars.retain(|var| !is_auto_provided_request_var(var));
 
     vars
 }

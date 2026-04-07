@@ -262,7 +262,7 @@ flowchart TD
 
 ### Loading Builtin Rules
 
-Kingfisher comes with 700+ builtin rules for common secret types:
+Kingfisher comes with 800+ builtin rules for common secret types:
 
 ```rust
 use kingfisher_rules::{get_builtin_rules, Confidence};

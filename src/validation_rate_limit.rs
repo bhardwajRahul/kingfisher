@@ -118,7 +118,10 @@ fn selector_matches(rule_id: &str, selector: &str) -> bool {
 }
 
 pub fn should_rate_limit_validation(validation: &Validation) -> bool {
-    !matches!(validation, Validation::Raw(_))
+    match validation {
+        Validation::Raw(raw) => raw != "custom",
+        _ => true,
+    }
 }
 
 #[cfg(test)]

@@ -47,9 +47,30 @@ rules:
     examples:
       - "bitfinex\nsecret = 8d7c3965318b8d20f7648dbda96fbfa23f4d1c449aa"
       - "bitfinex\napi-secret = 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1d2"
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.bitfinex.com/v2/auth/r/wallets
+          headers:
+            Accept: application/json
+            Content-Type: application/json
+            bfx-apikey: "{{ BITFINEX_KEY }}"
+            bfx-nonce: "{{ REQUEST_UNIX_MILLIS }}"
+            bfx-signature: |
+              {%- assign request_path = "/v2/auth/r/wallets" -%}
+              {%- assign request_body = "{}" -%}
+              {%- assign signature_payload = "/api" | append: request_path | append: REQUEST_UNIX_MILLIS | append: request_body -%}
+              {{ signature_payload | hmac_sha384_hex: TOKEN }}
+          body: "{}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+    depends_on_rule:
+      - rule_id: kingfisher.bitfinex.1
+        variable: BITFINEX_KEY
     references:
-      - https://docs.bitfinex.com/docs
       - https://docs.bitfinex.com/docs/rest-auth
-    # No simple validation: Bitfinex REST API v2 uses HMAC-SHA384
-    # request signing with a nonce and payload. Cannot validate with
-    # a static Bearer/API-key style header.

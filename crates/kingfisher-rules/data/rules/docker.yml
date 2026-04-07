@@ -46,3 +46,41 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+
+  - name: Docker Swarm Join Token
+    id: kingfisher.docker.2
+    pattern: |
+      (?x)
+      \b
+      (
+        SWMTKN-1-[a-z0-9]{50,60}-[a-z0-9]{24,30}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'docker swarm join --token SWMTKN-1-3pu6hszjas19xyp7ghgosyx9k8atbfcr8p2is99znpy26u2lkl-1awxwuwd3z9j1z3puu7rcgdbx 192.168.99.100:2377'
+    references:
+      - https://docs.docker.com/engine/swarm/join-nodes/
+
+  - name: Docker Swarm Unlock Key
+    id: kingfisher.docker.3
+    pattern: |
+      (?x)
+      \b
+      (
+        SWMKEY-1-[A-Za-z0-9+/]{40,50}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'docker swarm unlock --key SWMKEY-1-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890ABCDEFG'
+    references:
+      - https://docs.docker.com/engine/swarm/swarm_manager_locking/
