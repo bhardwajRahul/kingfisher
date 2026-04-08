@@ -234,6 +234,33 @@ mod tests {
     }
 
     #[test]
+    fn html_embedded_context_extracts_uppercase_script_and_style_candidates() {
+        let source = br#"
+            <HTML>
+              <BODY>
+                <SCRIPT>const auth0_client_secret = "secret-value";</SCRIPT>
+                <STYLE>.banner::before { content: "hello"; }</STYLE>
+              </BODY>
+            </HTML>
+        "#;
+        let mut texts = Vec::new();
+        stream_context_candidates(source, &Language::Html, |text| {
+            texts.push(text.to_string());
+            true
+        })
+        .unwrap();
+
+        assert!(
+            texts.iter().any(|text| text.contains("<script> = const auth0_client_secret")),
+            "expected uppercase script tag to be handled like lowercase script"
+        );
+        assert!(
+            texts.iter().any(|text| text.contains("content =")),
+            "expected uppercase style tag to emit CSS declaration candidates"
+        );
+    }
+
+    #[test]
     fn comment_only_python_context_is_ignored() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let source = fs::read(root.join("testdata/parsers/comment_only_context.py")).unwrap();

@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use anyhow::Result;
 use cssparser::{
     parse_important, AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserInput,
@@ -15,14 +17,20 @@ where
 
     let mut input = ParserInput::new(&css);
     let mut parser = Parser::new(&mut input);
-    let mut collector = Collector { sink, stopped: false };
-    for _ in StyleSheetParser::new(&mut parser, &mut collector) {}
+    let stopped = Cell::new(false);
+    let mut collector = Collector { sink, stopped: &stopped };
+    let mut stylesheet = StyleSheetParser::new(&mut parser, &mut collector);
+    while !stopped.get() {
+        if stylesheet.next().is_none() {
+            break;
+        }
+    }
     Ok(())
 }
 
 struct Collector<'a, F> {
     sink: &'a mut F,
-    stopped: bool,
+    stopped: &'a Cell<bool>,
 }
 
 impl<'a, F> Collector<'a, F>
@@ -30,11 +38,11 @@ where
     F: FnMut(&str) -> bool,
 {
     fn emit(&mut self, name: &str, value: &str) {
-        if self.stopped {
+        if self.stopped.get() {
             return;
         }
         let candidate = format!("{name} = {value}");
-        self.stopped = !(self.sink)(&candidate);
+        self.stopped.set(!(self.sink)(&candidate));
     }
 }
 
@@ -82,7 +90,7 @@ where
 
         for value in values {
             self.emit(&name, &value);
-            if self.stopped {
+            if self.stopped.get() {
                 break;
             }
         }
@@ -118,7 +126,13 @@ where
         _start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i, ()>> {
-        for _ in RuleBodyParser::new(input, self) {}
+        let stopped = self.stopped;
+        let mut rule_body = RuleBodyParser::new(input, self);
+        while !stopped.get() {
+            if rule_body.next().is_none() {
+                break;
+            }
+        }
         Ok(())
     }
 }

@@ -766,9 +766,9 @@ async fn validate_single(
         om.validation_success = cached.is_valid;
         om.validation_response_body = cached.body.clone();
         om.validation_response_status = cached.status;
-        if om.validation_success {
+        if om.validation_success && is_counted_validation_status(om.validation_response_status) {
             success_count.fetch_add(1, Ordering::Relaxed);
-        } else if om.validation_response_status != http::StatusCode::CONTINUE {
+        } else if is_counted_validation_status(om.validation_response_status) {
             fail_count.fetch_add(1, Ordering::Relaxed);
         }
         maybe_record_access_map(om, access_map);
@@ -787,9 +787,10 @@ async fn validate_single(
             om.validation_success = cached.is_valid;
             om.validation_response_body = cached.body.clone();
             om.validation_response_status = cached.status;
-            if om.validation_success {
+            if om.validation_success && is_counted_validation_status(om.validation_response_status)
+            {
                 success_count.fetch_add(1, Ordering::Relaxed);
-            } else if om.validation_response_status != http::StatusCode::CONTINUE {
+            } else if is_counted_validation_status(om.validation_response_status) {
                 fail_count.fetch_add(1, Ordering::Relaxed);
             }
             maybe_record_access_map(om, access_map);
@@ -818,9 +819,10 @@ async fn validate_single(
     // Store result in cache
     match outcome {
         Ok(_) => {
-            if om.validation_success {
+            if om.validation_success && is_counted_validation_status(om.validation_response_status)
+            {
                 success_count.fetch_add(1, Ordering::Relaxed);
-            } else if om.validation_response_status != http::StatusCode::CONTINUE {
+            } else if is_counted_validation_status(om.validation_response_status) {
                 fail_count.fetch_add(1, Ordering::Relaxed);
             }
             cache.insert(
@@ -847,6 +849,10 @@ async fn validate_single(
     if let Some(n) = NOTIFY.remove(&cache_key) {
         n.1.notify_waiters(); // wake everyone
     }
+}
+
+fn is_counted_validation_status(status: StatusCode) -> bool {
+    !matches!(status, StatusCode::CONTINUE | StatusCode::PRECONDITION_REQUIRED)
 }
 
 // Helper to compute the cache key for an OwnedBlobMatch
@@ -1357,4 +1363,17 @@ fn extract_azure_devops_org_from_body(
 
     let text = validation_body::clone_as_string(body);
     ORG_RE.captures(&text).and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn counted_validation_status_excludes_skipped_statuses() {
+        assert!(!is_counted_validation_status(StatusCode::CONTINUE));
+        assert!(!is_counted_validation_status(StatusCode::PRECONDITION_REQUIRED));
+        assert!(is_counted_validation_status(StatusCode::OK));
+        assert!(is_counted_validation_status(StatusCode::UNAUTHORIZED));
+    }
 }

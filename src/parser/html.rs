@@ -23,6 +23,7 @@ where
             continue;
         };
         let tag_name = tag.name().as_utf8_str().to_string();
+        let normalized_tag_name = tag_name.to_ascii_lowercase();
 
         for (key, value) in tag.attributes().iter() {
             let Some(value) = value else {
@@ -35,7 +36,7 @@ where
         }
 
         let inner_text = tag.inner_text(parser).trim().to_string();
-        match tag_name.as_str() {
+        match normalized_tag_name.as_str() {
             "script" => {
                 let candidate = format!("<script> = {inner_text}");
                 if !inner_text.is_empty() && !sink(&candidate) {
