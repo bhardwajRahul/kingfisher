@@ -251,12 +251,39 @@ mod tests {
         .unwrap();
 
         assert!(
-            texts.iter().any(|text| text.contains("<script> = const auth0_client_secret")),
+            texts.iter().any(|text| text.contains("auth0_client_secret = secret-value")),
             "expected uppercase script tag to be handled like lowercase script"
         );
         assert!(
             texts.iter().any(|text| text.contains("content =")),
             "expected uppercase style tag to emit CSS declaration candidates"
+        );
+    }
+
+    #[test]
+    fn html_comment_only_script_context_is_ignored() {
+        let source = br#"
+            <html>
+              <body>
+                <script>// AIzaSyBUPHAjZl3n8Eza66ka6B78iVyPteC5MgM</script>
+                <div>visible text</div>
+              </body>
+            </html>
+        "#;
+        let mut texts = Vec::new();
+        stream_context_candidates(source, &Language::Html, |text| {
+            texts.push(text.to_string());
+            true
+        })
+        .unwrap();
+
+        assert!(
+            !texts.iter().any(|text| text.contains("AIzaSyBUPHAjZl3n8Eza66ka6B78iVyPteC5MgM")),
+            "expected commented-out script secrets to stay ignored"
+        );
+        assert!(
+            texts.iter().any(|text| text.contains("div = visible text")),
+            "expected visible non-script HTML text to remain available for verification"
         );
     }
 

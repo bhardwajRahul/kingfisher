@@ -135,11 +135,7 @@
     "Println = >>done<<"
   ],
   "html:testdata/html_embedded_vulnerable.html": [
-    "html = .auth0_client_secret {\n        content: \"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234\";\n      }\n    \n  \n  \n    \n      const auth0_client_secret = \"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234\";\n      const password = \"superSecret123\";",
-    "head = .auth0_client_secret {\n        content: \"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234\";\n      }",
     "content = abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
-    "body = const auth0_client_secret = \"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234\";\n      const password = \"superSecret123\";",
-    "<script> = const auth0_client_secret = \"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234\";\n      const password = \"superSecret123\";",
     "auth0_client_secret = abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
     "password = superSecret123"
   ],

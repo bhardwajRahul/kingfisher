@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tl::ParserOptions;
+use tl::{HTMLTag, Node, Parser, ParserOptions};
 
 use super::{css, lexer, Language};
 
@@ -35,25 +35,27 @@ where
             }
         }
 
-        let inner_text = tag.inner_text(parser).trim().to_string();
         match normalized_tag_name.as_str() {
             "script" => {
-                let candidate = format!("<script> = {inner_text}");
-                if !inner_text.is_empty() && !sink(&candidate) {
-                    return Ok(());
+                let script_text = tag.inner_text(parser);
+                let script_text = script_text.trim();
+                if !script_text.is_empty() {
+                    lexer::stream_context_candidates(
+                        script_text.as_bytes(),
+                        &Language::JavaScript,
+                        sink,
+                    )?;
                 }
-                lexer::stream_context_candidates(
-                    inner_text.as_bytes(),
-                    &Language::JavaScript,
-                    sink,
-                )?;
             }
             "style" => {
-                if !inner_text.is_empty() {
-                    css::stream_context_candidates(inner_text.as_bytes(), sink)?;
+                let style_text = tag.inner_text(parser);
+                let style_text = style_text.trim();
+                if !style_text.is_empty() {
+                    css::stream_context_candidates(style_text.as_bytes(), sink)?;
                 }
             }
             _ => {
+                let inner_text = text_without_embedded_code(tag, parser);
                 if !inner_text.is_empty() && !sink(&format!("{tag_name} = {inner_text}")) {
                     return Ok(());
                 }
@@ -62,4 +64,32 @@ where
     }
 
     Ok(())
+}
+
+fn text_without_embedded_code(tag: &HTMLTag<'_>, parser: &Parser<'_>) -> String {
+    let mut text = String::new();
+    collect_visible_text(tag, parser, &mut text);
+    text.trim().to_string()
+}
+
+fn collect_visible_text(tag: &HTMLTag<'_>, parser: &Parser<'_>, out: &mut String) {
+    for handle in tag.children().top().iter() {
+        let Some(node) = handle.get(parser) else {
+            continue;
+        };
+
+        match node {
+            Node::Raw(raw) => out.push_str(raw.as_utf8_str().as_ref()),
+            Node::Comment(_) => {}
+            Node::Tag(child) => {
+                let child_name = child.name().as_utf8_str();
+                if child_name.eq_ignore_ascii_case("script")
+                    || child_name.eq_ignore_ascii_case("style")
+                {
+                    continue;
+                }
+                collect_visible_text(&child, parser, out);
+            }
+        }
+    }
 }
