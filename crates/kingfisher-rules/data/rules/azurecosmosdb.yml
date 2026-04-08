@@ -57,10 +57,10 @@ rules:
           url: "{{ COSMOS_ENDPOINT }}/dbs"
           headers:
             Accept: application/json
-            x-ms-date: '{%- assign x_ms_date = "" | date: "%a, %d %b %Y %H:%M:%S GMT" | downcase -%}{{ x_ms_date }}'
+            x-ms-date: '{{ REQUEST_RFC1123_DATE | downcase }}'
             x-ms-version: "2018-12-31"
             Authorization: |
-              {%- assign x_ms_date = "" | date: "%a, %d %b %Y %H:%M:%S GMT" | downcase -%}
+              {%- assign x_ms_date = REQUEST_RFC1123_DATE | downcase -%}
               {%- assign string_to_sign = "get\ndbs\n\n" | append: x_ms_date | append: "\n\n" -%}
               {%- assign signature = string_to_sign | hmac_sha256_b64key: TOKEN | url_encode -%}
               type=master&ver=1.0&sig={{ signature }}

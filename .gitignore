@@ -7,6 +7,8 @@
 *.json
 !webserver/static/sample-report.json
 !docs/access-map-viewer/sample-report.json
+!testdata/parsers/context_verifier_golden.json
+!testdata/parsers/scan_findings_baseline.json
 !testdata/parsers/tree_sitter_capture_baseline.json
 *.jsonl
 *.bson

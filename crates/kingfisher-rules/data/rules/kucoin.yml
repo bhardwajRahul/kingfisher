@@ -67,10 +67,10 @@ rules:
             Accept: application/json
             Content-Type: application/json
             KC-API-KEY: "{{ KUCOIN_KEY }}"
-            KC-API-TIMESTAMP: '{%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}'
+            KC-API-TIMESTAMP: "{{ REQUEST_UNIX_MILLIS }}"
             KC-API-KEY-VERSION: "2"
             KC-API-PASSPHRASE: '{%- assign passphrase = KUCOIN_PASSPHRASE | hmac_sha256: TOKEN -%}{{ passphrase }}'
-            KC-API-SIGN: '{%- assign ts = "" | unix_timestamp | times: 1000 -%}{%- assign prehash = ts | append: "GET" | append: "/api/v1/accounts" -%}{{ prehash | hmac_sha256: TOKEN }}'
+            KC-API-SIGN: '{%- assign prehash = REQUEST_UNIX_MILLIS | append: "GET" | append: "/api/v1/accounts" -%}{{ prehash | hmac_sha256: TOKEN }}'
           response_matcher:
             - report_response: true
             - type: StatusMatch
