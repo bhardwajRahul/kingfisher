@@ -17,6 +17,8 @@ logs/*
 *.orig
 *.rej
 *.html
+!testdata/html_vulnerable.html
+!testdata/html_embedded_vulnerable.html
 !docs/access-map-viewer/index.html
 !docs-site/overrides/*.html
 *.dot
