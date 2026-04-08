@@ -1215,4 +1215,47 @@ line2
         assert_eq!(found.len(), 1, "self-identifying tokens should remain raw-pass findings");
         Ok(())
     }
+
+    #[test]
+    fn self_identifying_charclass_prefix_rule_remains_hyperscan_only() -> Result<()> {
+        let token = "xoxb-730191371696-1413868247813-IG7Z6nYevC2hdviE3aJhb5kY";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.slack.2".into(),
+            name: "slack token".into(),
+            pattern:
+                "(?xi)\\b(xox[pbarose][-0-9]{0,3}-[0-9a-z]{6,15}-[0-9a-z]{6,15}-[-0-9a-z]{6,66})\\b"
+                    .into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let blob = Blob::from_bytes(format!("token={token}").into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("slack.txt")));
+
+        let found = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "self-identifying token families should not require parser context"
+        );
+        Ok(())
+    }
 }

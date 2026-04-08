@@ -615,6 +615,7 @@ async fn timed_validate_single_match<'a>(
             let multipart_timeout = validation_timeout;
             let max_retries: u32 = validation_retries;
             let request_globals = httpvalidation::with_request_template_globals(&globals);
+            let cache_globals = httpvalidation::with_cache_key_template_globals(&globals);
             // render URL
             let url = match render_and_parse_url(
                 parser,
@@ -661,10 +662,19 @@ async fn timed_validate_single_match<'a>(
 
             // old per-request cache (optional)
             if !is_multipart {
+                let cache_url = render_template(
+                    parser,
+                    &cache_globals,
+                    &rule_syntax.name,
+                    &http_validation.request.url,
+                )
+                .await
+                .unwrap_or_else(|_| http_validation.request.url.clone());
+
                 let rendered_headers = httpvalidation::process_headers(
                     &http_validation.request.headers,
                     parser,
-                    &request_globals,
+                    &cache_globals,
                     &url,
                 )
                 .unwrap_or_default();
@@ -682,12 +692,12 @@ async fn timed_validate_single_match<'a>(
                         parser
                             .parse(body_template)
                             .ok()
-                            .and_then(|template| template.render(&request_globals).ok())
+                            .and_then(|template| template.render(&cache_globals).ok())
                     });
 
                 cache_key = httpvalidation::generate_http_cache_key_parts(
                     http_validation.request.method.as_str(),
-                    &url,
+                    &cache_url,
                     &header_map,
                     rendered_body.as_deref(),
                 );

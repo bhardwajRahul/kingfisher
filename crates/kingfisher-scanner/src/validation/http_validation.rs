@@ -36,12 +36,11 @@ use kingfisher_rules::ResponseMatcher;
 /// Build a deterministic cache key from the immutable parts of an HTTP request.
 pub fn generate_http_cache_key_parts(
     method: &str,
-    url: &Url,
+    url: &str,
     headers: &BTreeMap<String, String>,
     body: Option<&str>,
 ) -> String {
     let method = method.to_uppercase();
-    let url = url.as_str();
 
     let mut hasher = Sha1::new();
     hasher.update(method.as_bytes());
@@ -96,6 +95,21 @@ pub fn with_request_template_globals(globals: &Object) -> Object {
             "REQUEST_UNIX_MILLIS".into(),
             Value::scalar((now.unix_timestamp_nanos() / 1_000_000).to_string()),
         );
+    }
+
+    out
+}
+
+/// Clone `globals` and add stable placeholder values for request-scoped template vars that
+/// would otherwise make HTTP validation cache keys vary per execution.
+pub fn with_cache_key_template_globals(globals: &Object) -> Object {
+    let mut out = globals.clone();
+
+    if !out.contains_key("REQUEST_RFC1123_DATE") {
+        out.insert("REQUEST_RFC1123_DATE".into(), Value::scalar("REQUEST_RFC1123_DATE"));
+    }
+    if !out.contains_key("REQUEST_UNIX_MILLIS") {
+        out.insert("REQUEST_UNIX_MILLIS".into(), Value::scalar("REQUEST_UNIX_MILLIS"));
     }
 
     out
@@ -625,6 +639,27 @@ mod tests {
         globals.insert("REQUEST_UNIX_MILLIS".into(), Value::scalar("123"));
 
         let rendered = with_request_template_globals(&globals);
+
+        assert_eq!(rendered.get("REQUEST_RFC1123_DATE").unwrap().to_kstr(), "custom-date");
+        assert_eq!(rendered.get("REQUEST_UNIX_MILLIS").unwrap().to_kstr(), "123");
+    }
+
+    #[test]
+    fn cache_key_template_globals_use_stable_placeholders() {
+        let globals = Object::new();
+        let rendered = with_cache_key_template_globals(&globals);
+
+        assert_eq!(rendered.get("REQUEST_RFC1123_DATE").unwrap().to_kstr(), "REQUEST_RFC1123_DATE");
+        assert_eq!(rendered.get("REQUEST_UNIX_MILLIS").unwrap().to_kstr(), "REQUEST_UNIX_MILLIS");
+    }
+
+    #[test]
+    fn cache_key_template_globals_preserve_explicit_overrides() {
+        let mut globals = Object::new();
+        globals.insert("REQUEST_RFC1123_DATE".into(), Value::scalar("custom-date"));
+        globals.insert("REQUEST_UNIX_MILLIS".into(), Value::scalar("123"));
+
+        let rendered = with_cache_key_template_globals(&globals);
 
         assert_eq!(rendered.get("REQUEST_RFC1123_DATE").unwrap().to_kstr(), "custom-date");
         assert_eq!(rendered.get("REQUEST_UNIX_MILLIS").unwrap().to_kstr(), "123");
