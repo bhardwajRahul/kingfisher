@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tl::{Node, ParserOptions};
+use tl::ParserOptions;
 
 use super::{css, lexer, Language};
 
@@ -53,10 +53,7 @@ where
                 }
             }
             _ => {
-                if !inner_text.is_empty()
-                    && !matches!(node, Node::Comment(_))
-                    && !sink(&format!("{tag_name} = {inner_text}"))
-                {
+                if !inner_text.is_empty() && !sink(&format!("{tag_name} = {inner_text}")) {
                     return Ok(());
                 }
             }

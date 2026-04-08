@@ -943,4 +943,5 @@ rules:
               words: ['"Arn"']
     depends_on_rule:
       - rule_id: kingfisher.alibabacloud.1
-        variable: AKID```
+        variable: AKID
+```

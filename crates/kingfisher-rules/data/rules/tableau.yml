@@ -13,7 +13,7 @@ rules:
         X-Tableau-Auth
         (?:.|[\n\r]){0,16}?
       )
-      (
+      (?:
         (?P<TABLEAU_PAT_NAME>[A-Za-z0-9+/]{12,24}
         (?:={1,2})?
         )

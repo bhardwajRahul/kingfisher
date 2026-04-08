@@ -12,6 +12,8 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use url::Url;
 
+use kingfisher_scanner::validation::http_validation::is_auto_provided_request_var;
+
 use crate::{
     access_map::{AccessSummary, AccessTokenDetails, ProviderMetadata, ResourceExposure},
     blob::BlobMetadata,
@@ -84,10 +86,6 @@ fn extract_template_vars(text: &str) -> BTreeSet<String> {
     }
 
     vars
-}
-
-fn is_auto_provided_request_var(var: &str) -> bool {
-    matches!(var, "REQUEST_RFC1123_DATE" | "REQUEST_UNIX_MILLIS")
 }
 
 fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeSet<String> {

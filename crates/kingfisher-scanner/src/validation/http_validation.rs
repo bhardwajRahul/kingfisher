@@ -76,6 +76,10 @@ fn format_rfc1123(now: OffsetDateTime) -> String {
     rendered.strip_suffix(" +0000").map(|prefix| format!("{prefix} GMT")).unwrap_or(rendered)
 }
 
+pub fn is_auto_provided_request_var(var: &str) -> bool {
+    matches!(var, "REQUEST_RFC1123_DATE" | "REQUEST_UNIX_MILLIS")
+}
+
 /// Clone `globals` and add stable request-scoped values for templated request rendering.
 ///
 /// These values are computed once so the same generated timestamp can be reused across the URL,

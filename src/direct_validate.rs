@@ -29,6 +29,7 @@ use crate::{
         azure::validate_azure_storage_credentials,
         coinbase::validate_cdp_api_key,
         gcp::GcpValidator,
+        httpvalidation::is_auto_provided_request_var,
         httpvalidation::validate_response,
         httpvalidation::{build_request_builder, retry_request},
         jdbc::validate_jdbc,
@@ -131,10 +132,6 @@ fn extract_template_vars(text: &str) -> BTreeSet<String> {
     // Variable names are alphanumeric with underscores
     let re = Regex::new(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\|[^}]*)?\}\}").unwrap();
     re.captures_iter(text).filter_map(|cap| cap.get(1).map(|m| m.as_str().to_uppercase())).collect()
-}
-
-fn is_auto_provided_request_var(var: &str) -> bool {
-    matches!(var, "REQUEST_RFC1123_DATE" | "REQUEST_UNIX_MILLIS")
 }
 
 /// Extract all template variables used in a validation configuration.
