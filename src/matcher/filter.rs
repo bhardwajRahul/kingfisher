@@ -169,6 +169,7 @@ pub(crate) fn filter_match<'b>(
     start: usize,
     end: usize,
     matches: &mut Vec<BlobMatch<'b>>,
+    full_matches: Option<&mut FxHashMap<usize, Vec<OffsetSpan>>>,
     previous_matches: &mut FxHashMap<usize, Vec<OffsetSpan>>,
     rule_id: usize,
     seen_matches: &mut FxHashSet<u64>,
@@ -183,6 +184,7 @@ pub(crate) fn filter_match<'b>(
 ) {
     let mut timer =
         profiler.map(|p| RuleTimer::new(p, rule.id(), rule.name(), &rule.syntax.pattern, filename));
+    let mut full_matches = full_matches;
 
     let initial_len = matches.len();
 
@@ -192,6 +194,13 @@ pub(crate) fn filter_match<'b>(
 
     for captures in re.captures_iter(haystack) {
         let full_capture = captures.get(0).unwrap();
+        let full_capture_offset_span =
+            OffsetSpan::from_range((start + full_capture.start())..(start + full_capture.end()));
+        if let Some(full_matches) = full_matches.as_deref_mut() {
+            if !record_match(full_matches, rule_id, full_capture_offset_span) {
+                continue;
+            }
+        }
         let matching_input_for_entropy = find_secret_capture(re, &captures);
 
         let min_entropy = rule.min_entropy();

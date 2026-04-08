@@ -7,6 +7,7 @@ description: "Benchmark results comparing Kingfisher performance against Truffle
 
 ## Runtime Comparison (seconds)
 *Lower runtimes are better.*
+
 | Repository | Kingfisher Runtime | TruffleHog Runtime | GitLeaks Runtime |
 |------------|--------------------|--------------------|------------------|
 | croc | 2.64 | 10.36 | 3.10 |
@@ -67,7 +68,7 @@ Note: For GitLeaks and detect-secrets, validated/verified counts are not availab
 *Smaller binaries are easier to distribute, deploy in CI, and embed in container images*
 
 <p align="center">
-  <img src="../assets/images/binary-size-comparison.png" alt="Binary Size Comparison" />
+  <img src="./binary-size-comparison.png" alt="Binary Size Comparison" />
 </p>
 
 ## Benchmark Environment

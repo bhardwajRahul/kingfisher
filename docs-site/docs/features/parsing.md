@@ -1,6 +1,6 @@
 ---
 title: "Source Code Parsing"
-description: "Language-aware secret detection using lightweight lexers for 16 languages including Python, JavaScript, Go, Rust, and more."
+description: "Language-aware secret detection using tree-sitter parsing for 13+ languages including Python, JavaScript, Go, Rust, and more."
 ---
 
 # Kingfisher Source Code Parsing
@@ -11,7 +11,7 @@ The implementation favors lightweight extractors over full AST parsing:
 
 - **Handwritten lexers** for common programming and config languages — comment-aware stripping followed by regex-based `key = value` extraction
 - **`tl`** for HTML — attribute values, element text, and embedded `<script>` / `<style>` delegation
-- **`cssparser`** for CSS — declaration parsing via Mozilla's CSS tokenizer
+- **`cssparser`** for CSS — declaration parsing via Mozilla’s CSS tokenizer
 
 > **History:** Earlier versions used tree-sitter with 17 statically-linked
 > grammar crates. This added ~20 MB to the binary and required building a
@@ -19,9 +19,9 @@ The implementation favors lightweight extractors over full AST parsing:
 > approach achieves the same extraction quality with near-zero binary overhead
 > and no external grammar dependencies.
 
-## How It's Called
+## How It’s Called
 
-In the scanning phase (in the Matcher's implementation), Kingfisher does the following:
+In the scanning phase (in the Matcher’s implementation), Kingfisher does the following:
 
 - **Primary Regex Pass:** Kingfisher always scans the full blob with Vectorscan/Hyperscan first.
 - **Candidate Selection:** Findings from rules classified as context-dependent become parser-verification candidates.
@@ -42,8 +42,8 @@ The design supports many common source code languages. The Language enum (define
 
 Context verification is skipped in certain cases:
 
-- **No Language Identified:** If the file isn't recognized as belonging to one of the supported languages or no language hint is provided, the context verifier isn't even constructed.
-- **Non-source Files:** Binary files or files that aren't expected to contain code (or aren't extracted from archives) bypass parser-based context verification.
+- **No Language Identified:** If the file isn’t recognized as belonging to one of the supported languages or no language hint is provided, the context verifier isn’t even constructed.
+- **Non-source Files:** Binary files or files that aren’t expected to contain code (or aren’t extracted from archives) bypass parser-based context verification.
 - **Large Blobs:** Files larger than 2 MiB skip context verification to avoid spending time on generated or minified content.
 - **Verification Errors:** If extraction fails, context-dependent matches are suppressed instead of falling back to raw regex hits.
 

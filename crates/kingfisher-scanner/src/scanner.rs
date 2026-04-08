@@ -14,6 +14,8 @@ use crate::finding::{Finding, FindingLocation};
 use crate::primitives;
 use crate::scanner_pool::ScannerPool;
 
+const RAW_MATCH_LOOKBACK: usize = 64 * 1024;
+
 /// Configuration options for the scanner.
 #[derive(Debug, Clone)]
 pub struct ScannerConfig {
@@ -167,9 +169,14 @@ impl Scanner {
         // Process matches through regex
         let mut findings = Vec::new();
         let mut seen_matches: FxHashSet<u64> = FxHashSet::default();
-        let mut previous_spans: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
+        let mut seen_raw_match_ends: FxHashSet<(usize, usize)> = FxHashSet::default();
+        let mut previous_full_spans: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
 
         for (rule_id, start, end) in raw_matches.into_iter().rev() {
+            let _ = start; // Block-mode Vectorscan reports `from` as 0 unless SOM is enabled.
+            if !seen_raw_match_ends.insert((rule_id, end)) {
+                continue;
+            }
             let rule = match self.rules_db.get_rule(rule_id) {
                 Some(r) => r,
                 None => continue,
@@ -180,16 +187,18 @@ impl Scanner {
                 Err(_) => continue,
             };
 
-            let current_span = OffsetSpan::from_range(start..end);
-
-            // Check for overlapping spans
-            if !primitives::record_match(&mut previous_spans, rule_id, current_span) {
-                continue;
-            }
-
-            let haystack = &bytes[start..end];
+            let scan_start = end.saturating_sub(RAW_MATCH_LOOKBACK);
+            let haystack = &bytes[scan_start..end];
 
             for captures in anchored_regex.captures_iter(haystack) {
+                let full_capture = captures.get(0).unwrap();
+                let full_capture_span = OffsetSpan::from_range(
+                    (scan_start + full_capture.start())..(scan_start + full_capture.end()),
+                );
+                if !primitives::record_match(&mut previous_full_spans, rule_id, full_capture_span) {
+                    continue;
+                }
+
                 // Get the primary secret value
                 let secret_capture = primitives::find_secret_capture(&anchored_regex, &captures);
                 let secret_bytes = secret_capture.as_bytes();
@@ -203,20 +212,20 @@ impl Scanner {
                 }
 
                 // Compute match key for dedup
+                let offset_start = scan_start + secret_capture.start();
+                let offset_end = scan_start + secret_capture.end();
                 let match_key = primitives::compute_match_key(
                     secret_bytes,
                     rule.id().as_bytes(),
-                    start + secret_capture.start(),
-                    start + secret_capture.end(),
+                    offset_start,
+                    offset_end,
                 );
                 if !seen_matches.insert(match_key) {
                     continue;
                 }
 
                 // Build the finding
-                let offset_span = OffsetSpan::from_range(
-                    (start + secret_capture.start())..(start + secret_capture.end()),
-                );
+                let offset_span = OffsetSpan::from_range(offset_start..offset_end);
                 let source_span = loc_mapping.get_source_span(&offset_span);
 
                 let secret = if self.config.redact_secrets {

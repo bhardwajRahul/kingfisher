@@ -14,7 +14,6 @@ use anyhow::{anyhow, bail, Context, Result};
 use crossbeam_skiplist::SkipMap;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
-use regex::Regex;
 use reqwest::Client;
 use serde::Serialize;
 use tracing::debug;
@@ -24,6 +23,7 @@ use crate::{
     liquid_filters::register_all,
     rule_loader::RuleLoader,
     rules::{rule::Rule, HttpValidation, Validation},
+    template_vars::extract_template_vars,
     validation::{
         aws::validate_aws_credentials,
         azure::validate_azure_storage_credentials,
@@ -123,15 +123,6 @@ fn find_rules_by_selector<'a>(
 /// Extract a string value from the globals object.
 fn get_global_var(globals: &Object, name: &str) -> Option<String> {
     globals.get(name).and_then(|v| v.to_kstr().to_string().into())
-}
-
-/// Extract Liquid template variable names from a string.
-/// Matches patterns like {{ VAR }} or {{ VAR | filter }}.
-fn extract_template_vars(text: &str) -> BTreeSet<String> {
-    // Match {{ VAR }} or {{ VAR | filter }} patterns
-    // Variable names are alphanumeric with underscores
-    let re = Regex::new(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\|[^}]*)?\}\}").unwrap();
-    re.captures_iter(text).filter_map(|cap| cap.get(1).map(|m| m.as_str().to_uppercase())).collect()
 }
 
 /// Extract all template variables used in a validation configuration.
