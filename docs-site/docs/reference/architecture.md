@@ -64,7 +64,7 @@ flowchart LR
     subgraph Engines[Engines]
         Vector[vectorscan]
         ScanPool[scanner pool]
-        Tree[tree-sitter]
+        Context["context verifier"]
         Liquid[Liquid templates]
     end
 
@@ -94,7 +94,7 @@ flowchart LR
     ScannerLib --> Validate
 
     Match --> Vector --> ScanPool
-    Match --> Tree
+    Match --> Context
     Validate --> Liquid
     Validate --> APIs
 
@@ -112,7 +112,7 @@ flowchart LR
 - `src/scanner/runner.rs`: the orchestration hub for `scan`, including repo enumeration, clone streaming, artifact fetching, validation setup, sequential or parallel scan execution (threshold: >10 git repos triggers parallel mode), reporting, and summary generation.
 - `src/scanner/*`: input enumeration (`enumerate.rs`), repository handling and artifact fetching (`repos.rs`), blob processing (`processing.rs`), validation coordination (`validation.rs`), scan summaries (`summary.rs`), Docker image scanning (`docker.rs`), and utilities (`util.rs`).
 - `src/matcher/*`: the main detection engine (`mod.rs`), including vectorscan callbacks, regex helpers, Base64 discovery (`base64_decode.rs`), capture group handling (`captures.rs`), dedup support (`dedup.rs`), filtering (`filter.rs`), and finding fingerprinting (`fingerprint.rs`).
-- `src/parser.rs`: tree-sitter integration for language-aware parsing, supporting 17+ languages (Bash, C, C#, C++, CSS, Go, HTML, Java, JavaScript, PHP, Python, Ruby, Rust, TOML, TypeScript, YAML, and regex).
+- `src/parser.rs` and `src/parser/*`: parser-based context verification for language-aware matching, with handwritten lexers plus lightweight HTML and CSS parsers.
 - `src/scanner_pool.rs`: thread-local vectorscan `BlockScanner` pool, providing safe reuse of compiled pattern databases across scan threads.
 - `src/reporter.rs` and `src/reporter/*`: report rendering for pretty, JSON, BSON, TOON, SARIF, and HTML outputs, plus the data model used by the viewer.
 - `src/direct_validate.rs`: direct validation of a known secret without going through pattern matching. Supports HTTP, AWS, Azure, GCP, JDBC, MongoDB, MySQL, PostgreSQL, JWT, and Coinbase validators, with Liquid template integration for custom validation logic.
@@ -125,6 +125,6 @@ flowchart LR
 - `kingfisher-scanner` is still important: it provides the embeddable scanner API plus shared validation and primitive functionality reused by the application.
 - Direct `validate`, `revoke`, and standalone `access-map` are sibling command paths. They are not downstream stages of `FindingsStore`.
 - Reporting is downstream from the datastore, which lets Kingfisher emit multiple output formats and drive the local viewer from the same finding set.
-- The matching layer is intentionally hybrid: vectorscan provides high-throughput SIMD-accelerated pattern detection, while regex helpers, Base64 support, and tree-sitter verification improve accuracy and reduce false positives.
+- The matching layer is intentionally hybrid: vectorscan provides high-throughput SIMD-accelerated pattern detection, while regex helpers, Base64 support, and parser-based context verification improve accuracy and reduce false positives.
 - `FindingsStore` uses an in-memory store with a Bloom filter for deduplication, replacing the earlier SQLite-based storage model.
 - Validation and revocation templates are rendered via Liquid, allowing rule authors to define HTTP request sequences, variable extraction, and multi-step flows in YAML without touching Rust code.

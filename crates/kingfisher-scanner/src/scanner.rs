@@ -26,7 +26,7 @@ pub struct ScannerConfig {
     /// Override the minimum entropy threshold for all rules.
     pub min_entropy_override: Option<f32>,
 
-    /// Language hint for tree-sitter parsing (e.g., "python", "javascript").
+    /// Language hint for parser-based context verification (e.g., "python", "javascript").
     pub language_hint: Option<String>,
 
     /// Whether to redact secrets in findings.

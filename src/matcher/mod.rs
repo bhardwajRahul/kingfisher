@@ -24,7 +24,7 @@ use crate::{
     location::OffsetSpan,
     origin::OriginSet,
     parser,
-    parser::{Checker, Language},
+    parser::Language,
     rule_profiling::{ConcurrentRuleProfiler, RuleStats},
     rules::rule::Rule,
     rules_database::{RuleDetectionProfileKind, RulesDatabase},
@@ -40,12 +40,16 @@ use self::{
 const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
 const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
 const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
-const TREE_SITTER_MAX_LIMIT: usize = 128 * 1024; // only run tree-sitter on blobs <= 128 KiB
-const TREE_SITTER_MIN_LIMIT: usize = 0; // allow tree-sitter starting at 0 bytes
+                                                   // The old tree-sitter limit was 128 KiB due to full-AST parsing cost.
+                                                   // The lightweight regex-based lexer is O(n) line-by-line, so we can afford
+                                                   // a much higher ceiling.  We still cap it to avoid spending time on huge
+                                                   // generated/minified blobs where context verification adds little value.
+const CONTEXT_VERIFIER_MAX_LIMIT: usize = 2 * 1024 * 1024; // verify code context on blobs <= 2 MiB
+const CONTEXT_VERIFIER_MIN_LIMIT: usize = 0; // allow context verification starting at 0 bytes
 
 #[inline]
-pub(crate) fn should_attempt_tree_sitter(blob_len: usize) -> bool {
-    blob_len <= TREE_SITTER_MAX_LIMIT && blob_len >= TREE_SITTER_MIN_LIMIT
+pub(crate) fn should_attempt_context_verification(blob_len: usize) -> bool {
+    blob_len <= CONTEXT_VERIFIER_MAX_LIMIT && blob_len >= CONTEXT_VERIFIER_MIN_LIMIT
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -374,7 +378,7 @@ impl<'a> Matcher<'a> {
                 }
             }
         }
-        maybe_apply_tree_sitter_verification(
+        maybe_apply_context_verification(
             rules_db,
             blob,
             lang_hint,
@@ -407,7 +411,7 @@ impl<'a> Matcher<'a> {
     }
 }
 
-fn maybe_apply_tree_sitter_verification<'a>(
+fn maybe_apply_context_verification<'a>(
     rules_db: &RulesDatabase,
     blob: &'a Blob,
     lang_hint: Option<&str>,
@@ -439,36 +443,44 @@ fn maybe_apply_tree_sitter_verification<'a>(
         return;
     }
 
-    let ts_results = load_tree_sitter_results(blob, lang_hint, blob_len);
     let mut keep = vec![true; matches.len()];
-
-    for idx in candidate_indices {
-        let Some(rule_idx) = match_rule_indices.get(idx).copied() else {
-            continue;
-        };
-        let match_secret = matches[idx].matching_input;
-        let re = &rules_db.anchored_regexes()[rule_idx];
-
-        match ts_results.as_ref() {
-            Some(results) => {
-                let verified = results.iter().any(|text| {
-                    verify_match_in_tree_sitter_text(re, match_secret, text.as_bytes())
-                });
-                if !verified {
-                    keep[idx] = false;
-                }
-            }
-            None => {
-                // Tree-sitter is an optional precision layer. If parser context
-                // is unavailable, always fall back to the original regex match.
-            }
+    let Some(language) = load_context_verifier_language(lang_hint, blob_len) else {
+        for idx in candidate_indices {
+            keep[idx] = false;
         }
+        filter_kept_matches(matches, &keep);
+        return;
+    };
+
+    let mut remaining = candidate_indices.clone();
+    let verification = parser::stream_context_candidates(blob.bytes(), &language, |text| {
+        remaining.retain(|idx| {
+            let Some(rule_idx) = match_rule_indices.get(*idx).copied() else {
+                return false;
+            };
+            let re = &rules_db.anchored_regexes()[rule_idx];
+            let expected_secret = matches[*idx].matching_input;
+            !verify_match_in_context_text(re, expected_secret, text.as_bytes())
+        });
+        !remaining.is_empty()
+    });
+
+    if let Err(e) = verification {
+        debug!("context verification unavailable: {e}");
+        remaining = candidate_indices;
     }
 
+    for idx in remaining {
+        keep[idx] = false;
+    }
+
+    filter_kept_matches(matches, &keep);
+}
+
+fn filter_kept_matches<'a>(matches: &mut Vec<BlobMatch<'a>>, keep: &[bool]) {
     if keep.iter().all(|k| *k) {
         return;
     }
-
     let mut filtered = Vec::with_capacity(matches.len());
     for (idx, item) in std::mem::take(matches).into_iter().enumerate() {
         if keep[idx] {
@@ -478,61 +490,21 @@ fn maybe_apply_tree_sitter_verification<'a>(
     *matches = filtered;
 }
 
-fn load_tree_sitter_results(
-    blob: &Blob,
-    lang_hint: Option<&str>,
-    blob_len: usize,
-) -> Option<Vec<String>> {
-    if !should_attempt_tree_sitter(blob_len) {
+fn load_context_verifier_language(lang_hint: Option<&str>, blob_len: usize) -> Option<Language> {
+    if !should_attempt_context_verification(blob_len) {
         return None;
     }
     let lang = lang_hint?;
-    let (language, queries) = get_language_and_queries(lang)?;
-    let checker = Checker { language, rules: queries };
-    match checker.check(&blob.bytes()) {
-        Ok(results) => Some(results.into_iter().map(|m| m.text).collect()),
-        Err(e) => {
-            debug!("tree-sitter verification unavailable: {e}");
-            None
-        }
-    }
+    Language::from_hint(lang)
 }
 
-fn verify_match_in_tree_sitter_text(
+fn verify_match_in_context_text(
     re: &regex::bytes::Regex,
     expected_secret: &[u8],
     text: &[u8],
 ) -> bool {
     re.captures_iter(text)
         .any(|captures| find_secret_capture(re, &captures).as_bytes() == expected_secret)
-}
-
-fn get_language_and_queries(lang: &str) -> Option<(Language, FxHashMap<String, String>)> {
-    match lang.to_lowercase().as_str() {
-        "bash" | "shell" => Some((Language::Bash, parser::queries::bash::get_bash_queries())),
-        "c" => Some((Language::C, parser::queries::c::get_c_queries())),
-        "c#" | "csharp" => Some((Language::CSharp, parser::queries::csharp::get_csharp_queries())),
-        "c++" | "cpp" => Some((Language::Cpp, parser::queries::cpp::get_cpp_queries())),
-        "css" => Some((Language::Css, parser::queries::css::get_css_queries())),
-        "go" => Some((Language::Go, parser::queries::go::get_go_queries())),
-        "html" => Some((Language::Html, parser::queries::html::get_html_queries())),
-        "java" => Some((Language::Java, parser::queries::java::get_java_queries())),
-        "javascript" | "js" => {
-            Some((Language::JavaScript, parser::queries::javascript::get_javascript_queries()))
-        }
-        "php" => Some((Language::Php, parser::queries::php::get_php_queries())),
-        "python" | "py" | "starlark" => {
-            Some((Language::Python, parser::queries::python::get_python_queries()))
-        }
-        "ruby" => Some((Language::Ruby, parser::queries::ruby::get_ruby_queries())),
-        "rust" => Some((Language::Rust, parser::queries::rust::get_rust_queries())),
-        "toml" => Some((Language::Toml, parser::queries::toml::get_toml_queries())),
-        "typescript" | "ts" => {
-            Some((Language::TypeScript, parser::queries::typescript::get_typescript_queries()))
-        }
-        "yaml" => Some((Language::Yaml, parser::queries::yaml::get_yaml_queries())),
-        _ => None,
-    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1161,13 +1133,13 @@ line2
         };
         assert!(
             found.is_empty(),
-            "comment-only contextual hits should be suppressed when tree-sitter cannot verify assignment context"
+            "comment-only contextual hits should be suppressed when parser-based verification cannot confirm assignment context"
         );
         Ok(())
     }
 
     #[test]
-    fn strict_context_rule_keeps_raw_when_tree_sitter_unavailable() -> Result<()> {
+    fn strict_context_rule_suppresses_raw_when_context_verification_is_unavailable() -> Result<()> {
         let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
         let rule = Rule::new(RuleSyntax {
             id: "kingfisher.auth0.2".into(),
@@ -1200,10 +1172,9 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert_eq!(
-            found.len(),
-            1,
-            "strict contextual rules should fall back to raw regex findings when tree-sitter is unavailable"
+        assert!(
+            found.is_empty(),
+            "strict contextual rules should be suppressed when parser-based verification cannot run"
         );
         Ok(())
     }

@@ -401,7 +401,7 @@ kingfisher scan /path/to/code
 kingfisher scan ~/src/myrepo --no-validate
 
 # Turbo mode: run as fast as possible by disabling Git commit metadata, Base64 decoding,
-# MIME sniffing, language detection, and tree-sitter parsing
+# MIME sniffing, language detection, and parser-based context verification
 # (findings omit commit context, Base64-only matches, MIME type, and language metadata)
 kingfisher scan ~/src/myrepo --turbo
 
@@ -510,7 +510,7 @@ cat /path/to/file.py | kingfisher scan -
 kingfisher scan /some/file --max-file-size 500
 
 # Turbo mode: equivalent to --commit-metadata=false --no-base64 and disables MIME sniffing,
-# language detection/tree-sitter parsing for maximum speed
+# language detection/parser-based context verification for maximum speed
 # No Git commit metadata (author, date, hash), Base64 decoding, MIME, or language metadata in findings
 kingfisher scan /path/to/repo --turbo
 
@@ -725,7 +725,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
 | [FINGERPRINT.md](docs/FINGERPRINT.md) | Understanding finding fingerprints and deduplication |
 | [COMPARISON.md](docs/COMPARISON.md) | Benchmark results and performance comparisons |
 | [PARSING.md](docs/PARSING.md) | Language-aware parsing details |
-| [TREE_SITTER.md](docs/TREE_SITTER.md) | Tree-sitter scanning flow, verification gates, and fallback behavior |
+| [CONTEXT_VERIFICATION.md](docs/CONTEXT_VERIFICATION.md) | Context-verification flow, gates, and parser backends |
 
 # Library Usage
 
@@ -751,7 +751,7 @@ Since then it has evolved far beyond that starting point, introducing live valid
 - **Live validation** of detected secrets directly within rules  
 - **Hundreds of new built-in rules** and an expanded YAML rule schema  
 - **Baseline management** to suppress known findings over time  
-- **Tree-sitter parsing** layered on Hyperscan for language-aware detection  
+- **Parser-based context verification** layered on Hyperscan for language-aware detection  
 - **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, Microsoft Teams, S3, GCS, Docker, Hugging Face, etc.)  
 - **Compressed Files**, **SQLite database**, and **Python bytecode (.pyc)** scanning support
 - **New storage model** (in-memory + Bloom filter, replacing SQLite)  

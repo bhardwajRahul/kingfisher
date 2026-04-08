@@ -24,7 +24,7 @@ Key capabilities:
 - `src/cli/commands/`: CLI command implementations
 - `src/matcher/`: pattern matching engine
 - `src/scanner/`: core scanning logic
-- `src/parser/`: language-aware parsing (`tree-sitter`)
+- `src/parser/`: language-aware context verification (lightweight lexers, `tl` for HTML, `cssparser` for CSS)
 - `src/reporter/`: TOON/JSON/SARIF/HTML report generation
 - `src/access_map/`: access mapping analysis
 - `crates/kingfisher-core/`: shared types and core logic

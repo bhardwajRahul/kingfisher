@@ -166,7 +166,7 @@ pub struct ScanArgs {
     #[arg(global = true, long, default_value_t = false)]
     pub no_base64: bool,
 
-    /// Turbo mode: equivalent to --commit-metadata=false --no-base64 and disables MIME sniffing, language detection, and tree-sitter parsing
+    /// Turbo mode: equivalent to --commit-metadata=false --no-base64 and disables MIME sniffing, language detection, and parser-based context verification
     #[arg(global = true, long = "turbo", default_value_t = false)]
     pub turbo: bool,
 

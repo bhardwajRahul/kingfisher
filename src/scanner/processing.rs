@@ -6,7 +6,7 @@ use crate::{
     blob::{Blob, BlobMetadata},
     content_type::ContentInspector,
     location::LocationMapping,
-    matcher::{should_attempt_tree_sitter, Match, Matcher, OwnedBlobMatch, ScanResult},
+    matcher::{should_attempt_context_verification, Match, Matcher, OwnedBlobMatch, ScanResult},
     origin::{Origin, OriginSet},
     scanner::repos::DatastoreMessage,
     Path,
@@ -32,7 +32,7 @@ impl<'a> BlobProcessor<'a> {
     ) -> Result<Option<DatastoreMessage>> {
         let _span = debug_span!("matcher", temp_id = blob.temp_id()).entered();
         let t1 = Instant::now();
-        let language_hint = if fast_mode || !should_attempt_tree_sitter(blob.len()) {
+        let language_hint = if fast_mode || !should_attempt_context_verification(blob.len()) {
             None
         } else {
             origin
