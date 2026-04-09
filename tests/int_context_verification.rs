@@ -3,6 +3,10 @@ use std::{fs, process::Command};
 use anyhow::{Context, Result};
 use serde_json::{Deserializer, Value};
 
+fn is_parser_fixture(path: &str) -> bool {
+    path.replace('\\', "/").starts_with("testdata/parsers/")
+}
+
 #[test]
 fn scan_findings_match_pre_removal_baseline() -> Result<()> {
     let output = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
@@ -50,7 +54,7 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
                 .and_then(Value::as_object)
                 .and_then(|data| data.get("path"))
                 .and_then(Value::as_str)
-                .map(|path| !path.starts_with("testdata/parsers/"))
+                .map(|path| !is_parser_fixture(path))
                 .unwrap_or(true)
         })
         .map(|finding| {
@@ -94,4 +98,11 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
 
     assert_eq!(actual, expected);
     Ok(())
+}
+
+#[test]
+fn parser_fixture_filter_normalizes_windows_paths() {
+    assert!(is_parser_fixture("testdata/parsers/scan_findings_baseline.json"));
+    assert!(is_parser_fixture(r"testdata\parsers\scan_findings_baseline.json"));
+    assert!(!is_parser_fixture("testdata/generic_secrets.py"));
 }

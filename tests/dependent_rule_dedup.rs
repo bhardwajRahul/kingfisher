@@ -145,3 +145,60 @@ fn dedup_still_merges_non_dependency_rules_across_blobs() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn dedup_uses_a_stable_canonical_representative() -> Result<()> {
+    let rule = make_rule("RULE.SIMPLE", vec![]);
+
+    let make_store = |rule: &Arc<Rule>| {
+        let mut store = FindingsStore::new(PathBuf::from("/tmp"));
+        store.record_rules(&[rule.clone()]);
+        store
+    };
+
+    let origin_a = Arc::new(OriginSet::single(Origin::from_file(PathBuf::from("a.txt"))));
+    let origin_z = Arc::new(OriginSet::single(Origin::from_file(PathBuf::from("z.txt"))));
+    let blob_a = Arc::new(BlobMetadata {
+        id: BlobId::new(b"blob-a"),
+        num_bytes: 10,
+        mime_essence: None,
+        language: None,
+    });
+    let blob_z = Arc::new(BlobMetadata {
+        id: BlobId::new(b"blob-z"),
+        num_bytes: 10,
+        mime_essence: None,
+        language: None,
+    });
+
+    let forward = vec![
+        record_match(&origin_z, &blob_z, make_match(rule.clone(), blob_z.id, "shared_token")),
+        record_match(&origin_a, &blob_a, make_match(rule.clone(), blob_a.id, "shared_token")),
+    ];
+    let reverse = vec![
+        record_match(&origin_a, &blob_a, make_match(rule.clone(), blob_a.id, "shared_token")),
+        record_match(&origin_z, &blob_z, make_match(rule.clone(), blob_z.id, "shared_token")),
+    ];
+
+    let mut forward_store = make_store(&rule);
+    forward_store.record(forward, true);
+
+    let mut reverse_store = make_store(&rule);
+    reverse_store.record(reverse, true);
+
+    for store in [&forward_store, &reverse_store] {
+        assert_eq!(store.get_matches().len(), 1);
+
+        let (origin, blob, matched) = &*store.get_matches()[0];
+        assert_eq!(origin.len(), 2, "duplicate findings should merge origins");
+        assert_eq!(
+            origin.first().full_path().as_deref(),
+            Some(PathBuf::from("a.txt").as_path()),
+            "the lexicographically smallest path should be the representative",
+        );
+        assert_eq!(blob.id, blob_a.id);
+        assert_eq!(matched.blob_id, blob_a.id);
+    }
+
+    Ok(())
+}
