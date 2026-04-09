@@ -23,3 +23,6 @@ rules:
       - CLAY_API_KEY=d8dfd14ec83e4e17a7d2
     references:
       - https://university.clay.com/docs/http-api-integration-overview
+    # No standalone validation or revocation is added: the public Clay docs
+    # referenced here do not document an authenticated API endpoint for
+    # introspecting or revoking these keys.

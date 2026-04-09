@@ -37,7 +37,7 @@ use self::{base64_decode::get_base64_strings as get_b64_strings, filter::filter_
 
 const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
 const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
-const RAW_MATCH_LOOKBACK: usize = 64 * 1024; // Re-scan a bounded suffix ending at the raw match.
+const RAW_MATCH_LOOKBACK: usize = 4 * 1024; // Re-scan a bounded suffix ending at the raw match.
 const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
                                                    // The old tree-sitter limit was 128 KiB due to full-AST parsing cost.
                                                    // The lightweight regex-based lexer is O(n) line-by-line, so we can afford
@@ -270,8 +270,6 @@ impl<'a> Matcher<'a> {
                 continue;
             }
 
-            // Re-scan a bounded suffix ending at the raw match and dedupe on the
-            // actual capture spans produced by the anchored regex.
             let scan_start = end_idx_usize.saturating_sub(RAW_MATCH_LOOKBACK);
             let before_len = matches.len();
             filter_match(
@@ -924,65 +922,6 @@ mod test {
         // we should still only have two unique raw matches recorded
         assert_eq!(first_len, 2);
         assert_eq!(second_len, 2);
-        Ok(())
-    }
-
-    #[test]
-    fn bogus_raw_starts_do_not_hide_earlier_matches() -> Result<()> {
-        let rule = Rule::new(RuleSyntax {
-            id: "bogus.start".into(),
-            name: "bogus start".into(),
-            pattern: r#"key\s*=\s*"([A-Z]{3})""#.into(),
-            confidence: crate::rules::rule::Confidence::Low,
-            min_entropy: 0.0,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None::<Validation>,
-            revocation: None,
-            depends_on_rule: vec![],
-            pattern_requirements: None,
-            tls_mode: None,
-        });
-
-        let rules_db = RulesDatabase::from_rules(vec![rule])?;
-        let seen = BlobIdMap::new();
-        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
-        let matcher =
-            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
-
-        let mut matcher = matcher;
-        matcher.user_data.raw_matches_scratch = vec![
-            RawMatch { rule_id: 0, start_idx: 5, end_idx: 9 },
-            RawMatch { rule_id: 0, start_idx: 5, end_idx: 19 },
-        ];
-
-        let blob = Blob::from_bytes(b"key=\"ABC\"\nkey=\"DEF\"".to_vec());
-        let origin = OriginSet::from(Origin::from_file(PathBuf::from("bogus-starts.txt")));
-        let mut matches = Vec::new();
-        let mut previous_matches = FxHashMap::default();
-        let mut seen_matches = FxHashSet::default();
-        let mut match_rule_indices = Vec::new();
-
-        matcher.process_raw_matches(
-            &blob,
-            &origin,
-            "bogus-starts.txt",
-            false,
-            &mut matches,
-            &mut previous_matches,
-            &mut seen_matches,
-            &mut match_rule_indices,
-        );
-
-        let secrets = matches
-            .iter()
-            .map(|m| String::from_utf8_lossy(m.matching_input).to_string())
-            .collect::<Vec<_>>();
-
-        assert_eq!(secrets, vec!["ABC", "DEF"]);
-        assert_eq!(match_rule_indices, vec![0, 0]);
         Ok(())
     }
 

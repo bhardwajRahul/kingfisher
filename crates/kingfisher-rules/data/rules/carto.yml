@@ -21,4 +21,6 @@ rules:
       - "carto_api_key = 'eyJhbGciOiJIUzI1NiJ9.eyJhIjoiYWNfY2RlZmdoIiwianRpIjoiYWI2MTIzNDUifQ.BcDeFgHiJkLmNoPqRsTuVwXy'"
     references:
       - https://api-docs.carto.com
-    # No public validation endpoint documented for CARTO JWT tokens.
+    # No standalone validation or revocation is added: CARTO's documented APIs
+    # use account- and deployment-specific endpoints, and the public docs do not
+    # describe a token self-introspection or self-revocation API for these JWTs.

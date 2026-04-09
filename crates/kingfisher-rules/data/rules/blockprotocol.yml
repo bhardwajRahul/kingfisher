@@ -17,3 +17,19 @@ rules:
       - 'BLOCK_PROTOCOL_API_KEY=b10ck5.AbCdEfGhIjKlMnOpQrStUvWxYz1234.AbCdEfGhIjKlMnOpQrStUvWxYz12345678'
     references:
       - https://blockprotocol.org/docs/hub/api
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://blockprotocol.org/api/blocks
+          headers:
+            x-api-key: "{{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+    # No programmatic revocation endpoint is documented; Block Protocol
+    # directs users to revoke keys from the Account > API Keys page.

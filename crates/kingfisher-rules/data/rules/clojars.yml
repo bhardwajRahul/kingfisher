@@ -22,10 +22,10 @@ rules:
   - name: Clojars API Token
     id: kingfisher.clojars.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        CLOJARS_[a-z0-9]{60}
+        CLOJARS_[a-zA-Z0-9]{60}
       )
       \b
     pattern_requirements:
@@ -37,3 +37,6 @@ rules:
     references:
       - https://github.com/clojars/clojars-web/wiki/API
       - https://github.com/clojars/clojars-web/wiki/Tutorial-for-library-authors
+    # No standalone validation or revocation is added: Clojars deploy tokens are
+    # used via Basic auth for artifact uploads, and the public docs/source do not
+    # expose a safe read-only token introspection or token self-revocation API.
