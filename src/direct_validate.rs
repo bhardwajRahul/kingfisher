@@ -14,7 +14,6 @@ use anyhow::{anyhow, bail, Context, Result};
 use crossbeam_skiplist::SkipMap;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
-use regex::Regex;
 use reqwest::Client;
 use serde::Serialize;
 use tracing::debug;
@@ -24,11 +23,13 @@ use crate::{
     liquid_filters::register_all,
     rule_loader::RuleLoader,
     rules::{rule::Rule, HttpValidation, Validation},
+    template_vars::extract_template_vars,
     validation::{
         aws::validate_aws_credentials,
         azure::validate_azure_storage_credentials,
         coinbase::validate_cdp_api_key,
         gcp::GcpValidator,
+        httpvalidation::is_auto_provided_request_var,
         httpvalidation::validate_response,
         httpvalidation::{build_request_builder, retry_request},
         jdbc::validate_jdbc,
@@ -124,15 +125,6 @@ fn get_global_var(globals: &Object, name: &str) -> Option<String> {
     globals.get(name).and_then(|v| v.to_kstr().to_string().into())
 }
 
-/// Extract Liquid template variable names from a string.
-/// Matches patterns like {{ VAR }} or {{ VAR | filter }}.
-fn extract_template_vars(text: &str) -> BTreeSet<String> {
-    // Match {{ VAR }} or {{ VAR | filter }} patterns
-    // Variable names are alphanumeric with underscores
-    let re = Regex::new(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\|[^}]*)?\}\}").unwrap();
-    re.captures_iter(text).filter_map(|cap| cap.get(1).map(|m| m.as_str().to_uppercase())).collect()
-}
-
 /// Extract all template variables used in a validation configuration.
 fn extract_validation_vars(validation: &Validation) -> BTreeSet<String> {
     let mut vars = BTreeSet::new();
@@ -201,10 +193,12 @@ fn extract_validation_vars(validation: &Validation) -> BTreeSet<String> {
             vars.insert("TOKEN".to_string());
             vars.insert("CRED_NAME".to_string());
         }
-        Validation::Raw(_) => {
-            vars.insert("TOKEN".to_string());
+        Validation::Raw(raw) => {
+            vars.extend(kingfisher_scanner::validation::raw::required_vars(raw));
         }
     }
+
+    vars.retain(|var| !is_auto_provided_request_var(var));
 
     vars
 }
@@ -298,8 +292,10 @@ async fn execute_http_validation(
     retries: u32,
     allow_internal_ips: bool,
 ) -> Result<DirectValidationResult> {
+    let request_globals = kingfisher_scanner::validation::with_request_template_globals(globals);
+
     // Render the URL
-    let url = render_and_parse_url(parser, globals, &http_validation.request.url).await?;
+    let url = render_and_parse_url(parser, &request_globals, &http_validation.request.url).await?;
 
     // SSRF check: verify the resolved IP is public before making the request
     crate::validation::utils::check_url_resolvable(&url, allow_internal_ips)
@@ -317,7 +313,7 @@ async fn execute_http_validation(
         &http_validation.request.body,
         timeout,
         parser,
-        globals,
+        &request_globals,
     )
     .map_err(|e| anyhow!("Failed to build request: {}", e))?;
 
@@ -359,8 +355,11 @@ async fn execute_grpc_validation(
     timeout: Duration,
     allow_internal_ips: bool,
 ) -> Result<DirectValidationResult> {
+    let request_globals = kingfisher_scanner::validation::with_request_template_globals(globals);
+
     // Render the URL
-    let url = render_and_parse_url(parser, globals, &grpc_validation_cfg.request.url).await?;
+    let url =
+        render_and_parse_url(parser, &request_globals, &grpc_validation_cfg.request.url).await?;
 
     // SSRF check: verify the resolved IP is public before making the request
     crate::validation::utils::check_url_resolvable(&url, allow_internal_ips)
@@ -374,7 +373,7 @@ async fn execute_grpc_validation(
         &grpc_validation_cfg.request.headers,
         &grpc_validation_cfg.request.body,
         parser,
-        globals,
+        &request_globals,
         timeout,
     )
     .await
@@ -840,13 +839,32 @@ pub async fn run_direct_validation(
                 }
             }
 
-            Validation::Raw(_) => DirectValidationResult {
-                rule_id: String::new(),
-                rule_name: String::new(),
-                is_valid: false,
-                status_code: None,
-                message: "Raw validation type is not supported via direct validation.".to_string(),
-            },
+            Validation::Raw(raw) => {
+                match kingfisher_scanner::validation::raw::validate_raw(
+                    raw,
+                    &globals,
+                    &client,
+                    use_lax_tls,
+                    global_args.allow_internal_ips,
+                )
+                .await
+                {
+                    Ok(result) => DirectValidationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        is_valid: result.valid,
+                        status_code: Some(result.status.as_u16()),
+                        message: result.body,
+                    },
+                    Err(e) => DirectValidationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        is_valid: false,
+                        status_code: None,
+                        message: format!("Raw validation error: {}", e),
+                    },
+                }
+            }
         };
 
         result.rule_id = rule_id;

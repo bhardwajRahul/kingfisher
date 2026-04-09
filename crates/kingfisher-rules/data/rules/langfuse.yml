@@ -2,10 +2,10 @@ rules:
   - name: Langfuse Secret Key
     id: kingfisher.langfuse.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        sk-lf-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+        sk-lf-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}
       )
       \b
     pattern_requirements:
@@ -42,10 +42,10 @@ rules:
   - name: Langfuse Public Key
     id: kingfisher.langfuse.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        pk-lf-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+        pk-lf-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}
       )
       \b
     pattern_requirements:
@@ -57,9 +57,6 @@ rules:
     examples:
       - pk-lf-a1b2c3d4-e5f6-7890-abcd-ef1234567890
       - 'LANGFUSE_PUBLIC_KEY="pk-lf-9f8e7d6c-5b4a-3210-fedc-ba0987654321"'
-    negative_examples:
-      - pk-lf-test
-      - pk-lf-
     references:
       - https://langfuse.com/docs/sdk/typescript
       - https://langfuse.com/docs/get-started

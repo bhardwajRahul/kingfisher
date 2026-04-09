@@ -61,7 +61,7 @@ fn skips_base64_when_disabled() -> anyhow::Result<()> {
     Ok(())
 }
 
-// Ensure disabling Base64 decoding does not trigger tree-sitter errors on empty files
+// Ensure disabling Base64 decoding does not trigger context verifier errors on empty files
 #[test]
 fn no_base64_skips_empty_files() -> anyhow::Result<()> {
     let dir = tempdir()?;
@@ -87,9 +87,9 @@ fn no_base64_skips_empty_files() -> anyhow::Result<()> {
     Ok(())
 }
 
-// Ensure tree-sitter based decoding works even when the standalone base64 scanner is disabled
+// Ensure parser-based context extraction still surfaces base64-looking code assignments
 #[test]
-fn detects_base64_in_code_with_tree_sitter() -> anyhow::Result<()> {
+fn detects_base64_in_code_with_context_verifier() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let file_path = dir.path().join("secret.py");
     // Base64 for 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

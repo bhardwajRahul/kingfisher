@@ -16,7 +16,25 @@ rules:
     examples:
       - "API_KEY = \"BBUS-kDvT2Vrm6JThnHZvgzNyO2K7DAHdWs12abc\""
       - "UBIDOTS_TOKEN=BBUS-AbCdEfGhIjKlMnOpQrStUvWxYz0123456"
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://industrial.api.ubidots.com/api/v2.0/devices
+          headers:
+            Accept: application/json
+            X-Auth-Token: "{{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: false
+              words:
+                - '"count"'
+                - '"results"'
     references:
-      - https://docs.ubidots.com/v1.6/reference/authentication
-    # No API validation available: Ubidots API keys generate tokens but cannot
-    # themselves be validated against a public endpoint.
+      - https://docs.ubidots.com/reference/authentication
+      - https://docs.ubidots.com/reference/get-devices

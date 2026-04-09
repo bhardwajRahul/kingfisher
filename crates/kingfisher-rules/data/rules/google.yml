@@ -23,6 +23,32 @@ rules:
     confidence: medium
     examples:
       - 'const CLIENTSECRET = "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"'
+    depends_on_rule:
+      - rule_id: "kingfisher.google.1"
+        variable: GOOGLE_CLIENT_ID
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://oauth2.googleapis.com/token
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: >
+            code=invalid_code&client_id={{ GOOGLE_CLIENT_ID | url_encode }}&client_secret={{ TOKEN | url_encode }}&redirect_uri={{ "https://example.com/oauth/callback" | url_encode }}&grant_type=authorization_code
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [400]
+            - type: WordMatch
+              words:
+                - invalid_client
+              negative: true
+    # Revocation not added: Google's OAuth revocation endpoint revokes tokens,
+    # not client secrets.
+    references:
+      - https://developers.google.com/identity/protocols/oauth2/web-server
 
   - name: Google OAuth Client Secret
     id: kingfisher.google.3
@@ -36,6 +62,32 @@ rules:
     examples:
       - "                 //$google_client_secret = 'fnhqAakzWrX-mtFQ4PRdMoy0';"
       - "                'clientSecret' : 'Ufvuj-d6alhwGKvvLh_8Nq0K'"
+    depends_on_rule:
+      - rule_id: "kingfisher.google.1"
+        variable: GOOGLE_CLIENT_ID
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://oauth2.googleapis.com/token
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: >
+            code=invalid_code&client_id={{ GOOGLE_CLIENT_ID | url_encode }}&client_secret={{ TOKEN | url_encode }}&redirect_uri={{ "https://example.com/oauth/callback" | url_encode }}&grant_type=authorization_code
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [400]
+            - type: WordMatch
+              words:
+                - invalid_client
+              negative: true
+    # Revocation not added: Google's OAuth revocation endpoint revokes tokens,
+    # not client secrets.
+    references:
+      - https://developers.google.com/identity/protocols/oauth2/web-server
 
   - name: Google OAuth Access Token
     id: kingfisher.google.4
@@ -61,6 +113,42 @@ rules:
       - |
         -- Clear login if it's a new connection.
         --propertyTable.access_token = 'ya29.Ci_UA7aEsvT6-oVI8f96kvB6i8oO13WgdZUviLaCVtpEPYZqhQcQycR-u2X9xtmYGA'
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={{ TOKEN | url_encode }}
+          headers:
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - '"aud"'
+                - '"expires_in"'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://oauth2.googleapis.com/revoke
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: token={{ TOKEN | url_encode }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+    references:
+      - https://developers.google.com/identity/openid-connect/openid-connect
+      - https://developers.google.com/data-portability/user-guide/quickstart
+      - https://developers.google.com/identity/protocols/oauth2/web-server
 
   - name: Google OAuth Credentials
     id: kingfisher.google.6

@@ -60,21 +60,7 @@ impl RulesDatabase {
 
         let mut reason_codes: Vec<&'static str> = Vec::new();
 
-        let has_self_identifying_prefix = [
-            "ccipat_",
-            "xoxb-",
-            "xoxa-",
-            "xoxp-",
-            "xapp-",
-            "ghp_",
-            "github_pat_",
-            "sk_live_",
-            "sk_test_",
-            "ltai",
-            "akia",
-        ]
-        .iter()
-        .any(|m| normalized.contains(m));
+        let has_self_identifying_prefix = has_self_identifying_shape(&normalized);
         if has_self_identifying_prefix {
             reason_codes.push("self_identifying_prefix");
             return RuleMatchProfile {
@@ -307,6 +293,33 @@ impl RulesDatabase {
     }
 }
 
+fn has_self_identifying_shape(normalized_pattern: &str) -> bool {
+    let literal_markers = [
+        "ccipat_",
+        "xapp-",
+        "ghp_",
+        "github_pat_",
+        "sk_live_",
+        "sk_test_",
+        "ltai",
+        "akia",
+        "aizasy",
+        "pypi-ageichlwas5vcmc",
+        "https://hooks\\.slack\\.com/services/",
+    ];
+
+    literal_markers.iter().any(|needle| normalized_pattern.contains(needle))
+        || normalized_pattern.contains("xox[pbarose]")
+        || normalized_pattern.contains("xoxe\\.xox[bparose]-")
+        || normalized_pattern.contains("xoxe-\\d-")
+        || (normalized_pattern.contains("-----begin\\s")
+            && normalized_pattern.contains("private\\skey")
+            && normalized_pattern.contains("-----end\\s"))
+        || (normalized_pattern.contains("-----begin\\ ")
+            && normalized_pattern.contains("private\\ key")
+            && normalized_pattern.contains("-----end\\ "))
+}
+
 fn has_generic_token_class(normalized_pattern: &str) -> bool {
     [
         "[a-za-z0-9]{",
@@ -434,6 +447,57 @@ mod test_rule_match_profiles {
         let profile = RulesDatabase::classify_rule_profile(&rule);
         assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
         assert!(profile.reason_codes.contains(&"self_identifying_prefix"));
+    }
+
+    #[test]
+    fn classifies_google_api_key_rule_as_self_identifying() {
+        let rule = mk_rule("kingfisher.google.7", r"(?xi)\b(AIzaSy[A-Za-z0-9_-]{33})");
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
+    }
+
+    #[test]
+    fn classifies_slack_token_charclass_rule_as_self_identifying() {
+        let rule = mk_rule(
+            "kingfisher.slack.2",
+            r"(?xi)\b(xox[pbarose][-0-9]{0,3}-[0-9a-z]{6,15}-[0-9a-z]{6,15}-[-0-9a-z]{6,66})\b",
+        );
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
+    }
+
+    #[test]
+    fn classifies_slack_webhook_rule_as_self_identifying() {
+        let rule = mk_rule(
+            "kingfisher.slack.4",
+            r"(?xi)\b(https://hooks\.slack\.com/services/T[a-z0-9_-]{8,12}/B[a-z0-9_-]{8,12}/[a-z0-9_-]{20,30})",
+        );
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
+    }
+
+    #[test]
+    fn classifies_pypi_token_rule_as_self_identifying() {
+        let rule = mk_rule("kingfisher.pypi.1", r"(?x)(pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,})\b");
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
+    }
+
+    #[test]
+    fn classifies_private_key_envelope_rules_as_self_identifying() {
+        let rule = mk_rule(
+            "kingfisher.privkey.2",
+            r"(?xims)(-----BEGIN\s(?:RSA|PGP|DSA|OPENSSH|ENCRYPTED|EC)?\s{0,1}PRIVATE\sKEY-----[a-z0-9 /+=\r\n\\n]{32,}?-----END\s(?:RSA|PGP|DSA|OPENSSH|ENCRYPTED|EC)?\s{0,1}PRIVATE\sKEY-----)",
+        );
+        let profile = RulesDatabase::classify_rule_profile(&rule);
+        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
+
+        let pem_rule = mk_rule(
+            "kingfisher.pem.1",
+            r#"(?x)-----BEGIN\ .{0,20}\ ?PRIVATE\ KEY\ ?.{0,20}-----\s*((?:[a-zA-Z0-9+/=\s"',]|\\r|\\n){50,})\s*-----END\ .{0,20}\ ?PRIVATE\ KEY\ ?.{0,20}-----"#,
+        );
+        let pem_profile = RulesDatabase::classify_rule_profile(&pem_rule);
+        assert_eq!(pem_profile.kind, RuleDetectionProfileKind::SelfIdentifying);
     }
 
     #[test]

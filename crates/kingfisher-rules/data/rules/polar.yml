@@ -1,0 +1,20 @@
+rules:
+  - name: Polar Personal Access Token
+    id: kingfisher.polar.1
+    pattern: |
+      (?x)
+      \b
+      (
+        polar_(?:at|oat|rt)_[a-zA-Z0-9_-]{20,100}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'POLAR_TOKEN=polar_at_AbCdEfGhIjKlMnOpQrStUvWxYz1234'
+      - 'polar_org_token: polar_oat_AbCdEfGhIjKlMnOpQrStUvWx12'
+    references:
+      - https://docs.polar.sh/api/authentication

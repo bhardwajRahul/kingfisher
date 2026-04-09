@@ -1,0 +1,8 @@
+.banner {
+  password: "blink182";
+  background-image: url("all-along-the-watchtower");
+}
+
+.secret-key {
+  content: "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+}

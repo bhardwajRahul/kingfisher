@@ -1,0 +1,34 @@
+rules:
+  - name: Paddle API Key
+    id: kingfisher.paddle.1
+    pattern: |
+      (?x)
+      \b
+      (
+        pdl_(?:live|sdbx)_apikey_[a-z0-9_]{30,60}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_lowercase: 4
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'PADDLE_API_KEY=pdl_live_apikey_01gtgztp8f4kek3yd4g1wrksa3_q6tgtjyvoiz7ldtxt65bx7_aqo'
+      - 'paddle_key: pdl_sdbx_apikey_01h9fjk2z4qqw8n3m7xr5bc6y1_p3rstuvwxyz'
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.paddle.com/event-types
+          headers:
+            Authorization: Bearer {{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+    references:
+      - https://developer.paddle.com/api-reference/about/api-keys
+      - https://developer.paddle.com/api-reference/about/authentication

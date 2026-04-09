@@ -12,6 +12,8 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use url::Url;
 
+use kingfisher_scanner::validation::http_validation::is_auto_provided_request_var;
+
 use crate::{
     access_map::{AccessSummary, AccessTokenDetails, ProviderMetadata, ResourceExposure},
     blob::BlobMetadata,
@@ -23,6 +25,7 @@ use crate::{
     origin::{Origin, OriginSet},
     rules::rule::Confidence,
     rules::Revocation,
+    template_vars::extract_template_vars,
     validation_body::{self, ValidationResponseBody},
 };
 mod bson_format;
@@ -45,45 +48,6 @@ use crate::{
 /// Shell-escape a string for safe command-line usage using single quotes.
 fn escape_for_shell(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
-}
-
-static TEMPLATE_BLOCK_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
-    regex::Regex::new(r"\{\{\s*([^}]*)\}\}").expect("template block regex should compile")
-});
-
-static TEMPLATE_IDENT_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
-    regex::Regex::new(r"[A-Za-z_][A-Za-z0-9_]*").expect("template identifier regex should compile")
-});
-
-const TEMPLATE_FILTER_NAMES: &[&str] = &[
-    "append",
-    "b64enc",
-    "base62",
-    "crc32",
-    "crc32_hex",
-    "default",
-    "downcase",
-    "json_escape",
-    "prefix",
-    "replace",
-    "url_encode",
-];
-
-fn extract_template_vars(text: &str) -> BTreeSet<String> {
-    let mut vars = BTreeSet::new();
-
-    for block_cap in TEMPLATE_BLOCK_RE.captures_iter(text) {
-        let inner = block_cap.get(1).map(|m| m.as_str()).unwrap_or_default();
-        for ident_cap in TEMPLATE_IDENT_RE.captures_iter(inner) {
-            let ident = ident_cap.get(0).map(|m| m.as_str()).unwrap_or_default();
-            if TEMPLATE_FILTER_NAMES.iter().any(|f| f.eq_ignore_ascii_case(ident)) {
-                continue;
-            }
-            vars.insert(ident.to_uppercase());
-        }
-    }
-
-    vars
 }
 
 fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeSet<String> {
@@ -133,10 +97,12 @@ fn required_vars_for_validation(validation: &crate::rules::Validation) -> BTreeS
             vars.insert("TOKEN".to_string());
             vars.insert("CRED_NAME".to_string());
         }
-        Validation::Raw(_) => {
-            vars.insert("TOKEN".to_string());
+        Validation::Raw(raw) => {
+            vars.extend(kingfisher_scanner::validation::raw::required_vars(raw));
         }
     }
+
+    vars.retain(|var| !is_auto_provided_request_var(var));
 
     vars
 }
@@ -936,7 +902,11 @@ impl DetailsReporter {
 
         let validation_status = if rm.validation_success {
             "Active Credential".to_string()
-        } else if rm.validation_response_status == StatusCode::CONTINUE.as_u16() {
+        } else if matches!(
+            rm.validation_response_status,
+            status if status == StatusCode::CONTINUE.as_u16()
+                || status == StatusCode::PRECONDITION_REQUIRED.as_u16()
+        ) {
             "Not Attempted".to_string()
         } else {
             "Inactive Credential".to_string()
@@ -1969,7 +1939,7 @@ mod tests {
 
         let (report_match, _) = sample_report_match(
             "(skip list entry) AWS validation not attempted for account 111122223333.",
-            StatusCode::CONTINUE.as_u16(),
+            StatusCode::PRECONDITION_REQUIRED.as_u16(),
             false,
         );
         let scan_args = sample_scan_args();

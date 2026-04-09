@@ -27,8 +27,8 @@ DEFAULT_RULES_DIR = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Count total rules and detector rules. "
-            "Detector rules are rules that do not "
+            "Count total rules and standalone detector rules. "
+            "Standalone detector rules are rules that do not "
             "declare depends_on_rule."
         )
     )
@@ -37,6 +37,14 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_RULES_DIR,
         help="Directory containing rule YAML files (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--list-validators",
+        action="store_true",
+        help=(
+            "Print the IDs of standalone detectors with and "
+            "without a validator"
+        ),
     )
     return parser.parse_args()
 
@@ -59,6 +67,14 @@ def iter_rule_entries(path: Path) -> list[dict]:
     return entries
 
 
+def rule_identifier(rule: dict, path: Path, index: int) -> str:
+    if isinstance(rule.get("id"), str) and rule["id"].strip():
+        return rule["id"]
+    if isinstance(rule.get("name"), str) and rule["name"].strip():
+        return rule["name"]
+    return f"{path.stem}#{index}"
+
+
 def main() -> int:
     args = parse_args()
     rules_dir = args.rules_dir.resolve()
@@ -74,6 +90,8 @@ def main() -> int:
 
     total_rules = 0
     dependent_rules = 0
+    standalone_with_validator: list[str] = []
+    standalone_without_validator: list[str] = []
 
     for path in rule_files:
         try:
@@ -86,14 +104,44 @@ def main() -> int:
         dependent_rules += sum(
             1 for rule in rules if rule.get("depends_on_rule")
         )
+        for index, rule in enumerate(rules, start=1):
+            if rule.get("depends_on_rule"):
+                continue
 
-    detector_rules = total_rules - dependent_rules
+            identifier = rule_identifier(rule, path, index)
+            if rule.get("validation"):
+                standalone_with_validator.append(identifier)
+            else:
+                standalone_without_validator.append(identifier)
+
+    standalone_detector_rules = total_rules - dependent_rules
 
     print(f"Rules directory: {rules_dir}")
-    print(f"Rule files: {len(rule_files)}")
     print(f"Total rules: {total_rules}")
     print(f"Dependent rules: {dependent_rules}")
-    print(f"Detectors: {detector_rules}")
+    print(f"Standalone detectors: {standalone_detector_rules}")
+    print(
+        "Standalone detectors with validator: "
+        f"{len(standalone_with_validator)}"
+    )
+    print(
+        "Standalone detectors without validator: "
+        f"{len(standalone_without_validator)}"
+    )
+
+    if args.list_validators:
+        print(
+            "\nStandalone detectors with validator "
+            f"({len(standalone_with_validator)}):"
+        )
+        for name in standalone_with_validator:
+            print(f"  {name}")
+        print(
+            "\nStandalone detectors without validator "
+            f"({len(standalone_without_validator)}):"
+        )
+        for name in standalone_without_validator:
+            print(f"  {name}")
 
     return 0
 

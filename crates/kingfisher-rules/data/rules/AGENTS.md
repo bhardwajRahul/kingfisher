@@ -30,6 +30,7 @@ Strongly recommended fields:
 
 ## Pattern Quality Rules
 - Prefer specific anchors/prefixes and provider context over broad generic regex.
+- Keep helper/context regex narrow. Avoid patterns that match generic URLs, hostnames, query params, or assignments without strong provider-specific constraints; broad helpers can create huge match counts and cause major memory/time regressions on large repos and git history.
 - When the token format is generic or common-looking (for example bare 32-hex keys), prefer contextual patterns of the form: provider keyword -> short flexible gap -> key/secret label -> short flexible gap -> token. A good default is:
   - `\b`
   - provider identifier (for example `amplitude`, `azure`, `speech`, `translator`)
@@ -57,8 +58,11 @@ Strongly recommended fields:
 ## Validation Policy (Important)
 - Default: define validation logic in YAML under `validation:`.
 - Do not move validation logic into Rust unless YAML cannot reliably express it.
-- Code-backed validation types (for example AWS, GCP, Coinbase, MongoDB) are notable exceptions and should remain rare.
 - For new rules, first attempt `Http`/`Grpc` YAML validation before considering exception paths.
+- Typed validation kinds such as `AWS`, `AzureStorage`, `Coinbase`, `GCP`, `MongoDB`, `MySQL`, `Postgres`, `Jdbc`, and `JWT` are schema-level validator families. Use them when an existing typed validator already matches the problem.
+- `validation: { type: Raw, content: <name> }` is the ad-hoc exception path for provider-specific or protocol-specific flows that cannot be expressed cleanly in YAML. Raw implementations live in `crates/kingfisher-scanner/src/validation/raw.rs`.
+- When Rust validation is unavoidable for a one-off provider, prefer adding a raw validator instead of inventing a new typed validator.
+- Do not convert existing typed validators to `Raw` just for consistency.
 
 ## Revocation Policy
 - If a rule has validation and the provider API safely supports revocation, add `revocation:` in the same YAML rule.
@@ -70,7 +74,7 @@ Strongly recommended fields:
 1. Choose the target provider file (or add a new provider file if no suitable file exists).
 2. Copy a structurally similar rule from this directory.
 3. Implement/adjust `pattern`, `examples`, and filtering (`pattern_requirements`, `min_entropy`).
-4. Add YAML `validation` (default path).
+4. Add YAML `validation` (default path). Prefer `Http`/`Grpc`; if that fails, use an existing typed validator or `type: Raw` only when justified.
 5. Add YAML `revocation` when supported.
 6. Add `references` for token format/API behavior.
 7. Verify locally (below).
@@ -80,6 +84,9 @@ Strongly recommended fields:
   - `cargo test -p kingfisher-rules`
 - Broader regression check:
   - `cargo test --workspace --all-targets`
+- Match-volume check on a realistic large target:
+  - `kingfisher scan <large-repo-or-test-corpus> --rule-stats`
+  - Review unexpected high-match helper/generic rules before submitting.
 - **Warning-free build**: `cargo check` (or `make darwin` / `make linux`) must produce zero warnings. Address all `dead_code`, `unused_*`, and other warnings before submitting. Use `#[allow(dead_code)]` on individual struct fields kept for deserialization completeness, and remove truly unused code.
 - Behavioral check against sample content:
   - `kingfisher scan ./testdata --rule <rule-family-or-id> --rule-stats`

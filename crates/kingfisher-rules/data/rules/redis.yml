@@ -5,13 +5,15 @@ rules:
     # Host supports hostnames, IPv4, and IPv6 in brackets
     pattern: |
       (?xi)
-      (?: redis | rediss | redis\+sentinel ) ://
-        (?: (?P<username>[a-zA-Z0-9%;._~!$&'()*+,;=-]*)
-          :
-        )?
-        (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;:=/+-]{8,})
-      @ (?P<host>(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9_.-]{1,})) (?: :(?P<port>\d{1,5}))?
-      (?: / (?P<db>\d{1,2}))?
+      (?P<TOKEN>
+        (?: redis | rediss | redis\+sentinel ) ://
+          (?: (?P<username>[a-zA-Z0-9%;._~!$&'()*+,;=-]*)
+            :
+          )?
+          (?P<password>[a-zA-Z0-9%;._~!$&'()*+,;:=/+-]{8,})
+        @ (?P<host>(?:\[[0-9a-fA-F:.]+\]|[a-zA-Z0-9_.-]{1,})) (?: :(?P<port>\d{1,5}))?
+        (?: / (?P<db>\d{1,2}))?
+      )
       \b
 
     pattern_requirements:
@@ -42,6 +44,9 @@ rules:
       - https://redis.io/docs/latest/develop/clients/redis-py/connect/
       - https://redis.io/docs/latest/commands/auth/
       - https://github.com/redis/redis-py/blob/master/redis/client.py
+    validation:
+      type: Raw
+      content: redis
 
   - id: kingfisher.redis.2
     name: Python Redis Client Debug Output

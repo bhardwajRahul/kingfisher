@@ -30,5 +30,20 @@ rules:
             - type: WordMatch
               words:
                 - '"email":'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://oauth2.googleapis.com/revoke
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: token={{ TOKEN | url_encode }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
     references:
       - https://developers.google.com/identity/protocols/oauth2
+      - https://developers.google.com/identity/protocols/oauth2/web-server

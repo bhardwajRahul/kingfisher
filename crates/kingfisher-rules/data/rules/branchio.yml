@@ -45,6 +45,20 @@ rules:
       - 'branch.init("key_test_plqYW3Aq9Xija1cobGMieipndBzO5y7J");'
     references:
       - https://help.branch.io/developers-hub/docs/deep-linking-api
+      - https://help.branch.io/apidocs/app-api
+    depends_on_rule:
+      - rule_id: kingfisher.branchio.3
+        variable: BRANCH_SECRET
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: "https://api2.branch.io/v1/app/{{ TOKEN }}?branch_secret={{ BRANCH_SECRET }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
 
   - name: Branch.io Secret
     id: kingfisher.branchio.3

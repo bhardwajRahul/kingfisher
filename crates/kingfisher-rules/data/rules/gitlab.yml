@@ -191,3 +191,285 @@ rules:
             - type: StatusMatch
               status: [204]
           url: https://gitlab.com/api/v4/personal_access_tokens/self
+
+  - name: GitLab CI/CD Job Token
+    id: kingfisher.gitlab.5
+    pattern: |
+      (?x)
+      \b
+      (
+        glcbt-
+        [0-9a-zA-Z]{1,5}
+        _
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glcbt-ab12_xY9kLmNpQrStUvWxYz01
+      - 'CI_JOB_TOKEN=glcbt-a1b2c_3dEfGhIjKlMnOpQrStUv'
+    references:
+      - https://docs.gitlab.com/ci/jobs/ci_job_token/
+      - https://docs.gitlab.com/api/jobs/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://gitlab.com/api/v4/job
+          headers:
+            JOB-TOKEN: '{{ TOKEN }}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - '"id"'
+                - '"status"'
+    # Revocation not added: CI/CD job tokens are short-lived and automatically
+    # invalidated when the job finishes.
+
+  - name: GitLab Deploy Token
+    id: kingfisher.gitlab.6
+    pattern: |
+      (?x)
+      \b
+      (
+        gldt-
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - gldt-xY9kLmNpQrStUvWxYz01
+      - 'DEPLOY_TOKEN=gldt-3dEfGhIjK4MnOpQrStUv'
+    references:
+      - https://docs.gitlab.com/user/project/deploy_tokens/
+
+  - name: GitLab Feature Flag Client Token
+    id: kingfisher.gitlab.7
+    pattern: |
+      (?x)
+      \b
+      (
+        glffct-
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glffct-xY9kLmNpQrStUvWxYz01
+    references:
+      - https://docs.gitlab.com/operations/feature_flags/
+
+  - name: GitLab Feed Token
+    id: kingfisher.gitlab.8
+    pattern: |
+      (?x)
+      \b
+      (
+        glft-
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glft-xY9kLmNpQrStUvWxYz01
+    references:
+      - https://docs.gitlab.com/user/profile/contributions_calendar/#feed-token
+
+  - name: GitLab Incoming Mail Token
+    id: kingfisher.gitlab.9
+    pattern: |
+      (?x)
+      \b
+      (
+        glimt-
+        [0-9a-zA-Z_-]{25}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glimt-xY9kLmNpQrStUvWxYz0123456
+    references:
+      - https://docs.gitlab.com/administration/incoming_email/
+
+  - name: GitLab Kubernetes Agent Token
+    id: kingfisher.gitlab.10
+    pattern: |
+      (?x)
+      \b
+      (
+        glagent-
+        [0-9a-zA-Z_-]{50}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glagent-xY9kLmNpQrStUvWxYz01234567890abcdefghijklmnopqrstu
+    references:
+      - https://docs.gitlab.com/user/clusters/agent/
+
+  - name: GitLab OAuth Application Secret
+    id: kingfisher.gitlab.11
+    pattern: |
+      (?x)
+      \b
+      (
+        gloas-
+        [0-9a-zA-Z_-]{64}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - gloas-xY9kLmNpQrStUvWxYz01234567890abcdefghijklmnopqrstuvwxyz012345678
+    references:
+      - https://docs.gitlab.com/integration/oauth_provider/
+
+  - name: GitLab Runner Authentication Token
+    id: kingfisher.gitlab.12
+    pattern: |
+      (?x)
+      \b
+      (
+        glrt-
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glrt-xY9kLmNpQrStUvWxYz01
+      - |
+        gitlab-runner register \
+        --url https://gitlab.com \
+        --token glrt-3dEfGhIjK4MnOpQrStUv
+    references:
+      - https://docs.gitlab.com/runner/register/
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: token={{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: 200
+            - type: WordMatch
+              words:
+                - '"token is missing"'
+                - '"403 Forbidden"'
+              negative: true
+          url: https://gitlab.com/api/v4/runners/verify
+
+  - name: GitLab Runner Authentication Token - Routable Format
+    id: kingfisher.gitlab.13
+    pattern: |
+      (?x)
+      \b
+      (
+        glrt-t
+        \d
+        _
+        [0-9a-zA-Z_-]{27,300}
+        \.
+        [0-9a-z]{2}
+        [0-9a-z]{7}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 4.0
+    confidence: medium
+    examples:
+      - glrt-t1_xY9kLmNpQrStUvWxYz01234567890.01abc1234
+    references:
+      - https://docs.gitlab.com/runner/register/
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          body: token={{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: 200
+            - type: WordMatch
+              words:
+                - '"token is missing"'
+                - '"403 Forbidden"'
+              negative: true
+          url: https://gitlab.com/api/v4/runners/verify
+
+  - name: GitLab SCIM Token
+    id: kingfisher.gitlab.14
+    pattern: |
+      (?x)
+      \b
+      (
+        glsoat-
+        [0-9a-zA-Z_-]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - glsoat-xY9kLmNpQrStUvWxYz01
+    references:
+      - https://docs.gitlab.com/api/scim/
+
+  - name: GitLab Session Cookie
+    id: kingfisher.gitlab.15
+    pattern: |
+      (?x)
+      (?:^|[;\s])
+      _gitlab_session=
+      (
+        [0-9a-f]{32}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - '_gitlab_session=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+      - 'Cookie: _gitlab_session=0f1e2d3c4b5a69788796a5b4c3d2e1f0'
+    references:
+      - https://docs.gitlab.com/

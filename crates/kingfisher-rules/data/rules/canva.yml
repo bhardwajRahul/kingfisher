@@ -1,0 +1,20 @@
+rules:
+  - name: Canva Connect API Client Secret
+    id: kingfisher.canva.1
+    pattern: |
+      (?x)
+      \b
+      (
+        cnvca[a-zA-Z0-9_-]{20,80}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.5
+    confidence: high
+    categories: [api, key]
+    examples:
+      - 'CANVA_CLIENT_SECRET=cnvcaAbCdEfGhIjKlMnOpQrStUvWxYz123456'
+    references:
+      - https://www.canva.dev/docs/connect/authentication/
+      - https://www.canva.dev/docs/connect/guidelines/security/

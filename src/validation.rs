@@ -614,10 +614,12 @@ async fn timed_validate_single_match<'a>(
             let request_timeout = validation_timeout;
             let multipart_timeout = validation_timeout;
             let max_retries: u32 = validation_retries;
+            let request_globals = httpvalidation::with_request_template_globals(&globals);
+            let cache_globals = httpvalidation::with_cache_key_template_globals(&globals);
             // render URL
             let url = match render_and_parse_url(
                 parser,
-                &globals,
+                &request_globals,
                 &rule_syntax.name,
                 &http_validation.request.url,
                 clients.allow_internal_ips,
@@ -643,7 +645,7 @@ async fn timed_validate_single_match<'a>(
                 &http_validation.request.body,
                 request_timeout,
                 parser,
-                &globals,
+                &request_globals,
             ) {
                 Ok(rb) => rb,
                 Err(e) => {
@@ -660,10 +662,19 @@ async fn timed_validate_single_match<'a>(
 
             // old per-request cache (optional)
             if !is_multipart {
+                let cache_url = render_template(
+                    parser,
+                    &cache_globals,
+                    &rule_syntax.name,
+                    &http_validation.request.url,
+                )
+                .await
+                .unwrap_or_else(|_| http_validation.request.url.clone());
+
                 let rendered_headers = httpvalidation::process_headers(
                     &http_validation.request.headers,
                     parser,
-                    &globals,
+                    &cache_globals,
                     &url,
                 )
                 .unwrap_or_default();
@@ -681,12 +692,12 @@ async fn timed_validate_single_match<'a>(
                         parser
                             .parse(body_template)
                             .ok()
-                            .and_then(|template| template.render(&globals).ok())
+                            .and_then(|template| template.render(&cache_globals).ok())
                     });
 
                 cache_key = httpvalidation::generate_http_cache_key_parts(
                     http_validation.request.method.as_str(),
-                    &url,
+                    &cache_url,
                     &header_map,
                     rendered_body.as_deref(),
                 );
@@ -726,7 +737,7 @@ async fn timed_validate_single_match<'a>(
                     if let Ok(mut headers) = httpvalidation::process_headers(
                         &http_validation.request.headers,
                         parser,
-                        &globals,
+                        &request_globals,
                         &url,
                     ) {
                         // add realistic UA & accept headers
@@ -752,7 +763,7 @@ async fn timed_validate_single_match<'a>(
                             "file" => {
                                 let path = render_template(
                                     parser,
-                                    &globals,
+                                    &request_globals,
                                     &rule_syntax.name,
                                     &part.content,
                                 )
@@ -771,7 +782,7 @@ async fn timed_validate_single_match<'a>(
                             "text" => {
                                 let txt = render_template(
                                     parser,
-                                    &globals,
+                                    &request_globals,
                                     &rule_syntax.name,
                                     &part.content,
                                 )
@@ -872,11 +883,12 @@ async fn timed_validate_single_match<'a>(
         // ---------------------------------------------------- gRPC validator
         Some(Validation::Grpc(grpc_validation_cfg)) => {
             let request_timeout = validation_timeout;
+            let request_globals = httpvalidation::with_request_template_globals(&globals);
 
             // Render URL
             let url = match render_and_parse_url(
                 parser,
-                &globals,
+                &request_globals,
                 &rule_syntax.name,
                 &grpc_validation_cfg.request.url,
                 clients.allow_internal_ips,
@@ -899,7 +911,7 @@ async fn timed_validate_single_match<'a>(
                 &grpc_validation_cfg.request.headers,
                 &grpc_validation_cfg.request.body,
                 parser,
-                &globals,
+                &request_globals,
                 request_timeout,
             )
             .await
@@ -1309,7 +1321,7 @@ async fn timed_validate_single_match<'a>(
                     "(skip list entry) AWS validation not attempted for account {}.",
                     account_id
                 ));
-                m.validation_response_status = StatusCode::CONTINUE;
+                m.validation_response_status = StatusCode::PRECONDITION_REQUIRED;
                 cache.insert(
                     cache_key,
                     CachedResponse {
@@ -1481,11 +1493,28 @@ async fn timed_validate_single_match<'a>(
         }
         // --------------------------------------------------------- Raw / none
         Some(Validation::Raw(raw)) => {
-            debug!("Raw validation not implemented: {}", raw);
-            m.validation_success = false;
-            m.validation_response_body =
-                validation_body::from_string("Validator not implemented".to_string());
-            m.validation_response_status = StatusCode::NOT_IMPLEMENTED;
+            match kingfisher_scanner::validation::raw::validate_raw(
+                raw,
+                &globals,
+                client,
+                clients.should_use_lax(rule_syntax.tls_mode),
+                clients.allow_internal_ips,
+            )
+            .await
+            {
+                Ok(result) => {
+                    m.validation_success = result.valid;
+                    m.validation_response_body = validation_body::from_string(result.body);
+                    m.validation_response_status = result.status;
+                }
+                Err(e) => {
+                    debug!("Raw validation error for {}: {}", raw, e);
+                    m.validation_success = false;
+                    m.validation_response_body =
+                        validation_body::from_string(format!("Raw validation error: {}", e));
+                    m.validation_response_status = StatusCode::BAD_GATEWAY;
+                }
+            }
         }
         None => { /* no validation specified */ }
     }

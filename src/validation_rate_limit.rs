@@ -117,8 +117,8 @@ fn selector_matches(rule_id: &str, selector: &str) -> bool {
         || rule_id.strip_prefix(selector).is_some_and(|suffix| suffix.starts_with('.'))
 }
 
-pub fn should_rate_limit_validation(validation: &Validation) -> bool {
-    !matches!(validation, Validation::Raw(_))
+pub fn should_rate_limit_validation(_validation: &Validation) -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn should_skip_rate_limit_for_raw_validation() {
-        assert!(!should_rate_limit_validation(&Validation::Raw("custom".to_string())));
+    fn should_rate_limit_raw_validation() {
+        assert!(should_rate_limit_validation(&Validation::Raw("azurebatch".to_string())));
     }
 }

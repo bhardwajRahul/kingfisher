@@ -12,7 +12,10 @@ use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::{distr::Alphanumeric, RngExt};
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384};
-use time::{format_description::well_known::Iso8601, OffsetDateTime};
+use time::{
+    format_description::well_known::{Iso8601, Rfc2822},
+    OffsetDateTime,
+};
 use uuid::Uuid;
 
 // -----------------------------------------------------------------------------
@@ -294,6 +297,42 @@ impl Filter for HmacSha384Filter {
         Ok(Value::scalar(
             base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes()),
         ))
+    }
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "hmac_sha384_hex",
+    description = "HMAC-SHA384 - returns lowercase hex.",
+    parameters(Hmac384Args),
+    parsed(HmacSha384HexFilter)
+)]
+pub struct HmacSha384Hex;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "hmac_sha384_hex"]
+struct HmacSha384HexFilter {
+    #[parameters]
+    args: Hmac384Args,
+}
+
+impl Filter for HmacSha384HexFilter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        use std::fmt::Write as _;
+
+        let args = self.args.evaluate(runtime)?;
+        let key = args.key.to_kstr();
+
+        let mut mac = Hmac::<Sha384>::new_from_slice(key.as_bytes()).unwrap();
+        mac.update(input.to_kstr().as_bytes());
+
+        let bytes = mac.finalize().into_bytes();
+        let mut hex = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            let _ = write!(&mut hex, "{byte:02x}");
+        }
+
+        Ok(Value::scalar(hex))
     }
 }
 
@@ -903,6 +942,15 @@ static_filter!(
     }
 );
 
+// {{ "" | unix_timestamp_ms }}
+static_filter!(
+    /// Current Unix epoch milliseconds.
+    UnixTimestampMsFilter, "unix_timestamp_ms",
+    |_input: &dyn ValueView| -> i64 {
+        (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64
+    }
+);
+
 // {{ "" | iso_timestamp_no_frac }}
 static_filter!(
     /// Current ISO-8601 timestamp (UTC) with no fractional seconds.
@@ -933,6 +981,21 @@ static_filter!(
     }
 );
 
+// {{ "" | rfc1123_date }}
+static_filter!(
+    /// Current RFC-1123 timestamp in GMT.
+    Rfc1123DateFilter, "rfc1123_date",
+    |_input: &dyn ValueView| -> String {
+        let rendered = OffsetDateTime::now_utc()
+            .format(&Rfc2822)
+            .unwrap_or_else(|_| "Thu, 01 Jan 1970 00:00:00 +0000".into());
+        rendered
+            .strip_suffix(" +0000")
+            .map(|prefix| format!("{prefix} GMT"))
+            .unwrap_or(rendered)
+    }
+);
+
 // -----------------------------------------------------------------------------
 // Request Uniqueness
 // -----------------------------------------------------------------------------
@@ -953,8 +1016,10 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(UrlEncodeFilter::default())
         .filter(JsonEscapeFilter::default())
         .filter(UnixTimestampFilter::default())
+        .filter(UnixTimestampMsFilter::default())
         .filter(IsoTimestampFilter::default())
         .filter(IsoTimestampNoFracFilter::default())
+        .filter(Rfc1123DateFilter::default())
         .filter(UuidFilter::default())
         .filter(JwtHeaderFilter::default())
         .filter(B64EncFilter::default())
@@ -974,6 +1039,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(HmacSha256B64Key::default())
         .filter(HmacSha1::default())
         .filter(HmacSha384::default())
+        .filter(HmacSha384Hex::default())
 }
 
 #[cfg(test)]
@@ -1148,6 +1214,24 @@ mod tests {
         assert_eq!(render(r#"{{ "payload" | hmac_sha384: "topsecret" }}"#), expect);
     }
 
+    #[test]
+    fn hmac_sha384_hex_filter() {
+        use std::fmt::Write as _;
+
+        let key = b"topsecret";
+        let data = b"payload";
+        let mut mac = Hmac::<Sha384>::new_from_slice(key).unwrap();
+        mac.update(data);
+
+        let bytes = mac.finalize().into_bytes();
+        let mut expect = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            let _ = write!(&mut expect, "{byte:02x}");
+        }
+
+        assert_eq!(render(r#"{{ "payload" | hmac_sha384_hex: "topsecret" }}"#), expect);
+    }
+
     // -------------------------------------------------------------------------
     // Random string
     // -------------------------------------------------------------------------
@@ -1175,6 +1259,13 @@ mod tests {
     }
 
     #[test]
+    fn unix_timestamp_ms_filter_is_nowish() {
+        let tmpl_val: i64 = render(r#"{{ "" | unix_timestamp_ms }}"#).parse().unwrap();
+        let now = (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64;
+        assert!((now - tmpl_val).abs() < 5_000, "timestamp differs by >5 s");
+    }
+
+    #[test]
     fn iso_timestamp_filter_parses() {
         let out = render(r#"{{ "" | iso_timestamp }}"#);
         // Parse to make sure it’s valid ISO-8601
@@ -1191,6 +1282,14 @@ mod tests {
                 .unwrap();
         let v = render(r#"{{ "" | uuid }}"#);
         assert!(uuid_re.is_match(&v));
+    }
+
+    #[test]
+    fn rfc1123_date_filter_format() {
+        let out = render(r#"{{ "" | rfc1123_date }}"#);
+        assert!(out.ends_with(" GMT"), "unexpected RFC-1123 date: {out}");
+        let normalized = out.replace(" GMT", " +0000");
+        assert!(OffsetDateTime::parse(&normalized, &Rfc2822).is_ok());
     }
     // -------------------------------------------------------------------------
     // Replace filter

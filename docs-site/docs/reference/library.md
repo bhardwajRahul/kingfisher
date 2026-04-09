@@ -39,7 +39,13 @@ The `kingfisher-scanner` crate supports optional validation features:
 | ------- | ----------- |
 | `validation` | Core validation support (includes HTTP validation) |
 | `validation-http` | HTTP-based validation for API tokens |
+| `validation-raw` | Provider/protocol-specific raw validation flows for `validation: type: Raw` rules |
 | `validation-aws` | AWS credential validation via STS GetCallerIdentity |
+| `validation-azure` | Azure storage credential validation |
+| `validation-coinbase` | Coinbase credential validation |
+| `validation-gcp` | GCP credential validation |
+| `validation-jwt` | JWT validation |
+| `validation-database` | MongoDB, MySQL, PostgreSQL, and JDBC validation |
 | `validation-all` | Enable all validation features |
 
 ## Quick Start
@@ -262,7 +268,7 @@ flowchart TD
 
 ### Loading Builtin Rules
 
-Kingfisher comes with 700+ builtin rules for common secret types:
+Kingfisher comes with 800+ builtin rules for common secret types:
 
 ```rust
 use kingfisher_rules::{get_builtin_rules, Confidence};
@@ -727,8 +733,16 @@ kingfisher-scanner = { git = "https://github.com/mongodb/kingfisher", features =
 | ------- | ----------- |
 | `validation` | Core validation support with HTTP validation |
 | `validation-http` | HTTP-based validation for API tokens |
+| `validation-raw` | Provider/protocol-specific raw validation flows for `validation: type: Raw` rules |
 | `validation-aws` | AWS credential validation via STS |
+| `validation-azure` | Azure storage credential validation |
+| `validation-coinbase` | Coinbase credential validation |
+| `validation-gcp` | GCP credential validation |
+| `validation-jwt` | JWT validation |
+| `validation-database` | MongoDB, MySQL, PostgreSQL, and JDBC validation |
 | `validation-all` | Enable all validation features |
+
+`validation: type: Raw` is the ad-hoc validator path for provider-specific or protocol-specific checks that are not generic enough to become schema-level validator families. Typed validators such as `AWS`, `GCP`, `MongoDB`, and `JWT` remain separate validator kinds in the rule schema.
 
 ### HTTP Validation Example
 

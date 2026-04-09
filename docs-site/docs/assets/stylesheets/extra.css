@@ -99,6 +99,7 @@
   max-width: 700px;
   margin: 0 auto 2rem;
   color: var(--md-default-fg-color--light);
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -127,11 +128,13 @@
 
 .kf-feature h3 {
   margin-top: 0;
+  font-size: 1.3rem;
   color: var(--md-primary-fg-color);
 }
 
 .kf-feature p {
   color: var(--md-default-fg-color--light);
+  font-size: 0.85rem;
   line-height: 1.6;
   margin-bottom: 0;
 }

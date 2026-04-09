@@ -21,6 +21,7 @@ use crate::{
     cli::{commands::revoke::RevokeArgs, global::GlobalArgs},
     liquid_filters::register_all,
     rule_loader::RuleLoader,
+    template_vars::extract_template_vars,
     validation::aws::{revoke_aws_access_key, validate_aws_credentials_input},
     validation::gcp::revoke_gcp_service_account_key,
     validation::httpvalidation::{build_request_builder, retry_request, validate_response},
@@ -86,12 +87,6 @@ fn find_rules_by_selector<'a>(
     }
 
     Ok(matches)
-}
-
-/// Extract Liquid template variable names from a string.
-fn extract_template_vars(text: &str) -> BTreeSet<String> {
-    let re = Regex::new(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\|[^}]*)?\}\}").unwrap();
-    re.captures_iter(text).filter_map(|cap| cap.get(1).map(|m| m.as_str().to_uppercase())).collect()
 }
 
 /// Extract all template variables used in a revocation configuration.
