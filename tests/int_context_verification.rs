@@ -1,26 +1,44 @@
-use std::{fs, process::Command};
+use std::{ffi::OsString, fs, path::Path, process::Command};
 
 use anyhow::{Context, Result};
 use serde_json::{Deserializer, Value};
 
-fn is_parser_fixture(path: &str) -> bool {
-    path.replace('\\', "/").starts_with("testdata/parsers/")
+fn scan_inputs_without_parser_fixtures() -> Result<Vec<OsString>> {
+    let mut inputs = fs::read_dir("testdata")
+        .context("read testdata directory")?
+        .map(|entry| {
+            let entry = entry.context("read testdata entry")?;
+            let path = entry.path();
+            Ok((entry.file_name(), path))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    inputs.sort_by(|left, right| left.0.cmp(&right.0));
+
+    Ok(inputs
+        .into_iter()
+        .filter_map(|(name, path)| {
+            (name != OsString::from("parsers")).then_some(path.into_os_string())
+        })
+        .collect())
 }
 
 #[test]
 fn scan_findings_match_pre_removal_baseline() -> Result<()> {
+    let mut args = vec![OsString::from("scan")];
+    args.extend(scan_inputs_without_parser_fixtures()?);
+    args.extend([
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--no-validate"),
+        OsString::from("--no-update-check"),
+        OsString::from("--no-dedup"),
+    ]);
+
     let output = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
-        .args([
-            "scan",
-            "testdata",
-            "--format",
-            "json",
-            "--no-validate",
-            "--no-update-check",
-            "--no-dedup",
-        ])
+        .args(&args)
         .output()
-        .context("run kingfisher scan against testdata")?;
+        .context("run kingfisher scan against testdata inputs without parser fixtures")?;
 
     let code = output.status.code().unwrap_or_default();
     assert!(
@@ -42,21 +60,11 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
         .and_then(Value::as_array)
         .context("scan output missing findings array")?;
 
-    // `testdata/parsers/*` intentionally contains baseline fixtures that repeat real secrets from
-    // the scanned corpus. Scan ordering is parallelized, so store-level dedup can otherwise keep
-    // either the fixture copy or the real-file copy nondeterministically. Compare a stable
-    // rule+snippet set from the non-parser files instead.
+    // This baseline is meant to verify the secret corpus, not store-level dedup behavior or the
+    // parser fixture artifacts kept under `testdata/parsers/`. Scan only the real corpus inputs
+    // and compare a stable unique rule+snippet set.
     let mut actual = findings
         .iter()
-        .filter(|finding| {
-            finding
-                .get("finding")
-                .and_then(Value::as_object)
-                .and_then(|data| data.get("path"))
-                .and_then(Value::as_str)
-                .map(|path| !is_parser_fixture(path))
-                .unwrap_or(true)
-        })
         .map(|finding| {
             let rule = finding.get("rule").and_then(Value::as_object).cloned().unwrap_or_default();
             serde_json::json!({
@@ -101,8 +109,13 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
 }
 
 #[test]
-fn parser_fixture_filter_normalizes_windows_paths() {
-    assert!(is_parser_fixture("testdata/parsers/scan_findings_baseline.json"));
-    assert!(is_parser_fixture(r"testdata\parsers\scan_findings_baseline.json"));
-    assert!(!is_parser_fixture("testdata/generic_secrets.py"));
+fn scan_inputs_exclude_parser_fixture_directory() -> Result<()> {
+    let inputs = scan_inputs_without_parser_fixtures()?;
+
+    assert!(inputs.iter().all(|path| Path::new(path) != Path::new("testdata/parsers")));
+    assert!(inputs
+        .iter()
+        .any(|path| Path::new(path) == Path::new("testdata/python_vulnerable.py")));
+
+    Ok(())
 }
