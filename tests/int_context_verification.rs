@@ -6,7 +6,15 @@ use serde_json::{Deserializer, Value};
 #[test]
 fn scan_findings_match_pre_removal_baseline() -> Result<()> {
     let output = Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
-        .args(["scan", "testdata", "--format", "json", "--no-validate", "--no-update-check"])
+        .args([
+            "scan",
+            "testdata",
+            "--format",
+            "json",
+            "--no-validate",
+            "--no-update-check",
+            "--no-dedup",
+        ])
         .output()
         .context("run kingfisher scan against testdata")?;
 
@@ -30,6 +38,10 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
         .and_then(Value::as_array)
         .context("scan output missing findings array")?;
 
+    // `testdata/parsers/*` intentionally contains baseline fixtures that repeat real secrets from
+    // the scanned corpus. Scan ordering is parallelized, so store-level dedup can otherwise keep
+    // either the fixture copy or the real-file copy nondeterministically. Compare a stable
+    // rule+snippet set from the non-parser files instead.
     let mut actual = findings
         .iter()
         .filter(|finding| {
@@ -54,6 +66,7 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
         })
         .collect::<Vec<_>>();
     actual.sort_by(|left, right| left.to_string().cmp(&right.to_string()));
+    actual.dedup();
 
     let mut expected = serde_json::from_str::<Vec<Value>>(
         &fs::read_to_string("testdata/parsers/scan_findings_baseline.json")
@@ -77,6 +90,7 @@ fn scan_findings_match_pre_removal_baseline() -> Result<()> {
     })
     .collect::<Vec<_>>();
     expected.sort_by(|left, right| left.to_string().cmp(&right.to_string()));
+    expected.dedup();
 
     assert_eq!(actual, expected);
     Ok(())
