@@ -10,7 +10,7 @@ The implementation favors lightweight extractors over full AST parsing:
 - **`tl`** for HTML — attribute values, element text, and embedded `<script>` / `<style>` delegation
 - **`cssparser`** for CSS — declaration parsing via Mozilla’s CSS tokenizer
 
-> **History:** Earlier versions used tree-sitter with 17 statically-linked
+> **History:** Earlier parser implementations relied on 17 statically-linked
 > grammar crates. This added ~20 MB to the binary and required building a
 > full syntax tree just to extract assignment pairs. The current lexer-based
 > approach achieves the same extraction quality with near-zero binary overhead

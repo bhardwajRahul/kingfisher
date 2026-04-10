@@ -8,7 +8,8 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 All notable changes to this project will be documented in this file.
 
 ## [v1.95.0]
-- Added 80+ built-in rules, bringing the bundled ruleset to 820 total. New coverage includes Amazon OAuth, Asaas, multiple Azure credential families, Bitrise, Canva, CockroachDB, eBay, Elastic, hCaptcha, Highnote, Lichess, MailerSend, Onfido, Paddle, Pangea, Persona, Pinterest, Proof, Rootly, Runpod, Telnyx, Thunderstore, Valtown, Volcengine, and more.
+- Fixed scan performance regression: the rule profiler was unconditionally active even without `--rule-stats`, causing RwLock contention across scan threads. Scans are now ~15% faster than v1.94.0.
+- Added 80+ built-in rules, bringing the bundled ruleset to 825 total. New coverage includes Amazon OAuth, Asaas, multiple Azure credential families, Bitrise, Canva, CockroachDB, eBay, Elastic, hCaptcha, Highnote, Lichess, MailerSend, Onfido, Paddle, Pangea, Persona, Pinterest, Proof, Rootly, Runpod, Telnyx, Thunderstore, Valtown, Volcengine, and more.
 - Replaced tree-sitter with a lighter parser-based context verifier built from handwritten lexers plus `tl`/`cssparser`, preserving context-dependent matching while cutting about 19 MB from the release binary.
 - Added a `validation: type: Raw` exception path for provider-specific checks, with new raw validators for Azure Batch, FTP, Kraken, LDAP, RabbitMQ, and Redis. Also added stable request-scoped template values plus new Liquid filters for HMAC-SHA384 hex output and timestamp generation.
 - Expanded live validation coverage for several built-in rules, including Agora, Bitfinex, DocuSign, Dwolla, GitLab, KuCoin, RingCentral, Snowflake, Tableau, Trello, and Webex. Also tightened newly added helper regex to avoid high-match scan regressions, and made preflight-blocked raw validations report as skipped/not attempted instead of failed.

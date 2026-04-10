@@ -48,17 +48,17 @@ DOC_MAP = {
     "ACCESS_MAP.md": (
         "features/access-map.md",
         "Access Map (Blast Radius)",
-        "Map the blast radius of leaked credentials. Authenticate against 39 providers to enumerate accessible resources and permissions.",
+        "Map the blast radius of leaked credentials by authenticating and enumerating accessible resources and permissions.",
     ),
     "REVOCATION_PROVIDERS.md": (
         "features/revocation.md",
         "Secret Revocation",
-        "Revoke compromised credentials directly from the CLI. Supports 20+ providers including GitHub, GitLab, Slack, AWS, and GCP.",
+        "Revoke compromised credentials directly from the CLI using built-in provider-specific revocation flows.",
     ),
     "PARSING.md": (
         "features/parsing.md",
         "Source Code Parsing",
-        "Language-aware secret detection using tree-sitter parsing for 13+ languages including Python, JavaScript, Go, Rust, and more.",
+        "Language-aware secret detection using lightweight parser-based context verification across 16 supported source and config languages.",
     ),
     "FINGERPRINT.md": (
         "features/fingerprints.md",

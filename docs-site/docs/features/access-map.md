@@ -1,6 +1,6 @@
 ---
 title: "Access Map (Blast Radius)"
-description: "Map the blast radius of leaked credentials. Authenticate against 39 providers to enumerate accessible resources and permissions."
+description: "Map the blast radius of leaked credentials by authenticating and enumerating accessible resources and permissions."
 ---
 
 # Access Map: supported tokens & credential formats

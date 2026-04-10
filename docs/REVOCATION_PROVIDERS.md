@@ -3,8 +3,8 @@
 Kingfisher supports direct secret revocation through rule-level `revocation:` blocks.
 
 Current coverage in built-in rules:
-- `23` provider families
-- `39` revocation-enabled rules
+- `28` provider families
+- `46` revocation-enabled rules
 
 Use `kingfisher revoke --rule <rule-id> <secret>` to invoke these flows. See [USAGE.md](USAGE.md#direct-secret-revocation-with-kingfisher-revoke) for command details.
 
@@ -17,12 +17,15 @@ Use `kingfisher revoke --rule <rule-id> <secret>` to invoke these flows. See [US
 | `buildkite` | 1 | `kingfisher.buildkite.1` |
 | `cloudflare` | 1 | `kingfisher.cloudflare.1` |
 | `confluent` | 2 | `kingfisher.confluent.2`, `kingfisher.confluent.3` |
+| `cratesio` | 1 | `kingfisher.cratesio.1` |
 | `deviantart` | 1 | `kingfisher.deviantart.1` |
 | `doppler` | 6 | `kingfisher.doppler.1`, `kingfisher.doppler.2`, `kingfisher.doppler.3`, `kingfisher.doppler.4`, `kingfisher.doppler.5`, `kingfisher.doppler.6` |
 | `gcp` | 1 | `kingfisher.gcp.1` |
 | `github` | 3 | `kingfisher.github.1`, `kingfisher.github.2`, `kingfisher.github.5` |
 | `gitlab` | 2 | `kingfisher.gitlab.1`, `kingfisher.gitlab.4` |
+| `google` | 2 | `kingfisher.google.4`, `kingfisher.google.oauth2.1` |
 | `harness` | 1 | `kingfisher.harness.pat.1` |
+| `heroku` | 2 | `kingfisher.heroku.1`, `kingfisher.heroku.2` |
 | `mapbox` | 1 | `kingfisher.mapbox.2` |
 | `mongodb` | 1 | `kingfisher.mongodb.1` |
 | `npm` | 2 | `kingfisher.npm.1`, `kingfisher.npm.2` |
@@ -35,6 +38,8 @@ Use `kingfisher revoke --rule <rule-id> <secret>` to invoke these flows. See [US
 | `twitch` | 1 | `kingfisher.twitch.1` |
 | `unkey` | 1 | `kingfisher.unkey.2` |
 | `vercel` | 5 | `kingfisher.vercel.1`, `kingfisher.vercel.2`, `kingfisher.vercel.3`, `kingfisher.vercel.4`, `kingfisher.vercel.5` |
+| `vonage` | 1 | `kingfisher.vonage.2` |
+| `vultr` | 1 | `kingfisher.vultr.1` |
 
 ## Notes
 
