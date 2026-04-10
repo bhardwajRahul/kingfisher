@@ -1,13 +1,13 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 821 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 825 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **821 detection rules** across **510 providers**
-(721 detectors + 100 dependent rules).
-Of these, **513** include live validation and **45** support direct revocation.
+Kingfisher ships with **825 detection rules** across **510 providers**
+(719 detectors + 106 dependent rules).
+Of these, **521** include live validation and **46** support direct revocation.
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -199,6 +199,22 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Akamai</td>
 <td>Akamai API Client Secret</td>
 <td><code>kingfisher.akamai.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Akamai</td>
+<td>Akamai API Access Token</td>
+<td><code>kingfisher.akamai.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Akamai</td>
+<td>Akamai API Host</td>
+<td><code>kingfisher.akamai.4</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -920,13 +936,29 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Block Protocol API Key</td>
 <td><code>kingfisher.blockprotocol.1</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
 <td>Blynk</td>
 <td>Blynk Device Access Token</td>
 <td><code>kingfisher.blynk.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Blynk</td>
+<td>Blynk Cloud Host</td>
+<td><code>kingfisher.blynk.10</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Blynk</td>
+<td>Blynk OAuth Client ID</td>
+<td><code>kingfisher.blynk.11</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -936,7 +968,7 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Blynk Organization Access Token</td>
 <td><code>kingfisher.blynk.2</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -944,7 +976,7 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Blynk Organization Access Token</td>
 <td><code>kingfisher.blynk.3</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -952,7 +984,7 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Blynk Organization Client Credentials</td>
 <td><code>kingfisher.blynk.8</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -960,7 +992,7 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>Blynk Organization Client Credentials</td>
 <td><code>kingfisher.blynk.9</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -1440,8 +1472,8 @@ Of these, **513** include live validation and **45** support direct revocation.
 <td>crates.io API Key</td>
 <td><code>kingfisher.cratesio.1</code></td>
 <td>Medium</td>
-<td></td>
-<td></td>
+<td>Yes</td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Credentials</td>

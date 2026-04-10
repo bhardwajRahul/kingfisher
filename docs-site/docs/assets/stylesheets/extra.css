@@ -43,6 +43,9 @@
 .kf-hero__actions .md-button {
   color: var(--md-primary-bg-color);
   border-color: var(--md-primary-bg-color);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.8em 1.4em;
 }
 
 .kf-hero__actions .md-button--primary {
@@ -152,6 +155,17 @@
   border-radius: 0.5rem;
 }
 
+.kf-benchmark__link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.kf-benchmark__link a {
+  display: inline-block;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 /* Scan targets */
 .kf-targets {
   padding: 4rem 0;
@@ -218,6 +232,12 @@
 .kf-install__cta {
   text-align: center;
   margin-top: 2rem;
+}
+
+.kf-install__cta .md-button {
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.8em 1.4em;
 }
 
 /* ===== Rules Table ===== */

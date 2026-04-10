@@ -1,5 +1,4 @@
 use std::{
-    cmp::Ordering,
     hash::{Hash, Hasher},
     path::PathBuf,
     str::FromStr,
@@ -49,7 +48,6 @@ pub struct FindingsStore {
     rules: Vec<Arc<Rule>>,
     matches: Vec<Arc<FindingsStoreMessage>>,
     index_map: FxHashMap<(BlobId, OffsetSpan), usize>,
-    dedup_index_map: FxHashMap<u64, usize>,
     blobs: FxHashSet<BlobId>,
     clone_dir: PathBuf,
     seen_bloom: Bloom<u64>,
@@ -77,7 +75,6 @@ impl FindingsStore {
             matches: Vec::new(),
             blobs: FxHashSet::default(),
             index_map: FxHashMap::default(),
-            dedup_index_map: FxHashMap::default(),
             blob_meta: FxHashMap::default(),
             origin_meta: FxHashMap::default(),
             clone_dir,
@@ -117,14 +114,11 @@ impl FindingsStore {
     pub fn replace_matches(&mut self, new_matches: Vec<Arc<FindingsStoreMessage>>) {
         self.matches = new_matches;
         self.index_map.clear();
-        self.dedup_index_map.clear();
         self.blobs.clear();
         for (i, message) in self.matches.iter().enumerate() {
             let blob_id = message.1.id;
             let offset_span = message.2.location.offset_span;
             self.index_map.insert((blob_id, offset_span), i);
-            let dedup_key = self.dedup_key(message.0.as_ref(), message.1.as_ref(), &message.2);
-            self.dedup_index_map.insert(dedup_key, i);
             self.blobs.insert(blob_id);
         }
     }
@@ -159,160 +153,6 @@ impl FindingsStore {
                 self.dependent_rule_ids.insert(dependency.rule_id.to_uppercase());
             }
         }
-        if !self.matches.is_empty() {
-            self.rebuild_dedup_index_map();
-        }
-    }
-
-    fn primary_snippet<'a>(m: &'a Match) -> &'a str {
-        m.groups
-            .captures
-            .iter()
-            .find(|c| c.name.is_none() && c.match_number == 0)
-            .map(|c| c.raw_value())
-            .or_else(|| {
-                m.groups
-                    .captures
-                    .iter()
-                    .find(|c| matches!(c.name.as_deref(), Some("TOKEN")))
-                    .map(|c| c.raw_value())
-            })
-            .or_else(|| m.groups.captures.get(0).map(|c| c.raw_value()))
-            .unwrap_or("")
-    }
-
-    fn dedup_key(&self, origin: &OriginSet, blob_md: &BlobMetadata, m: &Match) -> u64 {
-        let origin_kind = match origin.first() {
-            Origin::GitRepo(_) => "git",
-            Origin::File(_) => "file",
-            Origin::Extended(_) => "ext",
-        };
-        let rule_id = m.rule.id().to_uppercase();
-        let snippet = Self::primary_snippet(m);
-        let key_string = if self.dependent_rule_ids.contains(&rule_id) {
-            format!("{}|{}|{}|{}", rule_id, origin_kind, snippet, blob_md.id.hex())
-        } else {
-            format!("{}|{}|{}", rule_id, origin_kind, snippet)
-        };
-        xxh3_64(key_string.as_bytes())
-    }
-
-    fn normalize_path_for_order(path: &str) -> String {
-        path.replace('\\', "/")
-    }
-
-    fn origin_order_key(origin: &Origin) -> (u8, String, String) {
-        match origin {
-            Origin::GitRepo(repo) => {
-                let repo_path = Self::normalize_path_for_order(&repo.repo_path.to_string_lossy());
-                let blob_path = repo
-                    .first_commit
-                    .as_ref()
-                    .map(|commit| Self::normalize_path_for_order(&commit.blob_path))
-                    .unwrap_or_default();
-                let commit_id = repo
-                    .first_commit
-                    .as_ref()
-                    .map(|commit| commit.commit_metadata.commit_id.to_string())
-                    .unwrap_or_default();
-                (0, format!("{repo_path}/{blob_path}"), commit_id)
-            }
-            Origin::File(file) => {
-                (1, Self::normalize_path_for_order(&file.path.to_string_lossy()), String::new())
-            }
-            Origin::Extended(ext) => (
-                2,
-                ext.path()
-                    .map(|path| Self::normalize_path_for_order(&path.to_string_lossy()))
-                    .unwrap_or_else(|| Self::normalize_path_for_order(&ext.0.to_string())),
-                String::new(),
-            ),
-        }
-    }
-
-    fn canonical_entry_key(
-        origin: &OriginSet,
-        blob_md: &BlobMetadata,
-        m: &Match,
-    ) -> ((u8, String, String), usize, usize, String) {
-        let primary_origin = origin
-            .iter()
-            .min_by_key(|origin| Self::origin_order_key(origin))
-            .map(Self::origin_order_key)
-            .unwrap_or((u8::MAX, String::new(), String::new()));
-        (primary_origin, m.location.offset_span.start, m.location.offset_span.end, blob_md.id.hex())
-    }
-
-    fn merge_origin_sets(existing: &OriginSet, incoming: &OriginSet) -> OriginSet {
-        let mut origins = Vec::new();
-        let mut push_unique = |origin: &Origin| {
-            if !origins.iter().any(|existing| existing == origin) {
-                origins.push(origin.clone());
-            }
-        };
-
-        for origin in existing.iter().chain(incoming.iter()) {
-            push_unique(origin);
-        }
-
-        origins.sort_by_key(Self::origin_order_key);
-        OriginSet::try_from_iter(origins).expect("merged origin set is non-empty")
-    }
-
-    fn merge_duplicate(
-        &mut self,
-        idx: usize,
-        incoming_origin: Arc<OriginSet>,
-        incoming_blob: Arc<BlobMetadata>,
-        incoming_match: Match,
-    ) {
-        let incoming_index_key = (incoming_blob.id, incoming_match.location.offset_span);
-        let (prefer_incoming, merged_origin) = {
-            let (existing_origin, existing_blob, existing_match) = &*self.matches[idx];
-            let existing_key = Self::canonical_entry_key(
-                existing_origin.as_ref(),
-                existing_blob.as_ref(),
-                existing_match,
-            );
-            let incoming_key = Self::canonical_entry_key(
-                incoming_origin.as_ref(),
-                incoming_blob.as_ref(),
-                &incoming_match,
-            );
-            (
-                incoming_key.cmp(&existing_key) == Ordering::Less,
-                Self::merge_origin_sets(existing_origin.as_ref(), incoming_origin.as_ref()),
-            )
-        };
-
-        let merged_origin_arc = {
-            let merged_origin_arc = Arc::new(merged_origin);
-            let fp = origin_fp(merged_origin_arc.as_ref());
-            self.origin_meta.entry(fp).or_insert_with(|| merged_origin_arc.clone()).clone()
-        };
-
-        self.index_map.insert(incoming_index_key, idx);
-
-        let stored = &mut self.matches[idx];
-        let (stored_origin, stored_blob, stored_match) = Arc::make_mut(stored);
-        *stored_origin = merged_origin_arc;
-        if prefer_incoming {
-            let blob_arc = self
-                .blob_meta
-                .entry(incoming_blob.id)
-                .or_insert_with(|| incoming_blob.clone())
-                .clone();
-            *stored_blob = blob_arc;
-            *stored_match = incoming_match;
-        }
-    }
-
-    fn rebuild_dedup_index_map(&mut self) {
-        self.dedup_index_map.clear();
-        for (idx, message) in self.matches.iter().enumerate() {
-            let key = self.dedup_key(message.0.as_ref(), message.1.as_ref(), &message.2);
-            self.dedup_index_map.insert(key, idx);
-        }
     }
 
     /// Insert a batch of findings.  
@@ -329,17 +169,42 @@ impl FindingsStore {
             │ 1. Optional duplicate filter (unchanged)                      │
             └───────────────────────────────────────────────────────────────*/
             if dedup {
-                let dedup_key = self.dedup_key(origin.as_ref(), blob_md.as_ref(), &m);
-                if self.seen_bloom.check(&dedup_key) {
-                    if let Some(&idx) = self.dedup_index_map.get(&dedup_key) {
-                        if self.blobs.insert(blob_md.id) {
-                            added += 1;
-                        }
-                        self.merge_duplicate(idx, origin, blob_md, m);
-                        continue;
-                    }
+                // Prefer the full unnamed match (index 0). Fall back to a named TOKEN capture
+                // before using whatever capture is available.
+                let snippet = m
+                    .groups
+                    .captures
+                    .iter()
+                    .find(|c| c.name.is_none() && c.match_number == 0)
+                    .map(|c| c.raw_value())
+                    .or_else(|| {
+                        m.groups
+                            .captures
+                            .iter()
+                            .find(|c| matches!(c.name.as_deref(), Some("TOKEN")))
+                            .map(|c| c.raw_value())
+                    })
+                    .or_else(|| m.groups.captures.get(0).map(|c| c.raw_value()))
+                    .unwrap_or("");
+
+                let origin_kind = match origin.first() {
+                    Origin::GitRepo(_) => "git",
+                    Origin::File(_) => "file",
+                    Origin::Extended(_) => "ext",
+                };
+
+                let rule_id = m.rule.id().to_uppercase();
+                let key_string = if self.dependent_rule_ids.contains(&rule_id) {
+                    format!("{}|{}|{}|{}", rule_id, origin_kind, snippet, blob_md.id.hex())
+                } else {
+                    format!("{}|{}|{}", rule_id, origin_kind, snippet)
+                };
+                let key = xxh3_64(key_string.as_bytes());
+
+                if self.seen_bloom.check(&key) {
+                    continue; // very likely a duplicate
                 }
-                self.seen_bloom.set(&dedup_key);
+                self.seen_bloom.set(&key);
                 self.bloom_items += 1;
             }
 
@@ -368,14 +233,6 @@ impl FindingsStore {
             let blob_id = self.matches[idx].1.id;
             let offset_span = self.matches[idx].2.location.offset_span;
             self.index_map.insert((blob_id, offset_span), idx);
-            if dedup {
-                let dedup_key = self.dedup_key(
-                    self.matches[idx].0.as_ref(),
-                    self.matches[idx].1.as_ref(),
-                    &self.matches[idx].2,
-                );
-                self.dedup_index_map.insert(dedup_key, idx);
-            }
         }
 
         /* ─────────────────────────────────────────────────────────────────── */

@@ -4,8 +4,8 @@
 
 Kingfisher starts with a fast regex pass powered by Vectorscan/Hyperscan. For rules classified as `ContextDependent`, it then runs a lightweight parser-based verification pass that extracts likely assignment-style snippets such as `api_key = secret`.
 
-> **Why not tree-sitter?** Earlier versions used tree-sitter for this step.
-> Statically linking 17 grammar crates added roughly 20 MB to the binary and
+> **Why not a full AST parser?** Earlier implementations used statically linked
+> grammar crates for this step. That added roughly 20 MB to the binary and
 > required a full AST parse just to extract `key = value` pairs. The current
 > approach — handwritten regex-based lexers with comment-aware stripping —
 > produces the same (or better) extraction quality at a fraction of the binary

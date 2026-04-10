@@ -31,3 +31,6 @@ rules:
     references:
       - https://developer.paypal.com/braintree/docs/guides/authorization/tokenization-key
       - https://developer.paypal.com/braintree/docs/start/overview
+    # No standalone validation or revocation is added: Braintree documents
+    # tokenization keys as publishable client credentials, and the public docs
+    # do not describe a programmatic tokenization-key introspection or revoke API.

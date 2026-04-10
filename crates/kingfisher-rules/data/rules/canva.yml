@@ -18,3 +18,6 @@ rules:
     references:
       - https://www.canva.dev/docs/connect/authentication/
       - https://www.canva.dev/docs/connect/guidelines/security/
+    # No standalone validation is added: Canva Connect client secrets are used
+    # in OAuth flows that require the matching client_id and PKCE flow state.
+    # No programmatic client-secret revocation endpoint is documented.

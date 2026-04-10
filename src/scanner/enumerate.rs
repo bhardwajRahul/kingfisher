@@ -172,7 +172,7 @@ pub fn enumerate_filesystem_inputs(
         &seen_blobs,
         Some(&matcher_stats),
         enable_profiling,
-        Some(shared_profiler),
+        if enable_profiling { Some(shared_profiler) } else { None },
         &args.extra_ignore_comments,
         args.no_inline_ignore,
         !args.no_ignore_if_contains,
