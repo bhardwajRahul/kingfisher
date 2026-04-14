@@ -26,6 +26,22 @@ rules:
       - 'ELASTIC_CLOUD_API_KEY=VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw=='
     references:
       - https://www.elastic.co/docs/deploy-manage/api-keys/elastic-cloud-api-keys
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.elastic-cloud.com/api/v1/user
+          headers:
+            Authorization: "ApiKey {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"user_id"'
 
   - name: Elasticsearch API Key with Prefix
     id: kingfisher.elastic.2
@@ -46,3 +62,19 @@ rules:
       - 'Authorization: ApiKey VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw=='
     references:
       - https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api-create-api-key.html
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.elastic-cloud.com/api/v1/user
+          headers:
+            Authorization: "ApiKey {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"user_id"'

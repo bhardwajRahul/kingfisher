@@ -18,3 +18,20 @@ rules:
       - webhook_url="https://hooks.zapier.com/hooks/catch/2929690/ztd17n/"
     references:
       - https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: "{{ TOKEN }}"
+          headers:
+            Content-Type: application/json
+          body: '{}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - "attempt"
+                - "status"

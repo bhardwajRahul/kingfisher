@@ -22,3 +22,21 @@ rules:
       - 'hcaptcha_secret: ES_abcdef1234567890abcdef1234567890'
     references:
       - https://docs.hcaptcha.com/
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.hcaptcha.com/siteverify
+          headers:
+            Content-Type: application/x-www-form-urlencoded
+          body: "secret={{ TOKEN }}&response=invalid_response&sitekey=00000000-0000-0000-0000-000000000000"
+          response_matcher:
+            - report_response: true
+            - type: WordMatch
+              words:
+                - '"success":'
+            - type: WordMatch
+              words:
+                - "invalid-input-secret"
+              negative: true

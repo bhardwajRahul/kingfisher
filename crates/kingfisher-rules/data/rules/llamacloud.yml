@@ -18,4 +18,17 @@ rules:
       - "llama_api_key = 'llx-M0nQ3rS9tU5xZ7aB2dE4fG6hI1jK8lN0oPqRsT4wXyZa'"
     references:
       - https://docs.llmapi.com/quickstart
-    # No public validation endpoint documented.
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.cloud.llamaindex.ai/api/v1/projects
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

@@ -32,6 +32,19 @@ rules:
           url: https://api.digitalocean.com/v2/projects?per_page=1
     references:
       - https://docs.digitalocean.com/reference/api/#authentication
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://cloud.digitalocean.com/v1/oauth/revoke
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Content-Type: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
 
   - name: DigitalOcean Refresh Token
     id: kingfisher.digitalocean.2

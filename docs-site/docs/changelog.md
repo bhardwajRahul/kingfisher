@@ -7,6 +7,10 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 
 All notable changes to this project will be documented in this file.
 
+## [v1.97.0]
+- Added live HTTP validation for 12 rules across 10 providers: Val Town, Polar, hCaptcha, Thunderstore, Elastic Cloud (2 rules), LlamaCloud, Gemfury (2 rules), Vonage, ThingsBoard, and Zapier.
+- Added revocation support for 7 rules across 6 providers: Discord webhooks (single-step DELETE), DigitalOcean PATs (self-revoke via OAuth), and multi-step HttpMultiStep revocation for LaunchDarkly, Resend, Linode, and Netlify (2 rules). Built-in revocation coverage is now 34 provider families with 53 revocation-enabled rules.
+
 ## [v1.95.0]
 - Fixed scan performance regression: the rule profiler was unconditionally active even without `--rule-stats`, causing RwLock contention across scan threads. Scans are now ~15% faster than v1.94.0.
 - Added 80+ built-in rules, bringing the bundled ruleset to 825 total. New coverage includes Amazon OAuth, Asaas, multiple Azure credential families, Bitrise, Canva, CockroachDB, eBay, Elastic, hCaptcha, Highnote, Lichess, MailerSend, Onfido, Paddle, Pangea, Persona, Pinterest, Proof, Rootly, Runpod, Telnyx, Thunderstore, Valtown, Volcengine, and more.

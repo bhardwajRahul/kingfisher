@@ -32,3 +32,31 @@ rules:
             - type: StatusMatch
               status:
                 - 200
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://app.launchdarkly.com/api/v2/tokens
+              headers:
+                Authorization: "{{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              LD_TOKEN_ID:
+                type: JsonPath
+                path: "$.items[0]._id"
+          - name: delete_token
+            request:
+              method: DELETE
+              url: "https://app.launchdarkly.com/api/v2/tokens/{{ LD_TOKEN_ID }}"
+              headers:
+                Authorization: "{{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]

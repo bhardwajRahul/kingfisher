@@ -20,6 +20,19 @@ rules:
     references:
       - https://thingsboard.io/docs/paas/reference/http-api/
       - https://thingsboard.io/docs/paas/reference/coap-api/
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: "https://thingsboard.cloud/api/v1/{{ TOKEN }}/telemetry"
+          headers:
+            Content-Type: application/json
+          body: '{"_kingfisher_validation_ping": 1}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
 
   - name: ThingsBoard Provision Device Key
     id: kingfisher.thingsboard.2

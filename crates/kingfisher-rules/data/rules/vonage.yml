@@ -52,6 +52,24 @@ rules:
     references:
       - https://developer.vonage.com/en/getting-started/overview
       - https://developer.nexmo.com/api/account#secret-management
+    depends_on_rule:
+      - rule_id: kingfisher.vonage.1
+        variable: VONAGE_API_KEY
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: "https://rest.nexmo.com/account/get-balance?api_key={{ VONAGE_API_KEY }}&api_secret={{ TOKEN }}"
+          headers:
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"value"'
     revocation:
       type: Http
       content:

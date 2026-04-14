@@ -32,6 +32,34 @@ rules:
               status: [200]
     references:
       - https://docs.netlify.com/api/get-started/#authentication
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.netlify.com/api/v1/access_tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              NETLIFY_TOKEN_ID:
+                type: JsonPath
+                path: "$[0].id"
+          - name: delete_token
+            request:
+              method: DELETE
+              url: "https://api.netlify.com/api/v1/access_tokens/{{ NETLIFY_TOKEN_ID }}"
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]
 
   - name: Netlify API Key
     id: kingfisher.netlify.2
@@ -61,10 +89,38 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
           method: GET
-          url: https://api.netlify.com/api/v1/user      
+          url: https://api.netlify.com/api/v1/user
           response_matcher:
             - report_response: true
             - type: StatusMatch
               status: [200]
     references:
       - https://docs.netlify.com/api/get-started/#authentication
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.netlify.com/api/v1/access_tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              NETLIFY_TOKEN_ID:
+                type: JsonPath
+                path: "$[0].id"
+          - name: delete_token
+            request:
+              method: DELETE
+              url: "https://api.netlify.com/api/v1/access_tokens/{{ NETLIFY_TOKEN_ID }}"
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [204]

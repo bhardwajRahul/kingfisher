@@ -49,3 +49,31 @@ rules:
             - type: WordMatch
               words:
                 - '"username"'
+    revocation:
+      type: HttpMultiStep
+      content:
+        steps:
+          - name: lookup_token_id
+            request:
+              method: GET
+              url: https://api.linode.com/v4/profile/tokens
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+                Accept: application/json
+              response_matcher:
+                - type: StatusMatch
+                  status: [200]
+            extract:
+              LINODE_TOKEN_ID:
+                type: JsonPath
+                path: "$.data[0].id"
+          - name: delete_token
+            request:
+              method: DELETE
+              url: "https://api.linode.com/v4/profile/tokens/{{ LINODE_TOKEN_ID }}"
+              headers:
+                Authorization: "Bearer {{ TOKEN }}"
+              response_matcher:
+                - report_response: true
+                - type: StatusMatch
+                  status: [200]

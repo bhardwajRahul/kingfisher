@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.97.0]
+- Added live HTTP validation for 12 rules across 10 providers: Val Town, Polar, hCaptcha, Thunderstore, Elastic Cloud (2 rules), LlamaCloud, Gemfury (2 rules), Vonage, ThingsBoard, and Zapier.
+- Added revocation support for 7 rules across 6 providers: Discord webhooks (single-step DELETE), DigitalOcean PATs (self-revoke via OAuth), and multi-step HttpMultiStep revocation for LaunchDarkly, Resend, Linode, and Netlify (2 rules). Built-in revocation coverage is now 34 provider families with 53 revocation-enabled rules.
+
 ## [v1.96.0]
 - Removed 17 direct dependencies from the root crate by dropping unused deps (`p256`, `ed25519-dalek`, `jsonwebtoken`, `gitlab`, `lazy_static`, `base32`, `pem`, `byteorder`, `reqwest-middleware`, `sha1`, `time`, `ring`, `num_cpus`, `strum_macros`), replacing `once_cell` with `std::sync::{LazyLock, OnceLock}`, and using `std::thread::available_parallelism()` in place of `num_cpus`. Salt generation now uses `rand` instead of `ring`, and all `strum_macros::Display` imports are consolidated under `strum::Display`.
 
