@@ -4,8 +4,10 @@ rules:
     pattern: |
       (?xi)
       \b
-      (?:workos|WORKOS_API_KEY|WORKOS_SECRET_KEY)
-      (?:.|[\n\r]){0,48}?
+      workos
+      (?:.|[\n\r]){0,32}?
+      (?:SECRET|PRIVATE|API|KEY|TOKEN)
+      (?:.|[\n\r]){0,16}?
       \b
       (
         sk_(?:live|test|staging|example)_[A-Za-z0-9_-]{16}(?:[A-Za-z0-9_-]{16}){0,3}
