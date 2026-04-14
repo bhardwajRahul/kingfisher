@@ -12,7 +12,7 @@ rules:
       )
       \b
     min_entropy: 3.5
-    confidence: high
+    confidence: medium
     examples:
       - ADAFRUIT_AIO_KEY      = "aio_giXk31KzM05IVxHRwJwtpNGClUE5"
     validation:

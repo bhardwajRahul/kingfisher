@@ -1,0 +1,39 @@
+rules:
+  - name: Tinybird Admin Token
+    id: kingfisher.tinybird.1
+    pattern: |
+      (?x)
+      \b
+      (?i:tinybird)
+      (?:.|[\n\r]){0,32}?
+      (?:ADMIN|SECRET|TOKEN|KEY)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (
+        p\.[A-Za-z0-9]{40,100}
+      )
+      (?:\b|$)
+    pattern_requirements:
+      min_digits: 1
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'TINYBIRD_TOKEN=p.eyJ1IjogIjczMjA3MzYwLWVmMDAtNGIxOS1hZjQ3LWRlMmU3OTI2ZTdmOCJ9'
+    references:
+      - https://www.tinybird.co/docs/api-reference/token-api
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.tinybird.co/v0/datasources
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

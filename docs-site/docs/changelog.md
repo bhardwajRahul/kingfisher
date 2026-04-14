@@ -8,7 +8,7 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 All notable changes to this project will be documented in this file.
 
 ## [v1.97.0]
-- Added live HTTP validation for 12 rules across 10 providers: Val Town, Polar, hCaptcha, Thunderstore, Elastic Cloud (2 rules), LlamaCloud, Gemfury (2 rules), Vonage, ThingsBoard, and Zapier.
+- Added live HTTP validation for 18 rules across 15 providers: Val Town, Polar, hCaptcha, Thunderstore, Elastic Cloud (2 rules), LlamaCloud, Gemfury (2 rules), Vonage, ThingsBoard, Zapier, Facebook Access Token, GitLab Session Cookie, PostHog Feature Flags, Unkey API Key, and Hop.io (2 rules).
 - Added revocation support for 7 rules across 6 providers: Discord webhooks (single-step DELETE), DigitalOcean PATs (self-revoke via OAuth), and multi-step HttpMultiStep revocation for LaunchDarkly, Resend, Linode, and Netlify (2 rules). Built-in revocation coverage is now 34 provider families with 53 revocation-enabled rules.
 
 ## [v1.95.0]

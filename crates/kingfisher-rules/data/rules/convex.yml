@@ -1,0 +1,16 @@
+rules:
+  - name: Convex Deploy Key
+    id: kingfisher.convex.1
+    pattern: |
+      (?x)
+      \b
+      (
+        (?:prod|dev|preview):[a-z]+-[a-z]+-\d+\|eyJ[A-Za-z0-9_.-]{50,500}
+      )
+      (?:\b|$)
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'CONVEX_DEPLOY_KEY=prod:qualified-jaguar-123|eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwMThmNmY5NThmNTI3NjkwYjE1M2NkNDMiLCJpYXQiOjE3MjQ3NzA4MTJ9.bQkJz3sXt'
+    references:
+      - https://docs.convex.dev/production/hosting/deploy-key

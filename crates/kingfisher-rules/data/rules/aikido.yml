@@ -1,0 +1,34 @@
+rules:
+  - name: Aikido CI Token
+    id: kingfisher.aikido.1
+    pattern: |
+      (?x)
+      \b
+      (
+        AIK_CI_[a-zA-Z0-9]{20,44}
+      )
+      \b
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'AIKIDO_TOKEN=AIK_CI_a1B2c3D4e5F6g7H8i9J0k1L2'
+    references:
+      - https://help.aikido.dev/pr-and-release-gating/cli-for-pr-and-release-gating/aikido-ci-api
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://app.aikido.dev/api/integrations/ci/scan/start
+          headers:
+            X-AIK-API-SECRET: "{{ TOKEN }}"
+            Content-Type: application/json
+          body: '{}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200, 400, 403]
+            - type: WordMatch
+              words:
+                - '"Unauthorized"'
+              negative: true

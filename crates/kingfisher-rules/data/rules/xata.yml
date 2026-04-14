@@ -1,0 +1,33 @@
+rules:
+  - name: Xata API Key
+    id: kingfisher.xata.1
+    pattern: |
+      (?x)
+      \b
+      (
+        xau_[A-Za-z0-9]{24,44}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'XATA_API_KEY=xau_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+      - 'Authorization: Bearer xau_xK8m2LpQr5nW0vYz3cJ7aB4dE6fG8h'
+    references:
+      - https://xata.io/docs/concepts/api-keys
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.xata.io/user
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

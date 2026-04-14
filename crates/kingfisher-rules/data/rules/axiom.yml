@@ -1,0 +1,61 @@
+rules:
+  - name: Axiom API Token
+    id: kingfisher.axiom.1
+    pattern: |
+      (?x)
+      \b
+      (
+        xaat-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}
+      )
+      \b
+    confidence: medium
+    examples:
+      - 'AXIOM_TOKEN=xaat-a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+      - 'Authorization: Bearer xaat-deadbeef-1234-5678-9abc-def012345678'
+    references:
+      - https://axiom.co/docs/reference/tokens
+      - https://axiom.co/docs/restapi/endpoints/getDatasets
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.axiom.co/v2/datasets
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+
+  - name: Axiom Personal Access Token
+    id: kingfisher.axiom.2
+    pattern: |
+      (?x)
+      \b
+      (
+        xapt-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}
+      )
+      \b
+    confidence: medium
+    examples:
+      - 'AXIOM_TOKEN=xapt-a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+      - 'Authorization: Bearer xapt-deadbeef-1234-5678-9abc-def012345678'
+    references:
+      - https://axiom.co/docs/reference/tokens
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.axiom.co/v2/datasets
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

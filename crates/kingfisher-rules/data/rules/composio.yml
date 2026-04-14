@@ -1,0 +1,48 @@
+rules:
+  - name: Composio API Key
+    id: kingfisher.composio.1
+    pattern: |
+      (?xi)
+      \b
+      (?:composio|COMPOSIO_API_KEY)
+      (?:.|[\n\r]){0,48}?
+      \b
+      (
+        (?:
+          comp_[A-Za-z0-9_-]{32}(?:[A-Za-z0-9_-]{16}){0,3}
+          |
+          sk_(?:live|test)_[A-Za-z0-9_-]{16}(?:[A-Za-z0-9_-]{16}){0,3}
+        )
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_lowercase: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'COMPOSIO_API_KEY="comp_a7B2c9D4eF6gH8jK1mN3pQ5rS7tV9xY0"'
+      - 'composio x-api-key: sk_live_Qj7mN4vK8sL2xP6zT9aBcD3eF5gH1jK2'
+    references:
+      - https://docs.composio.dev/reference/api-reference/authentication/getAuthSessionInfo
+      - https://composio.dev/content/secure-ai-agent-infrastructure-guide
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://backend.composio.dev/api/v3/auth/session/info
+          headers:
+            x-api-key: "{{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              words:
+                - '"project"'
+                - '"api_key"'
+              match_all_words: true
+    # Current Composio API docs expose session verification, but not a same-key revocation flow.

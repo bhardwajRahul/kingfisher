@@ -1,0 +1,19 @@
+rules:
+  - name: Arcjet API Key
+    id: kingfisher.arcjet.1
+    pattern: |
+      (?x)
+      \b
+      (
+        ajkey_[A-Za-z0-9]{24,44}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'ARCJET_KEY=ajkey_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+      - 'ARCJET_KEY="ajkey_xK8m2LpQr5nW0vYz3cJ7aB4dE6fG8h"'
+    references:
+      - https://docs.arcjet.com/get-started

@@ -1,0 +1,45 @@
+rules:
+  - name: WorkOS API Key
+    id: kingfisher.workos.1
+    pattern: |
+      (?xi)
+      \b
+      (?:workos|WORKOS_API_KEY|WORKOS_SECRET_KEY)
+      (?:.|[\n\r]){0,48}?
+      \b
+      (
+        sk_(?:live|test|staging|example)_[A-Za-z0-9_-]{16}(?:[A-Za-z0-9_-]{16}){0,3}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+      min_lowercase: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'WORKOS_API_KEY="sk_live_Qj7mN4vK8sL2xP6zT9aBcD3eF5gH1jK2"'
+      - 'workos apiKey: "sk_test_P7rT2mK9vL4qN8sX6cA3dF5gH1jZ0QaB"'
+    references:
+      - https://workos.com/docs/reference/organization
+      - https://workos.com/docs/reference/authkit/user
+      - https://docs.github.com/en/code-security/reference/secret-security/supported-secret-scanning-patterns
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.workos.com/organizations
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              words:
+                - '"object"'
+                - '"data"'
+              match_all_words: true
+    # WorkOS account API keys are managed from the WorkOS dashboard; no self-revocation endpoint is documented.

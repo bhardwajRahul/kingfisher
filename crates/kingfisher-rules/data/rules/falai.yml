@@ -1,0 +1,18 @@
+rules:
+  - name: Fal.ai API Key
+    id: kingfisher.falai.1
+    pattern: |
+      (?x)
+      \b
+      (
+        fal_sk_[a-zA-Z0-9_-]{24,48}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'FAL_KEY=fal_sk_a1B2c3D4e5F6g7H8i9J0k1L2m3N4'
+    references:
+      - https://docs.fal.ai/platform-apis/v1/keys/create

@@ -95,3 +95,16 @@ rules:
       - 'FACEBOOK_ACCESS_TOKEN=EAACEdEose0cBAZAQW123456789abcdefghijklmnopqrstuvwxyzASDFGHJKL'
     references:
       - https://developers.facebook.com/docs/facebook-login/access-tokens/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: "https://graph.facebook.com/me?access_token={{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"id"'
