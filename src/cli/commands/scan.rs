@@ -31,7 +31,7 @@ use crate::{
 
 /// Determine the default number of parallel scan jobs.
 ///
-/// * Target = `num_cpus * 2`.
+/// * Target = `available_parallelism * 2`.
 /// * Cap by RAM at ≈ 1 GiB per job (so 16 GiB ⇒ max 16 jobs).
 /// * Always ≥ 1.
 /// * When `-v/--verbose` is passed, the computed value is logged at DEBUG.

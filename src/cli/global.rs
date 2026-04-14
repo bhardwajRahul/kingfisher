@@ -1,7 +1,8 @@
 use std::io::IsTerminal;
 
+use std::sync::LazyLock;
+
 use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
-use once_cell::sync::Lazy;
 use strum::Display;
 use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 use tracing::Level;
@@ -88,7 +89,7 @@ pub enum Command {
     SelfUpdate,
 }
 
-pub static RAM_GB: Lazy<Option<f64>> = Lazy::new(|| {
+pub static RAM_GB: LazyLock<Option<f64>> = LazyLock::new(|| {
     if sysinfo::IS_SUPPORTED_SYSTEM {
         let s = System::new_with_specifics(
             RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()),

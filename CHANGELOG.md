@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.96.0]
+- Removed 17 direct dependencies from the root crate by dropping unused deps (`p256`, `ed25519-dalek`, `jsonwebtoken`, `gitlab`, `lazy_static`, `base32`, `pem`, `byteorder`, `reqwest-middleware`, `sha1`, `time`, `ring`, `num_cpus`, `strum_macros`), replacing `once_cell` with `std::sync::{LazyLock, OnceLock}`, and using `std::thread::available_parallelism()` in place of `num_cpus`. Salt generation now uses `rand` instead of `ring`, and all `strum_macros::Display` imports are consolidated under `strum::Display`.
+
 ## [v1.95.0]
 - Fixed scan performance regression: the rule profiler was unconditionally active even without `--rule-stats`, causing RwLock contention across scan threads. Scans are now ~15% faster than v1.94.0.
 - Added 80+ built-in rules, bringing the bundled ruleset to 825 total. New coverage includes Amazon OAuth, Asaas, multiple Azure credential families, Bitrise, Canva, CockroachDB, eBay, Elastic, hCaptcha, Highnote, Lichess, MailerSend, Onfido, Paddle, Pangea, Persona, Pinterest, Proof, Rootly, Runpod, Telnyx, Thunderstore, Valtown, Volcengine, and more.

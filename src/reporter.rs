@@ -403,7 +403,7 @@ fn build_validate_command(
 
 /// Extract AWS Access Key ID from validation response body if present.
 fn extract_akid_from_validation_body(body: &ValidationResponseBody) -> Option<String> {
-    static AKID_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static AKID_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(
             r"(?xi)\b(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[0-9A-Z]{16}\b",
         )

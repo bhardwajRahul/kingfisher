@@ -4,8 +4,9 @@ use anyhow::{anyhow, Context, Result};
 use bytes::Bytes;
 use h2::client;
 use http::{header::HeaderName, HeaderMap, HeaderValue, Request, Uri};
+use std::sync::OnceLock;
+
 use liquid::Object;
-use once_cell::sync::OnceCell;
 use reqwest::Url;
 use rustls::{ClientConfig, RootCertStore};
 use tokio::net::TcpStream;
@@ -33,18 +34,18 @@ fn build_root_store() -> Result<RootCertStore> {
 }
 
 fn cached_h2_tls_config() -> Result<Arc<ClientConfig>> {
-    static TLS_CONFIG: OnceCell<Arc<ClientConfig>> = OnceCell::new();
+    static TLS_CONFIG: OnceLock<Arc<ClientConfig>> = OnceLock::new();
 
-    let cfg = TLS_CONFIG.get_or_try_init(|| -> Result<Arc<ClientConfig>> {
-        // Loading native roots can be relatively expensive; do it once and reuse.
-        let mut cfg = ClientConfig::builder()
-            .with_root_certificates(build_root_store()?)
-            .with_no_client_auth();
-        cfg.alpn_protocols = vec![b"h2".to_vec()];
-        Ok(Arc::new(cfg))
-    })?;
-
-    Ok(Arc::clone(cfg))
+    if let Some(cfg) = TLS_CONFIG.get() {
+        return Ok(Arc::clone(cfg));
+    }
+    // Loading native roots can be relatively expensive; do it once and reuse.
+    let mut cfg =
+        ClientConfig::builder().with_root_certificates(build_root_store()?).with_no_client_auth();
+    cfg.alpn_protocols = vec![b"h2".to_vec()];
+    let cfg = Arc::new(cfg);
+    // Another thread may have raced us; that's fine — just use whoever won.
+    Ok(Arc::clone(TLS_CONFIG.get_or_init(|| cfg)))
 }
 
 fn url_to_h2_uri(url: &Url) -> Result<Uri> {

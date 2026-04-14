@@ -6,18 +6,19 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use std::sync::LazyLock;
+
 use blake3::Hasher;
 use dashmap::DashSet;
-use once_cell::sync::Lazy;
 use path_dedot::ParseDot;
-use ring::rand::{SecureRandom, SystemRandom};
+use rand::RngExt;
 // Generate a random salt once and use it for the entire application runtime
-static APP_SALT: Lazy<String> = Lazy::new(|| generate_salt());
+static APP_SALT: LazyLock<String> = LazyLock::new(|| generate_salt());
 static REDACTION_ENABLED: AtomicBool = AtomicBool::new(false);
 
 /// Interns a string once and returns a `'static` reference to it.
 pub fn intern(s: &str) -> &'static str {
-    static INTERN: Lazy<DashSet<&'static str>> = Lazy::new(|| DashSet::with_capacity(512));
+    static INTERN: LazyLock<DashSet<&'static str>> = LazyLock::new(|| DashSet::with_capacity(512));
 
     // Fast path: string already interned?
     if let Some(existing) = INTERN.get(s) {
@@ -66,9 +67,7 @@ pub fn display_value(value: &'static str) -> Cow<'static, str> {
 }
 // Generate a random salt (16-character alphanumeric string)
 fn generate_salt() -> String {
-    let rng = SystemRandom::new();
-    let mut bytes = [0u8; 16];
-    rng.fill(&mut bytes).unwrap();
+    let bytes: [u8; 16] = rand::rng().random();
     hex::encode(bytes)
 }
 // Convert full hash to shorter identifier

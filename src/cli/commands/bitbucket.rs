@@ -1,5 +1,5 @@
 use clap::{Args, Subcommand, ValueEnum, ValueHint};
-use strum_macros::Display;
+use strum::Display;
 use url::Url;
 
 use crate::cli::commands::output::OutputArgs;

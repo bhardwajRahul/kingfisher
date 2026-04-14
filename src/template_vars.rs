@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-static TEMPLATE_BLOCK_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+static TEMPLATE_BLOCK_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
     regex::Regex::new(r"\{\{\s*([^}]*)\}\}").expect("template block regex should compile")
 });
 

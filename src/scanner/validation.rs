@@ -394,7 +394,11 @@ pub async fn run_secret_validation(
     max_body_len: usize,
 ) -> Result<()> {
     // ── 1. Concurrency & counters ───────────────────────────────────────────
-    let concurrency = if num_jobs > 0 { num_jobs } else { num_cpus::get() };
+    let concurrency = if num_jobs > 0 {
+        num_jobs
+    } else {
+        std::thread::available_parallelism().map_or(1, |n| n.get())
+    };
     let chunk_size = std::cmp::max(concurrency * 50, 200);
     let success_count = Arc::new(AtomicUsize::new(0));
     let fail_count = Arc::new(AtomicUsize::new(0));
@@ -775,8 +779,8 @@ async fn validate_single(
         return;
     }
 
-    static NOTIFY: once_cell::sync::Lazy<DashMap<String, Arc<Notify>>> =
-        once_cell::sync::Lazy::new(DashMap::new);
+    static NOTIFY: std::sync::LazyLock<DashMap<String, Arc<Notify>>> =
+        std::sync::LazyLock::new(DashMap::new);
 
     let notify = NOTIFY.entry(cache_key.clone()).or_insert_with(|| Arc::new(Notify::new())).clone();
     let first = in_progress.insert(cache_key.clone(), ()).is_none();
@@ -1317,7 +1321,7 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
 }
 
 fn extract_akid_from_body(body: &validation_body::ValidationResponseBody) -> Option<String> {
-    static AKID_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static AKID_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(
             r"(?xi)\b(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[0-9A-Z]{16}\b",
         )
@@ -1331,7 +1335,7 @@ fn extract_akid_from_body(body: &validation_body::ValidationResponseBody) -> Opt
 fn extract_azure_storage_account_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<String> {
-    static ACCOUNT_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static ACCOUNT_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"(?i)Account:\s*([a-z0-9]{3,24})").expect("valid regex")
     });
 
@@ -1342,7 +1346,7 @@ fn extract_azure_storage_account_from_body(
 fn extract_azure_storage_containers_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<Vec<String>> {
-    static CONTAINERS_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static CONTAINERS_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"(?i)Containers:\s*(\\[[^\\]]*\\])").expect("valid regex")
     });
 
@@ -1356,7 +1360,7 @@ fn extract_azure_storage_containers_from_body(
 fn extract_azure_devops_org_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<String> {
-    static ORG_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static ORG_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r#"(?i)https?://dev\.azure\.com/([a-z0-9][a-z0-9-]{0,61}[a-z0-9])"#)
             .expect("valid regex")
     });

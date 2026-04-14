@@ -6,12 +6,13 @@ use std::{
     time::{Duration, Instant},
 };
 
+use std::sync::{LazyLock, OnceLock};
+
 use anyhow::Result;
 use dashmap::DashMap;
 use http::StatusCode;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
-use once_cell::sync::{Lazy, OnceCell};
 use reqwest::{header, header::HeaderValue, multipart, Client, Url};
 use rustc_hash::FxHashMap;
 use tokio::{sync::Notify, time};
@@ -69,7 +70,7 @@ fn truncate_preview(body: &str, max_len: usize) -> String {
     body[..end].to_string()
 }
 
-static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
+static USER_AGENT_SUFFIX: OnceLock<String> = OnceLock::new();
 
 const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
          AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -84,7 +85,7 @@ fn build_user_agent() -> String {
     }
 }
 
-pub static GLOBAL_USER_AGENT: Lazy<String> = Lazy::new(build_user_agent);
+pub static GLOBAL_USER_AGENT: LazyLock<String> = LazyLock::new(build_user_agent);
 
 /// Configure a user-agent suffix that is appended after the Kingfisher package name/version.
 ///
@@ -290,8 +291,8 @@ fn validation_dedup_key(m: &OwnedBlobMatch) -> u64 {
     key
 }
 
-static VALIDATION_CACHE: OnceCell<DashMap<u64, CachedResponse>> = OnceCell::new();
-static IN_FLIGHT: OnceCell<DashMap<u64, Arc<Notify>>> = OnceCell::new();
+static VALIDATION_CACHE: OnceLock<DashMap<u64, CachedResponse>> = OnceLock::new();
+static IN_FLIGHT: OnceLock<DashMap<u64, Arc<Notify>>> = OnceLock::new();
 
 /// Call this once near program start (e.g. in `main()`)
 pub fn init_validation_caches() {

@@ -985,7 +985,7 @@ fn initialize_environment(use_progress: bool) -> Result<()> {
     let init_progress =
         if use_progress { ProgressBar::new_spinner() } else { ProgressBar::hidden() };
     init_progress.set_message("Initializing thread pool...");
-    let num_threads = num_cpus::get();
+    let num_threads = std::thread::available_parallelism().map_or(1, |n| n.get());
     // Attempt to initialize the global thread pool only if it hasn't been
     // initialized yet.
     let result = rayon::ThreadPoolBuilder::new()

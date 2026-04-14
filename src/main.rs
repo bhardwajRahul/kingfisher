@@ -125,9 +125,9 @@ fn main() -> anyhow::Result<()> {
     let num_jobs = match &args.command {
         Command::Scan(scan_args) => scan_args.scan_args.num_jobs,
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
-        Command::Rules(_) => num_cpus::get(), // Default for Rules commands
+        Command::Rules(_) => std::thread::available_parallelism().map_or(1, |n| n.get()), // Default for Rules commands
         Command::Validate(_) => 1, // Single validation request
-        Command::Revoke(_) => 1,  // Single revocation request
+        Command::Revoke(_) => 1,   // Single revocation request
         Command::AccessMap(_) => 1,
         Command::View(_) => 1,
     };
