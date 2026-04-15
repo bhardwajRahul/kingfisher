@@ -1,0 +1,45 @@
+rules:
+  - name: Tigris Access Key ID
+    id: kingfisher.tigris.1
+    visible: false
+    pattern: |
+      (?x)
+      \b
+      (
+        tid_[A-Za-z0-9_]{43,55}
+      )
+      \b
+    pattern_requirements:
+      min_uppercase: 4
+      min_lowercase: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'TIGRIS_ACCESS_KEY=tid_zkrUeBLpqV_TOdaZzjYefcGEZJrZJqQHvmidyMx_VJtknmcWhC'
+      - 'AWS_ACCESS_KEY_ID=tid_sIYWNboOecJPzFPmgbOmxsfSqjwbmYmSoGAlrylliULbhiysCJ'
+    references:
+      - https://www.tigrisdata.com/docs/concepts/authnz/
+
+  - name: Tigris Secret Access Key
+    id: kingfisher.tigris.2
+    pattern: |
+      (?xi)
+      \b
+      (
+        tsec_[A-Za-z0-9_]{43,55}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 4
+      min_lowercase: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'TIGRIS_SECRET_KEY=tsec_pQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYz_012345678aB'
+      - 'AWS_SECRET_ACCESS_KEY=tsec_mNbVcXzAsWqErTyUiOpLkJhGfDsAzXcVbNmQwErTyUi_9876'
+    references:
+      - https://www.tigrisdata.com/docs/concepts/authnz/
+    depends_on_rule:
+      - rule_id: kingfisher.tigris.1
+        variable: TIGRIS_ACCESS_KEY

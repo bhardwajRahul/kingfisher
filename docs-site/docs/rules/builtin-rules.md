@@ -1,13 +1,13 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 825 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 921 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **825 detection rules** across **510 providers**
-(719 detectors + 106 dependent rules).
-Of these, **521** include live validation and **46** support direct revocation.
+Kingfisher ships with **921 detection rules** across **579 providers**
+(808 detectors + 113 dependent rules).
+Of these, **596** include live validation and **53** support direct revocation.
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -55,7 +55,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Adafruitio</td>
 <td>Adafruit IO Key</td>
 <td><code>kingfisher.adafruitio.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -156,6 +156,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Aikido</td>
+<td>Aikido CI Token</td>
+<td><code>kingfisher.aikido.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Airbrake</td>
 <td>Airbrake User Key</td>
 <td><code>kingfisher.airbrake.1</code></td>
@@ -191,7 +199,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Akamai</td>
 <td>Akamai API Client Token</td>
 <td><code>kingfisher.akamai.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -260,6 +268,30 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Alibaba</td>
+<td>Alibaba STS Access Key ID</td>
+<td><code>kingfisher.alibabacloud.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Alibaba</td>
+<td>Alibaba STS Security Token</td>
+<td><code>kingfisher.alibabacloud.4</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Alibaba</td>
+<td>Alibaba STS Access Key Secret</td>
+<td><code>kingfisher.alibabacloud.5</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Amazonmws</td>
 <td>Amazon MWS Auth Token</td>
 <td><code>kingfisher.amazonmws.1</code></td>
@@ -287,7 +319,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Anthropic</td>
 <td>Anthropic API Key</td>
 <td><code>kingfisher.anthropic.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -329,6 +361,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.appcenter.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Arcjet</td>
+<td>Arcjet API Key</td>
+<td><code>kingfisher.arcjet.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -511,6 +551,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Aws</td>
 <td>AWS Bedrock API Key (Long-lived)</td>
 <td><code>kingfisher.aws.bedrock.long_lived</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Axiom</td>
+<td>Axiom API Token</td>
+<td><code>kingfisher.axiom.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Axiom</td>
+<td>Axiom Personal Access Token</td>
+<td><code>kingfisher.axiom.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -1068,6 +1124,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Browseruse</td>
+<td>Browser Use API Key</td>
+<td><code>kingfisher.browseruse.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Builderio</td>
+<td>Builder.io Private API Key</td>
+<td><code>kingfisher.builderio.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Buildkite</td>
 <td>Buildkite API Key</td>
 <td><code>kingfisher.buildkite.1</code></td>
@@ -1084,6 +1156,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Buttercms</td>
+<td>ButterCMS API Key</td>
+<td><code>kingfisher.buttercms.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Calcom</td>
+<td>Cal.com API Key</td>
+<td><code>kingfisher.calcom.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Calendly</td>
 <td>Calendly Personal Access Token</td>
 <td><code>kingfisher.calendly.1</code></td>
@@ -1095,7 +1183,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Canva</td>
 <td>Canva Connect API Client Secret</td>
 <td><code>kingfisher.canva.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -1105,6 +1193,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.carto.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Censys</td>
+<td>Censys API ID</td>
+<td><code>kingfisher.censys.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Censys</td>
+<td>Censys API Secret</td>
+<td><code>kingfisher.censys.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -1121,6 +1225,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.cfxre.1</code></td>
 <td>High</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Chartmogul</td>
+<td>ChartMogul API Key</td>
+<td><code>kingfisher.chartmogul.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -1220,6 +1332,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Clickup</td>
+<td>ClickUp Personal API Token</td>
+<td><code>kingfisher.clickup.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Clockwork</td>
 <td>Clockwork SMS API Key</td>
 <td><code>kingfisher.clockwork.1</code></td>
@@ -1244,10 +1364,18 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Closecrm</td>
+<td>Close CRM API Key</td>
+<td><code>kingfisher.closecrm.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Cloudant</td>
 <td>IBM Cloudant Legacy Credentials</td>
 <td><code>kingfisher.cloudant.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -1263,6 +1391,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Cloudflare</td>
 <td>Cloudflare CA Key</td>
 <td><code>kingfisher.cloudflare.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Cloudflare</td>
+<td>Cloudflare User API Token (cfut_ prefix)</td>
+<td><code>kingfisher.cloudflare.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -1380,6 +1516,30 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Composio</td>
+<td>Composio API Key</td>
+<td><code>kingfisher.composio.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Configcat</td>
+<td>ConfigCat SDK Key</td>
+<td><code>kingfisher.configcat.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Configcat</td>
+<td>ConfigCat SDK Key (Extended)</td>
+<td><code>kingfisher.configcat.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Confluent</td>
 <td>Confluent Client ID</td>
 <td><code>kingfisher.confluent.1</code></td>
@@ -1436,9 +1596,25 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Convex</td>
+<td>Convex Deploy Key</td>
+<td><code>kingfisher.convex.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Couchbase</td>
 <td>Couchbase Capella API Key</td>
 <td><code>kingfisher.couchbase.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Courier</td>
+<td>Courier API Key</td>
+<td><code>kingfisher.courier.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -1479,6 +1655,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Credentials</td>
 <td>Credentials in a URL</td>
 <td><code>kingfisher.credentials.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Crossmint</td>
+<td>Crossmint Server API Key</td>
+<td><code>kingfisher.crossmint.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Crossmint</td>
+<td>Crossmint Client API Key</td>
+<td><code>kingfisher.crossmint.2</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -1644,6 +1836,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Deepl</td>
+<td>DeepL API Key (Free)</td>
+<td><code>kingfisher.deepl.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Deepl</td>
+<td>DeepL API Key (Pro)</td>
+<td><code>kingfisher.deepl.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Deepseek</td>
 <td>DeepSeek API Key</td>
 <td><code>kingfisher.deepseek.1</code></td>
@@ -1681,6 +1889,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.dtrack.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Detectify</td>
+<td>Detectify API Key</td>
+<td><code>kingfisher.detectify.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -1737,7 +1953,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.digitalocean.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Digitalocean</td>
@@ -1753,7 +1969,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.discord.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Discord</td>
@@ -1940,6 +2156,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Dub</td>
+<td>Dub.co API Key</td>
+<td><code>kingfisher.dub.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Duffel</td>
 <td>Duffel API Token</td>
 <td><code>kingfisher.duffel.1</code></td>
@@ -2004,6 +2228,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>E2B</td>
+<td>E2B API Key</td>
+<td><code>kingfisher.e2b.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Easypost</td>
 <td>EasyPost API token</td>
 <td><code>kingfisher.easypost.1</code></td>
@@ -2040,7 +2272,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Elastic Cloud API Key</td>
 <td><code>kingfisher.elastic.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2048,7 +2280,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Elasticsearch API Key with Prefix</td>
 <td><code>kingfisher.elastic.2</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2143,6 +2375,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Facebook</td>
 <td>Facebook Access Token</td>
 <td><code>kingfisher.facebook.3</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Falai</td>
+<td>Fal.ai API Key</td>
+<td><code>kingfisher.falai.1</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -2263,6 +2503,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Fixer</td>
 <td>Fixer.io API Key</td>
 <td><code>kingfisher.fixer.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Flagsmith</td>
+<td>Flagsmith Server-Side Environment Key</td>
+<td><code>kingfisher.flagsmith.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -2412,6 +2660,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Gamma</td>
+<td>Gamma API Key</td>
+<td><code>kingfisher.gamma.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Gcnotify</td>
 <td>GC Notify API Key</td>
 <td><code>kingfisher.gcnotify.1</code></td>
@@ -2440,7 +2696,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Gemfury Deploy or Push Token</td>
 <td><code>kingfisher.gemfury.1</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2448,7 +2704,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Gemfury Full Access Token</td>
 <td><code>kingfisher.gemfury.2</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2529,6 +2785,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.geoapify.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Ghost</td>
+<td>Ghost CMS Admin API Key</td>
+<td><code>kingfisher.ghost.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Ghost</td>
+<td>Ghost CMS Content API Key</td>
+<td><code>kingfisher.ghost.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2664,7 +2936,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>GitLab Session Cookie</td>
 <td><code>kingfisher.gitlab.15</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2868,11 +3140,27 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Guardsquare</td>
+<td>GuardSquare AppSweep API Key</td>
+<td><code>kingfisher.guardsquare.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Gumroad</td>
 <td>Gumroad Access Token</td>
 <td><code>kingfisher.gumroad.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Hackclub</td>
+<td>Hack Club AI API Key</td>
+<td><code>kingfisher.hackclub.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2992,7 +3280,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>hCaptcha Site Verify Secret Key</td>
 <td><code>kingfisher.hcaptcha.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3044,6 +3332,38 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Yes</td>
 </tr>
 <tr>
+<td>Hetzner</td>
+<td>Hetzner Cloud API Token</td>
+<td><code>kingfisher.hetzner.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Hex</td>
+<td>Hex Technologies API Token</td>
+<td><code>kingfisher.hex.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Hexpm</td>
+<td>Hex.pm Personal Token</td>
+<td><code>kingfisher.hexpm.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Hexpm</td>
+<td>Hex.pm Workspace Token</td>
+<td><code>kingfisher.hexpm.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Highnote</td>
 <td>Highnote API Key</td>
 <td><code>kingfisher.highnote.1</code></td>
@@ -3064,7 +3384,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>HOP Project Token</td>
 <td><code>kingfisher.hop.1</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3072,7 +3392,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>HOP Personal Access Token</td>
 <td><code>kingfisher.hop.2</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3148,6 +3468,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Infisical</td>
+<td>Infisical Service Token</td>
+<td><code>kingfisher.infisical.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Influxdb</td>
 <td>InfluxDB API Token</td>
 <td><code>kingfisher.influxdb.1</code></td>
@@ -3169,6 +3497,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.infura.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Inngest</td>
+<td>Inngest Signing Key</td>
+<td><code>kingfisher.inngest.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Inngest</td>
+<td>Inngest Event Key</td>
+<td><code>kingfisher.inngest.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3561,7 +3905,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.launchdarkly.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Ldap</td>
@@ -3633,6 +3977,30 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.linode.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Liveblocks</td>
+<td>Liveblocks Secret Key</td>
+<td><code>kingfisher.liveblocks.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Livekit</td>
+<td>LiveKit API Key</td>
+<td><code>kingfisher.livekit.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Livekit</td>
+<td>LiveKit API Secret</td>
+<td><code>kingfisher.livekit.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3640,7 +4008,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Llama Cloud API Key</td>
 <td><code>kingfisher.llamacloud.1</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3695,6 +4063,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Looker</td>
 <td>Looker Client Secret</td>
 <td><code>kingfisher.looker.3</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Loops</td>
+<td>Loops Email API Key</td>
+<td><code>kingfisher.loops.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -3780,11 +4156,35 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Mappedin</td>
+<td>Mappedin API Key</td>
+<td><code>kingfisher.mappedin.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mappedin</td>
+<td>Mappedin API Secret</td>
+<td><code>kingfisher.mappedin.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Mariadb</td>
 <td>MariaDB Credentials</td>
 <td><code>kingfisher.mariadb.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mastra</td>
+<td>Mastra Memory Gateway API Key</td>
+<td><code>kingfisher.mastra.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3817,6 +4217,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.maxmind.2</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mem0</td>
+<td>Mem0 API Key</td>
+<td><code>kingfisher.mem0.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3889,6 +4297,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.midtrans.2</code></td>
 <td>High</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Minimax</td>
+<td>MiniMax API Key</td>
+<td><code>kingfisher.minimax.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Mintlify</td>
+<td>Mintlify API Key</td>
+<td><code>kingfisher.mintlify.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -3972,6 +4396,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Moralis</td>
+<td>Moralis API Key</td>
+<td><code>kingfisher.moralis.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Mssql</td>
 <td>MSSQL Credentials</td>
 <td><code>kingfisher.mssql.1</code></td>
@@ -4041,12 +4473,20 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.netlify.1</code></td>
 <td>Unknown</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Netlify</td>
 <td>Netlify API Key</td>
 <td><code>kingfisher.netlify.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Netlify</td>
+<td>Netlify Personal Access Token (nfp_ prefix)</td>
+<td><code>kingfisher.netlify.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -4080,6 +4520,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Ngrok API Key</td>
 <td><code>kingfisher.ngrok.1</code></td>
 <td>Unknown</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Nightfall</td>
+<td>Nightfall AI API Key</td>
+<td><code>kingfisher.nightfall.1</code></td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4356,6 +4804,30 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Ory</td>
+<td>Ory API Key</td>
+<td><code>kingfisher.ory.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Ory</td>
+<td>Ory Session Token</td>
+<td><code>kingfisher.ory.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Ory</td>
+<td>Ory OAuth2 Token</td>
+<td><code>kingfisher.ory.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Ovh</td>
 <td>OVH Application Key</td>
 <td><code>kingfisher.ovh.1</code></td>
@@ -4399,6 +4871,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Pagerdutyapikey</td>
 <td>PagerDuty API Key</td>
 <td><code>kingfisher.pagerduty.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Pandadoc</td>
+<td>PandaDoc API Key</td>
+<td><code>kingfisher.pandadoc.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -4500,6 +4980,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Permitio</td>
+<td>Permit.io API Key</td>
+<td><code>kingfisher.permitio.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Perplexity</td>
 <td>Perplexity AI API Key</td>
 <td><code>kingfisher.perplexity.1</code></td>
@@ -4521,6 +5009,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.phpmailer.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Pinata</td>
+<td>Pinata API Key</td>
+<td><code>kingfisher.pinata.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Pinata</td>
+<td>Pinata API Secret</td>
+<td><code>kingfisher.pinata.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -4577,6 +5081,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.pipedrive.1</code></td>
 <td>High</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Pirsch</td>
+<td>Pirsch Analytics Access Key</td>
+<td><code>kingfisher.pirsch.1</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -4656,6 +5168,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Polar Personal Access Token</td>
 <td><code>kingfisher.polar.1</code></td>
 <td>High</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Pollinations</td>
+<td>Pollinations Secret Key</td>
+<td><code>kingfisher.pollinations.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Pollinations</td>
+<td>Pollinations Publishable Key</td>
+<td><code>kingfisher.pollinations.2</code></td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -4679,6 +5207,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Polymarket</td>
 <td>Polymarket Builder API Key</td>
 <td><code>kingfisher.polymarket.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Portainer</td>
+<td>Portainer API Token</td>
+<td><code>kingfisher.portainer.1</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -4712,7 +5248,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>PostHog Feature Flags Secure API Key</td>
 <td><code>kingfisher.posthog.3</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -4892,6 +5428,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Ramp</td>
+<td>Ramp Client ID</td>
+<td><code>kingfisher.ramp.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Ramp</td>
+<td>Ramp Client Secret</td>
+<td><code>kingfisher.ramp.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Rapidapi</td>
 <td>RapidAPI Key</td>
 <td><code>kingfisher.rapidapi.1</code></td>
@@ -4956,6 +5508,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Redirectpizza</td>
+<td>redirect.pizza API Token</td>
+<td><code>kingfisher.redirectpizza.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Redis</td>
 <td>Redis URI Connection String</td>
 <td><code>kingfisher.redis.1</code></td>
@@ -5009,7 +5569,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.resend.api_key.1</code></td>
 <td>High</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Retellai</td>
@@ -5068,6 +5628,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Robinhood</td>
+<td>Robinhood Crypto API Key</td>
+<td><code>kingfisher.robinhood.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Rollbar</td>
 <td>Rollbar Access Token</td>
 <td><code>kingfisher.rollbar.1</code></td>
@@ -5103,6 +5671,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Runway</td>
 <td>Runway API Key</td>
 <td><code>kingfisher.runway.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Saladcloud</td>
+<td>SaladCloud API Key</td>
+<td><code>kingfisher.saladcloud.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -5263,6 +5839,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Scraperapi</td>
 <td>ScraperAPI Key</td>
 <td><code>kingfisher.scraperapi.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Seam</td>
+<td>Seam API Key</td>
+<td><code>kingfisher.seam.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -5804,10 +6388,26 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Supabase</td>
+<td>Supabase Publishable Key</td>
+<td><code>kingfisher.supabase.4</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Surge</td>
 <td>Surge.sh Deploy Token</td>
 <td><code>kingfisher.surge.1</code></td>
 <td>High</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Svix</td>
+<td>Svix Webhook Signing Secret</td>
+<td><code>kingfisher.svix.1</code></td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -5944,7 +6544,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>ThingsBoard Access Token</td>
 <td><code>kingfisher.thingsboard.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -5968,7 +6568,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Thunderstore API Token</td>
 <td><code>kingfisher.thunderstore.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -5977,6 +6577,30 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td><code>kingfisher.thycotic.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Tigris</td>
+<td>Tigris Access Key ID</td>
+<td><code>kingfisher.tigris.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Tigris</td>
+<td>Tigris Secret Access Key</td>
+<td><code>kingfisher.tigris.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Tinybird</td>
+<td>Tinybird Admin Token</td>
+<td><code>kingfisher.tinybird.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -5991,6 +6615,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Togetherai</td>
 <td>Together.ai API Key</td>
 <td><code>kingfisher.together.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Tolgee</td>
+<td>Tolgee Project API Key</td>
+<td><code>kingfisher.tolgee.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Tolgee</td>
+<td>Tolgee Personal Access Token</td>
+<td><code>kingfisher.tolgee.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -6040,6 +6680,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Trend Micro Cloud One API Key</td>
 <td><code>kingfisher.trendmicro.2</code></td>
 <td>High</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Triggerdev</td>
+<td>Trigger.dev Secret Key</td>
+<td><code>kingfisher.triggerdev.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Triggerdev</td>
+<td>Trigger.dev Personal Access Token</td>
+<td><code>kingfisher.triggerdev.2</code></td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6160,7 +6816,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Unkey API Key (key_ prefix)</td>
 <td><code>kingfisher.unkey.2</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td>Yes</td>
 </tr>
 <tr>
@@ -6172,11 +6828,51 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Unleash</td>
+<td>Unleash Client/Admin API Token</td>
+<td><code>kingfisher.unleash.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Unleash</td>
+<td>Unleash Personal Access Token</td>
+<td><code>kingfisher.unleash.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Unsplash</td>
 <td>Unsplash Access Key</td>
 <td><code>kingfisher.unsplash.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Upcloud</td>
+<td>UpCloud API Token</td>
+<td><code>kingfisher.upcloud.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Upstash</td>
+<td>Upstash Redis REST Token</td>
+<td><code>kingfisher.upstash.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Upstash</td>
+<td>Upstash Redis REST URL</td>
+<td><code>kingfisher.upstash.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -6208,7 +6904,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Val Town API Token</td>
 <td><code>kingfisher.valtown.1</code></td>
 <td>High</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -6300,6 +6996,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Voiceflow</td>
+<td>Voiceflow API Key</td>
+<td><code>kingfisher.voiceflow.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Volcengine</td>
 <td>VolcEngine Access Key ID</td>
 <td><code>kingfisher.volcengine.1</code></td>
@@ -6320,7 +7024,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Vonage (Nexmo) API Secret</td>
 <td><code>kingfisher.vonage.2</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td>Yes</td>
 </tr>
 <tr>
@@ -6351,6 +7055,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Wakatime</td>
 <td>WakaTime Prefixed API Key</td>
 <td><code>kingfisher.wakatime.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Warpstream</td>
+<td>WarpStream API Key Secret</td>
+<td><code>kingfisher.warpstream.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -6452,6 +7164,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Wistia</td>
+<td>Wistia API Token</td>
+<td><code>kingfisher.wistia.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Wiz</td>
 <td>Wiz Client ID</td>
 <td><code>kingfisher.wiz.1</code></td>
@@ -6468,9 +7188,33 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Woocommerce</td>
+<td>WooCommerce Consumer Secret</td>
+<td><code>kingfisher.woocommerce.1</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Woocommerce</td>
+<td>WooCommerce Consumer Key</td>
+<td><code>kingfisher.woocommerce.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Workato</td>
 <td>Workato API Token</td>
 <td><code>kingfisher.workato.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Workos</td>
+<td>WorkOS API Key</td>
+<td><code>kingfisher.workos.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -6495,6 +7239,22 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Xai</td>
 <td>xAI (Grok) API Key</td>
 <td><code>kingfisher.xai.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Xata</td>
+<td>Xata API Key</td>
+<td><code>kingfisher.xata.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Xendit</td>
+<td>Xendit API Key</td>
+<td><code>kingfisher.xendit.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -6552,7 +7312,7 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Zapier Webhook URL</td>
 <td><code>kingfisher.zapier.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -6583,6 +7343,14 @@ Of these, **521** include live validation and **46** support direct revocation.
 <td>Zerobounce</td>
 <td>ZeroBounce API Key</td>
 <td><code>kingfisher.zerobounce.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Zerotier</td>
+<td>ZeroTier API Token</td>
+<td><code>kingfisher.zerotier.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>

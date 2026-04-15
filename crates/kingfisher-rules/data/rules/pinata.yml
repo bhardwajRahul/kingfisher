@@ -1,0 +1,66 @@
+rules:
+  - name: Pinata API Key
+    id: kingfisher.pinata.1
+    visible: false
+    pattern: |
+      (?xi)
+      \b
+      pinata
+      (?:.|[\n\r]){0,32}?
+      (?:API[_-]?KEY|KEY)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (
+        [0-9a-f]{64}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'PINATA_API_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'
+
+  - name: Pinata API Secret
+    id: kingfisher.pinata.2
+    pattern: |
+      (?xi)
+      \b
+      pinata
+      (?:.|[\n\r]){0,32}?
+      (?:API[_-]?SECRET|SECRET[_-]?KEY|SECRET)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (
+        [0-9a-f]{64}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 4
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'PINATA_API_SECRET=f0e1d2c3b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e1'
+    references:
+      - https://docs.pinata.cloud/api-reference/introduction
+    depends_on_rule:
+      - rule_id: kingfisher.pinata.1
+        variable: PINATA_API_KEY
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.pinata.cloud/data/testAuthentication
+          headers:
+            Accept: application/json
+            pinata_api_key: "{{ PINATA_API_KEY }}"
+            pinata_secret_api_key: "{{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"message"'
+                - 'Congratulations'

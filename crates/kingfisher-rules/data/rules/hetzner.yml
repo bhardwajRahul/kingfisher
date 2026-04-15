@@ -1,0 +1,39 @@
+rules:
+  - name: Hetzner Cloud API Token
+    id: kingfisher.hetzner.1
+    pattern: |
+      (?xi)
+      \b(?:hetzner|hcloud)
+      (?:.|[\n\r]){0,48}?
+      (?:API[_-]?TOKEN|TOKEN|SECRET|KEY)
+      (?:.|[\n\r]){0,24}?
+      \b
+      (
+        [A-Za-z0-9]{64}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 3
+      min_uppercase: 3
+      min_lowercase: 3
+    min_entropy: 4.0
+    confidence: medium
+    examples:
+      - 'HETZNER_API_TOKEN=CqM049yakVZO8EndHyyawia3EjIboWMVeoEeMW0UVN0SpTXryKh0zrtnGpeyAjTs'
+      - 'HCLOUD_TOKEN=aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789aBcDeFgHiJkLmNoPqRsTuVwXy012'
+    references:
+      - https://docs.hetzner.cloud/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.hetzner.cloud/v1/servers?per_page=1
+          headers:
+            Accept: application/json
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

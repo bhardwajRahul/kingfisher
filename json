@@ -1,0 +1,12 @@
+DEEPSEEK API KEY => [KINGFISHER.DEEPSEEK.1]
+ |Finding.......: sk-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+ |Fingerprint...: 2802934700551494254
+ |Confidence....: medium
+ |Entropy.......: 4.13
+ |Validation....: Inactive Credential
+ |__Response....: {"error":{"message":"Authentication Fails, Your api key: ****c5d6 is invalid","type":"authentication_error","param":null,"code":"invalid_request_error"}}
+ |Validate Cmd..: kingfisher validate --rule kingfisher.deepseek.1 'sk-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+ |Language......: Plain Text
+ |Line Num......: 4
+ |Path..........: /tmp/test_alibaba.txt
+

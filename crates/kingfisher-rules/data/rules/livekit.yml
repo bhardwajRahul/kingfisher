@@ -1,0 +1,52 @@
+rules:
+  - name: LiveKit API Key
+    id: kingfisher.livekit.1
+    visible: false
+    pattern: |
+      (?xi)
+      \b(?:livekit|LIVEKIT)
+      (?:.|[\n\r]){0,32}?
+      (?:API[_-]?KEY|KEY|ACCESS)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (
+        API[A-Za-z0-9]{12}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+      min_uppercase: 3
+    min_entropy: 2.5
+    confidence: medium
+    examples:
+      - 'LIVEKIT_API_KEY=APIa3B4c5D6e7F8'
+      - 'livekit_key: "API2K4m6N8p3R5s"'
+    references:
+      - https://docs.livekit.io/home/get-started/authentication/
+
+  - name: LiveKit API Secret
+    id: kingfisher.livekit.2
+    pattern: |
+      (?xi)
+      \b(?:livekit|LIVEKIT)
+      (?:.|[\n\r]){0,32}?
+      (?:SECRET|PRIVATE|ACCESS)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (
+        [A-Za-z0-9]{40,48}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 3
+      min_uppercase: 3
+      min_lowercase: 3
+    min_entropy: 4.0
+    confidence: medium
+    examples:
+      - 'LIVEKIT_API_SECRET=aBcDeFgHiJkLmNoPqRsTuVwXyZ01234567890abcde'
+    references:
+      - https://docs.livekit.io/home/get-started/authentication/
+    depends_on_rule:
+      - rule_id: kingfisher.livekit.1
+        variable: LIVEKIT_API_KEY
