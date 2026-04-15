@@ -10,12 +10,14 @@ rules:
       (?:.|[\n\r]){0,16}?
       \b
       (
-        sk_(?:live|test|staging|example)_[A-Za-z0-9_-]{16}(?:[A-Za-z0-9_-]{16}){0,3}
+        sk_[A-Za-z0-9_-]{16,64}
       )
       \b
     pattern_requirements:
       min_digits: 4
       min_lowercase: 4
+      ignore_if_contains:
+        - example
     min_entropy: 3.5
     confidence: medium
     examples:

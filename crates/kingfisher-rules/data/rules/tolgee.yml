@@ -5,7 +5,7 @@ rules:
       (?x)
       \b
       (
-        tgpak_[a-z2-7]{40,64}
+        tgpak_[a-z0-9]{40,64}
       )
       \b
     min_entropy: 3.0
@@ -36,13 +36,13 @@ rules:
       (?x)
       \b
       (
-        tgpat_[a-z2-7]{40,64}
+        tgpat_[a-z0-9]{40,64}
       )
       \b
     min_entropy: 3.0
     confidence: medium
     examples:
-      - 'TOLGEE_PAT=tgpat_gm2tgnrqgi3tsnrvheytomrvme4dgmrtgntdgntfmu3to'
+      - 'TOLGEE_PAT=tgpat_c813fppevpm6smlv8gld2fqq7knqqfht5ri1vgo57gj6ivkbhp5'
     references:
       - https://tolgee.io/platform/account_settings/api_keys_and_pat_tokens
     validation:

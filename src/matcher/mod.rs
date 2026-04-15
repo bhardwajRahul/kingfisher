@@ -27,7 +27,7 @@ use crate::{
     parser::Language,
     rule_profiling::{ConcurrentRuleProfiler, RuleStats},
     rules::rule::Rule,
-    rules_database::{RuleDetectionProfileKind, RulesDatabase},
+    rules_database::{RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase},
     scanner_pool::ScannerPool,
     validation_body::ValidationResponseBody,
 };
@@ -473,8 +473,18 @@ fn maybe_apply_context_verification<'a>(
     }
 
     let mut keep = vec![true; matches.len()];
+    let mandatory_candidate_indices: Vec<usize> = candidate_indices
+        .iter()
+        .copied()
+        .filter(|idx| {
+            let Some(rule_idx) = match_rule_indices.get(*idx) else {
+                return false;
+            };
+            should_require_context_verification(&profiles[*rule_idx])
+        })
+        .collect();
     let Some(language) = load_context_verifier_language(lang_hint, blob_len) else {
-        for idx in candidate_indices {
+        for idx in mandatory_candidate_indices {
             keep[idx] = false;
         }
         filter_kept_matches(matches, &keep);
@@ -496,7 +506,7 @@ fn maybe_apply_context_verification<'a>(
 
     if let Err(e) = verification {
         debug!("context verification unavailable: {e}");
-        remaining = candidate_indices;
+        remaining = mandatory_candidate_indices;
     }
 
     for idx in remaining {
@@ -504,6 +514,10 @@ fn maybe_apply_context_verification<'a>(
     }
 
     filter_kept_matches(matches, &keep);
+}
+
+fn should_require_context_verification(profile: &RuleMatchProfile) -> bool {
+    profile.reason_codes.contains(&"strict_contextual_shape")
 }
 
 fn filter_kept_matches<'a>(matches: &mut Vec<BlobMatch<'a>>, keep: &[bool]) {
@@ -1204,6 +1218,95 @@ line2
         assert!(
             found.is_empty(),
             "strict contextual rules should be suppressed when parser-based verification cannot run"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn assignment_style_context_rule_survives_when_context_verification_is_unavailable(
+    ) -> Result<()> {
+        let token = "xcexacEQFtULkSTDCXejdWy5ew8NyU9QJoip5a97TE7A";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.livekit.2".into(),
+            name: "livekit api secret".into(),
+            pattern: "(?xi)\\b(?:LIVEKIT_API_SECRET|livekit_api_secret|livekit[-_]?secret|livekitSecret)\\s*[:=]\\s*['\"]?([A-Za-z0-9]{43,44})['\"]?\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let blob = Blob::from_bytes(format!("LIVEKIT_API_SECRET={token}").into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("secrets.log")));
+
+        let found = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "assignment-style contextual rules should still scan raw text when parser context is unavailable"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn depends_on_assignment_style_rule_survives_when_context_verification_is_unavailable(
+    ) -> Result<()> {
+        use crate::rules::rule::DependsOnRule;
+
+        let token = "xcexacEQFtULkSTDCXejdWy5ew8NyU9QJoip5a97TE7A";
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.livekit.2".into(),
+            name: "livekit api secret".into(),
+            pattern: "(?xi)\\b(?:LIVEKIT_API_SECRET|livekit_api_secret|livekit[-_]?secret|livekitSecret)\\s*[:=]\\s*['\"]?([A-Za-z0-9]{43,44})['\"]?\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![Some(DependsOnRule {
+                rule_id: "kingfisher.livekit.1".into(),
+                variable: "API_KEY".into(),
+            })],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let blob = Blob::from_bytes(format!("LIVEKIT_API_SECRET={token}").into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("secrets.log")));
+
+        let found = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "depends_on assignment-style rules should still scan raw text when parser context is unavailable"
         );
         Ok(())
     }

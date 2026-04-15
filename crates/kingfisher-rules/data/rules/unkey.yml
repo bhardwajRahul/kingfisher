@@ -91,9 +91,11 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+            - type: JsonValid
             - type: WordMatch
               words:
-                - '"valid"'
+                - '"valid":true'
+                - '"valid": true'
     references:
       - https://www.unkey.com/docs/api-reference/v2/keys/create-api-key
       - https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key

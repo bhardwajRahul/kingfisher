@@ -1,5 +1,5 @@
 rules:
-  - name: Composio API Key
+  - name: Composio Project API Key
     id: kingfisher.composio.1
     pattern: |
       (?xi)
@@ -8,11 +8,7 @@ rules:
       (?:.|[\n\r]){0,48}?
       \b
       (
-        (?:
-          comp_[A-Za-z0-9_-]{32}(?:[A-Za-z0-9_-]{16}){0,3}
-          |
-          sk_(?:live|test)_[A-Za-z0-9_-]{16}(?:[A-Za-z0-9_-]{16}){0,3}
-        )
+        ak_[A-Za-z0-9]{16,48}
       )
       \b
     pattern_requirements:
@@ -21,17 +17,17 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'COMPOSIO_API_KEY="comp_a7B2c9D4eF6gH8jK1mN3pQ5rS7tV9xY0"'
-      - 'composio x-api-key: sk_live_Qj7mN4vK8sL2xP6zT9aBcD3eF5gH1jK2'
+      - 'COMPOSIO_API_KEY="ak_a1b2c3d4e5f6g7h8i9j0"'
+      - 'composio x-api-key: ak_0f1e2d3c4b5a69788796'
     references:
-      - https://docs.composio.dev/reference/api-reference/authentication/getAuthSessionInfo
-      - https://composio.dev/content/secure-ai-agent-infrastructure-guide
+      - https://docs.composio.dev/reference/authentication
+      - https://docs.composio.dev/api-reference/projects/post-org-project-by-project-id-api-keys-create
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://backend.composio.dev/api/v3/auth/session/info
+          url: https://backend.composio.dev/api/v3.1/tools
           headers:
             x-api-key: "{{ TOKEN }}"
             Accept: application/json
@@ -40,9 +36,4 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: JsonValid
-            - type: WordMatch
-              words:
-                - '"project"'
-                - '"api_key"'
-              match_all_words: true
     # Current Composio API docs expose session verification, but not a same-key revocation flow.

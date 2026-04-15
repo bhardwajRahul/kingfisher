@@ -1,13 +1,11 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 921 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 923 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **921 detection rules** across **579 providers**
-(808 detectors + 113 dependent rules).
-Of these, **596** include live validation and **53** support direct revocation.
+Kingfisher ships with **923 detection rules** across **579 providers**
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -1517,7 +1515,7 @@ Of these, **596** include live validation and **53** support direct revocation.
 </tr>
 <tr>
 <td>Composio</td>
-<td>Composio API Key</td>
+<td>Composio Project API Key</td>
 <td><code>kingfisher.composio.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
@@ -3349,18 +3347,10 @@ Of these, **596** include live validation and **53** support direct revocation.
 </tr>
 <tr>
 <td>Hexpm</td>
-<td>Hex.pm Personal Token</td>
+<td>Hex.pm Organization Repository Key</td>
 <td><code>kingfisher.hexpm.1</code></td>
 <td>Medium</td>
-<td>Yes</td>
 <td></td>
-</tr>
-<tr>
-<td>Hexpm</td>
-<td>Hex.pm Workspace Token</td>
-<td><code>kingfisher.hexpm.2</code></td>
-<td>Medium</td>
-<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3504,7 +3494,7 @@ Of these, **596** include live validation and **53** support direct revocation.
 <td>Inngest Signing Key</td>
 <td><code>kingfisher.inngest.1</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3512,7 +3502,7 @@ Of these, **596** include live validation and **53** support direct revocation.
 <td>Inngest Event Key</td>
 <td><code>kingfisher.inngest.2</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -3999,6 +3989,14 @@ Of these, **596** include live validation and **53** support direct revocation.
 <td>Livekit</td>
 <td>LiveKit API Secret</td>
 <td><code>kingfisher.livekit.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Livekit</td>
+<td>LiveKit URL</td>
+<td><code>kingfisher.livekit.3</code></td>
 <td>Medium</td>
 <td></td>
 <td></td>
@@ -6597,7 +6595,7 @@ Of these, **596** include live validation and **53** support direct revocation.
 </tr>
 <tr>
 <td>Tinybird</td>
-<td>Tinybird Admin Token</td>
+<td>Tinybird Static Token</td>
 <td><code>kingfisher.tinybird.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
@@ -6697,6 +6695,14 @@ Of these, **596** include live validation and **53** support direct revocation.
 <td><code>kingfisher.triggerdev.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Triggerdev</td>
+<td>Trigger.dev Project Reference</td>
+<td><code>kingfisher.triggerdev.3</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -7001,6 +7007,14 @@ Of these, **596** include live validation and **53** support direct revocation.
 <td><code>kingfisher.voiceflow.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Voiceflow</td>
+<td>Voiceflow Project ID</td>
+<td><code>kingfisher.voiceflow.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>

@@ -5,7 +5,7 @@ rules:
       (?x)
       \b
       (
-        tr_(?:dev|prod|stg)_[A-Za-z0-9]{20,40}
+        tr_(?P<env>dev|prod|stg)_[A-Za-z0-9]{20,40}
       )
       \b
     pattern_requirements:
@@ -17,23 +17,24 @@ rules:
       - 'TRIGGER_SECRET_KEY=tr_prod_xK8m2LpQr5nW0vYz3cJ7'
     references:
       - https://trigger.dev/docs/management/authentication
+      - https://trigger.dev/docs/management/envvars/list
+    depends_on_rule:
+      - rule_id: kingfisher.triggerdev.3
+        variable: TRIGGER_PROJECT_REF
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://api.trigger.dev/api/v1/tasks
+          url: 'https://api.trigger.dev/api/v1/projects/{{ TRIGGER_PROJECT_REF }}/envvars/{{ env | replace: "stg", "staging" }}'
           headers:
             Authorization: "Bearer {{ TOKEN }}"
             Accept: application/json
           response_matcher:
             - report_response: true
             - type: StatusMatch
-              status: [200, 401]
-            - type: WordMatch
-              words:
-                - '"Unauthorized"'
-              negative: true
+              status: [200]
+            - type: JsonValid
 
   - name: Trigger.dev Personal Access Token
     id: kingfisher.triggerdev.2
@@ -52,20 +53,42 @@ rules:
       - 'TRIGGER_ACCESS_TOKEN=tr_pat_xK8m2LpQr5nW0vYz3cJ7aB4d'
     references:
       - https://trigger.dev/docs/management/authentication
+      - https://trigger.dev/docs/management/envvars/list
+    depends_on_rule:
+      - rule_id: kingfisher.triggerdev.3
+        variable: TRIGGER_PROJECT_REF
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://api.trigger.dev/api/v1/tasks
+          url: 'https://api.trigger.dev/api/v1/projects/{{ TRIGGER_PROJECT_REF }}/envvars/dev'
           headers:
             Authorization: "Bearer {{ TOKEN }}"
             Accept: application/json
           response_matcher:
             - report_response: true
             - type: StatusMatch
-              status: [200, 401]
-            - type: WordMatch
-              words:
-                - '"Unauthorized"'
-              negative: true
+              status: [200]
+            - type: JsonValid
+    # Trigger.dev documents PAT creation in the dashboard, but no same-key revocation endpoint is publicly documented.
+
+  - name: Trigger.dev Project Reference
+    id: kingfisher.triggerdev.3
+    pattern: |
+      (?xi)
+      \b
+      (?:TRIGGER_PROJECT_REF|projectRef|trigger(?:\.config)?|trigger\.dev)
+      (?:.|[\n\r]){0,48}?
+      (
+        proj_[a-z0-9]{12,32}
+      )
+      \b
+    min_entropy: 3.0
+    confidence: medium
+    visible: false
+    examples:
+      - 'TRIGGER_PROJECT_REF=proj_yubjwjsfkxnylobaqvqz'
+      - 'projectRef: "proj_yubjwjsfkxnylobaqvqz"'
+    references:
+      - https://trigger.dev/docs/management/envvars/list

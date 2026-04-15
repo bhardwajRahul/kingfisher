@@ -480,6 +480,7 @@ Below is the complete list of Liquid filters available in Kingfisher, along with
 | `b64enc`              | –                                            | Base64-encodes the input using the standard alphabet.                                                          | `{{ TOKEN \| b64enc }}`                                              |
 | `b64url_enc`          | –                                            | URL-safe Base64 (no padding). Useful for JWT headers & payloads.                                               | `{{ TOKEN \| b64url_enc }}`                                          |
 | `b64dec`              | –                                            | Decodes a Base64 string.                                                                                        | `{{ "aGVsbG8=" \| b64dec }}`                                         |
+| `b64url_dec`          | –                                            | Decodes a URL-safe Base64 string (with or without padding).                                                     | `{{ "Kys_Pw" \| b64url_dec }}`                                       |
 | `sha256`              | –                                            | Computes the SHA-256 hex digest of the input.                                                                  | `{{ TOKEN \| sha256 }}`                                              |
 | `crc32`               | –                                            | Computes the CRC32 checksum of the input and returns a decimal value. | `{{ TOKEN \| crc32 }}` |
 | `crc32_dec`           | `digits` (integer, optional)                 | Computes the CRC32 checksum and returns the last `digits` decimal characters (zero-padded). Defaults to the full value when omitted. | `{{ TOKEN \| crc32_dec: 6 }}` |
@@ -533,6 +534,9 @@ Authorization: Basic {{ "api:" | append: TOKEN | b64enc }}
 - **Using the Captured Value:**  
   This captured value can then be used during the validation phase. For instance, if you have a rule for an Algolia Admin API Key that depends on an Algolia Application ID (captured as `APPID`), the validation logic can incorporate the `APPID` value to confirm that the secret matches the expected pattern or format for that specific account.
 
+- **Detection vs validation:**  
+  `depends_on_rule` is for capture chaining and validation context. It does not automatically hide the main secret finding, and it does not by itself mean the rule must be parser-verified before it can be reported from raw text.
+
 ### Use depends_on_rule to require one rule before another runs:
 
 ```yaml
@@ -543,6 +547,7 @@ depends_on_rule:
 
 - **Capture flow**: First rule captures `APPID` → second rule injects `{{ APPID }}` into validation HTTP request or pattern
 - **Visible control:** set `visible: false` on the supporting rule so it doesn’t clutter your report for non-secret matches
+- **Primary secret rule:** leave the secret rule visible unless it is also only a helper; helper rules should usually be the ones marked `visible: false`
 ## Algolia Example
 
 Consider this example rule for an Algolia Application ID and Admin Key combination. To validate that this is an active credential, both must be matched:

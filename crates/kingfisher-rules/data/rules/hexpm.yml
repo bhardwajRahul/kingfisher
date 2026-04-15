@@ -1,58 +1,32 @@
 rules:
-  - name: Hex.pm Personal Token
+  - name: Hex.pm Organization Repository Key
     id: kingfisher.hexpm.1
     pattern: |
-      (?x)
+      (?xi)
       \b
+      (?:
+        mix \s+ hex\.organization \s+ (?:auth|key)
+        |
+        HEX_ORGANIZATION_KEY
+        |
+        hexpm
+        |
+        hex\.pm
+      )
+      (?:.|[\n\r]){0,64}?
       (
-        hxtp_[a-f0-9]{64}
+        [a-f0-9]{32}
       )
       \b
+    pattern_requirements:
+      min_digits: 4
+      min_lowercase: 8
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'HEX_API_KEY=hxtp_a1b2c3d4e5f60708a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f60708a9b0c1d2'
+      - 'mix hex.organization auth acme --key 126d49fb3014bd26457471ebae97c625'
+      - 'HEX_ORGANIZATION_KEY=126d49fb3014bd26457471ebae97c625'
     references:
-      - https://hex.pm/docs/faq
-    validation:
-      type: Http
-      content:
-        request:
-          method: GET
-          url: https://hex.pm/api/auth
-          headers:
-            Authorization: "{{ TOKEN }}"
-            Accept: application/json
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [200]
-
-  - name: Hex.pm Workspace Token
-    id: kingfisher.hexpm.2
-    pattern: |
-      (?x)
-      \b
-      (
-        hxtw_[a-f0-9]{64}
-      )
-      \b
-    min_entropy: 3.5
-    confidence: medium
-    examples:
-      - 'HEX_API_KEY=hxtw_a1b2c3d4e5f60708a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f60708a9b0c1d2'
-    references:
-      - https://hex.pm/docs/faq
-    validation:
-      type: Http
-      content:
-        request:
-          method: GET
-          url: https://hex.pm/api/auth
-          headers:
-            Authorization: "{{ TOKEN }}"
-            Accept: application/json
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [200]
+      - https://hex.pm/docs/private
+    # Hex.pm docs only expose these keys as repository authentication hashes.
+    # A same-key validation or revocation endpoint is not publicly documented.
