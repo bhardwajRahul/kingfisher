@@ -104,6 +104,19 @@ use crate::cli::commands::{
 
 fn main() -> anyhow::Result<()> {
     color_backtrace::install();
+
+    // Run the real entry point on a thread with an explicit, larger stack so that
+    // deeply-nested async state machines (validation pipeline) cannot overflow the
+    // default main-thread stack.
+    const STACK_SIZE: usize = 64 * 1024 * 1024; // 64 MiB
+    let builder =
+        std::thread::Builder::new().name("kingfisher-main".to_string()).stack_size(STACK_SIZE);
+
+    let handler = builder.spawn(run).expect("failed to spawn main thread");
+    handler.join().unwrap_or_else(|e| std::panic::resume_unwind(e))
+}
+
+fn run() -> anyhow::Result<()> {
     // Rustls 0.23 requires an explicit crypto provider selection when multiple
     // providers are present in the dependency graph.
     match rustls::crypto::ring::default_provider().install_default() {
@@ -132,9 +145,13 @@ fn main() -> anyhow::Result<()> {
         Command::View(_) => 1,
     };
 
-    // Set up the Tokio runtime with the specified number of threads
+    // Set up the Tokio runtime with the specified number of threads.
+    // Worker threads also need larger stacks because timed_validate_single_match
+    // compiles to an async state machine whose poll function has a very large
+    // stack frame (known LLVM limitation with big async fns).
     let runtime = Builder::new_multi_thread()
         .worker_threads(num_jobs)
+        .thread_stack_size(16 * 1024 * 1024) // 16 MiB per worker
         .enable_all()
         .build()
         .context("Failed to create Tokio runtime")?;

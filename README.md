@@ -61,7 +61,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
-- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json` (supports multiple files and directories)
+- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json` (supports multiple files, directories, and imported Gitleaks/TruffleHog JSON reports)
 - **Audit reporting**: Generate compliance-oriented HTML reports with scan metadata and validation ordering
 - **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
@@ -81,7 +81,7 @@ NOTE: Replay has been slowed down for demo
 ![Kingfisher secret scanning demo](docs/kingfisher-usage-01.gif)
 
 ## Report Viewer Demo
-Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers.
+Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers. The viewer also imports Gitleaks JSON and TruffleHog JSON/JSONL for local triage.
 
 Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
@@ -155,6 +155,8 @@ kingfisher scan /path/to/code
 ```bash
 kingfisher scan /path/to/code --view-report
 ```
+
+You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`.
 
 ### 4: Show only validated (live) secrets
 
@@ -433,12 +435,18 @@ kingfisher scan /path/to/code --access-map --view-report
 # View access-map reports locally
 kingfisher view kingfisher.json
 
+# Import third-party reports for local triage
+kingfisher view trufflehog.json
+kingfisher view gitleaks.json
+
 # Combine multiple reports (deduplicated by fingerprint)
 kingfisher view report1.json report2.jsonl
 
 # Load all reports from a directory (non-recursive, skips non-JSON/JSONL files)
 kingfisher view ./reports/
 ```
+
+The viewer can import Gitleaks JSON and TruffleHog JSON/JSONL in addition to native Kingfisher reports. Imported findings are normalized for browsing, filtering, and export, and imported TruffleHog/Gitleaks findings deduplicate by secret identity. Imported reports remain display-oriented: native `access_map`, validate/revoke commands, and blast-radius linking still require a Kingfisher scan.
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
 

@@ -57,6 +57,8 @@ Kingfisher automatically detects whether the path is a Git repo or plain directo
 kingfisher scan /path/to/code --view-report
 ```
 
+You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`.
+
 ## 4. Show Only Live Secrets
 
 Filter to only secrets confirmed active by provider APIs:

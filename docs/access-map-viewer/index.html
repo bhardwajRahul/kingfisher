@@ -1251,15 +1251,15 @@
       <div class="panel__header">
         <div class="panel__title">
           <h3>Upload Report</h3>
-          <p>Analyze Kingfisher JSON / JSONL output (auto-loads if provided on the CLI)</p>
+          <p>Analyze Kingfisher JSON / JSONL output, plus Gitleaks and TruffleHog JSON reports</p>
         </div>
       </div>
       <div style="padding:22px;">
         <div class="upload-area" id="drop-zone">
           <div class="upload-icon">📄</div>
           <div class="upload-text">Drag &amp; drop reports here</div>
-          <div class="upload-sub">…or click to choose files</div>
-            <div class="upload-sub">Your files stay in the browser—load JSON or JSONL reports locally. Multiple files are merged and deduplicated.</div>
+          <div class="upload-sub">...or click to choose files</div>
+            <div class="upload-sub">Your files stay in the browser. Supported inputs: Kingfisher JSON/JSONL, Gitleaks JSON, and TruffleHog JSON/JSONL. Multiple files are merged and deduplicated.</div>
           <input type="file" id="file-input" hidden accept=".json,.jsonl" multiple>
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
@@ -1314,8 +1314,10 @@
               <div class="scan-meta-item"><strong>Report Generated:</strong> <span id="meta-timestamp">—</span></div>
               <div class="scan-meta-item" id="meta-target-wrap" style="display:none;"><strong>Target:</strong> <span id="meta-target">—</span></div>
               <div class="scan-meta-item" id="meta-duration-wrap" style="display:none;"><strong>Duration:</strong> <span id="meta-duration">—</span></div>
+              <div class="scan-meta-item" id="meta-source-wrap" style="display:none;"><strong>Source:</strong> <span id="meta-source">—</span></div>
               <div class="scan-meta-item" id="meta-version-wrap" style="display:none;"><strong>Version:</strong> <span id="meta-version">—</span></div>
             </div>
+            <div id="import-note" class="hidden" style="margin-bottom:18px; padding:14px 16px; border-radius:10px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; font-size:13px; line-height:1.6;"></div>
             <section class="panel">
               <div class="metrics-grid">
                 <div class="metric">
@@ -1466,6 +1468,10 @@
                     <div id="fd-validation-status"></div>
                   </div>
                   <div class="detail-field">
+                    <label>Report Source</label>
+                    <div id="fd-source"></div>
+                  </div>
+                  <div class="detail-field">
                     <label>Git Commit</label>
                     <div id="fd-commit"></div>
                   </div>
@@ -1487,6 +1493,8 @@
                   Match Snippet
                 </label>
                 <div class="snippet-box" id="fd-snippet"></div>
+
+                <div id="fd-import-note" class="hidden" style="margin:14px 0 0; padding:12px 14px; border-radius:8px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; font-size:12px; line-height:1.6;"></div>
 
                 <div id="fd-validation-box" class="hidden">
                   <label>Live Validation Response</label>
@@ -1774,6 +1782,7 @@
       if (amToggle) amToggle.disabled = !hasAccess;
       if (downloadAccessReportBtn) downloadAccessReportBtn.disabled = !hasAccess;
       if (amEmptyNotice) {
+        amEmptyNotice.innerHTML = getAccessMapEmptyMessage();
         amEmptyNotice.classList.toggle("hidden", hasAccess);
       }
 
@@ -1858,6 +1867,419 @@
       });
 
       return { findings, accessMap, mainReport, statsReport };
+    }
+
+    function firstNonEmpty() {
+      for (let i = 0; i < arguments.length; i++) {
+        const value = arguments[i];
+        if (value === undefined || value === null) continue;
+        if (typeof value === "string" && value.trim() === "") continue;
+        return value;
+      }
+      return "";
+    }
+
+    function toArray(value) {
+      if (Array.isArray(value)) return value;
+      if (value === undefined || value === null || value === "") return [];
+      return [value];
+    }
+
+    function toNumberOrNull(value) {
+      if (value === undefined || value === null || value === "") return null;
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function slugifyIdentifier(value, fallback = "unknown") {
+      const slug = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return slug || fallback;
+    }
+
+    function stableHash53(input) {
+      const text = String(input || "");
+      let h1 = 0xdeadbeef ^ text.length;
+      let h2 = 0x41c6ce57 ^ text.length;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return String(4294967296 * (2097151 & h2) + (h1 >>> 0));
+    }
+
+    function buildSyntheticFingerprint(sourceTool, parts) {
+      return stableHash53([sourceTool].concat(parts || []).map((part) => String(part || "")).join("\u241f"));
+    }
+
+    function findDeepValue(input, candidateKeys, depth = 0) {
+      if (depth > 6 || input === undefined || input === null) return undefined;
+      const keySet = new Set((candidateKeys || []).map((key) => String(key).toLowerCase()));
+
+      if (Array.isArray(input)) {
+        for (const item of input) {
+          const found = findDeepValue(item, candidateKeys, depth + 1);
+          if (found !== undefined && found !== null && found !== "") return found;
+        }
+        return undefined;
+      }
+
+      if (typeof input !== "object") return undefined;
+
+      for (const [key, value] of Object.entries(input)) {
+        if (keySet.has(String(key).toLowerCase()) && value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+
+      for (const value of Object.values(input)) {
+        const found = findDeepValue(value, candidateKeys, depth + 1);
+        if (found !== undefined && found !== null && found !== "") return found;
+      }
+
+      return undefined;
+    }
+
+    function isHttpUrl(value) {
+      return typeof value === "string" && /^https?:\/\//i.test(value);
+    }
+
+    function buildViewerImportMetadata(toolName, options = {}) {
+      return {
+        imported: Boolean(options.imported),
+        tools: Array.isArray(options.tools) && options.tools.length ? options.tools : [toolName],
+        access_map_supported: options.accessMapSupported !== false,
+        validate_command_supported: options.validateCommandSupported !== false,
+        revoke_command_supported: options.revokeCommandSupported !== false,
+        notes: Array.isArray(options.notes) ? options.notes.slice() : [],
+      };
+    }
+
+    function mergeViewerImportMetadata(baseMeta, incomingMeta) {
+      const base = baseMeta && typeof baseMeta === "object" ? baseMeta : buildViewerImportMetadata("Kingfisher", {});
+      const incoming = incomingMeta && typeof incomingMeta === "object" ? incomingMeta : buildViewerImportMetadata("Kingfisher", {});
+      const mergedTools = [...new Set(toArray(base.tools).concat(toArray(incoming.tools)).map((tool) => String(tool)).filter(Boolean))];
+      const mergedNotes = [...new Set(toArray(base.notes).concat(toArray(incoming.notes)).map((note) => String(note)).filter(Boolean))];
+      return {
+        imported: Boolean(base.imported || incoming.imported),
+        tools: mergedTools.length ? mergedTools : ["Kingfisher"],
+        access_map_supported: Boolean(base.access_map_supported && incoming.access_map_supported),
+        validate_command_supported: Boolean(base.validate_command_supported && incoming.validate_command_supported),
+        revoke_command_supported: Boolean(base.revoke_command_supported && incoming.revoke_command_supported),
+        notes: mergedNotes,
+      };
+    }
+
+    function detectReportFormat(payload) {
+      const stack = Array.isArray(payload) ? payload.slice() : [payload];
+      while (stack.length > 0) {
+        const item = stack.shift();
+        if (!item || typeof item !== "object") continue;
+
+        if (Array.isArray(item.results)) {
+          stack.unshift(...item.results);
+          continue;
+        }
+
+        if (Array.isArray(item.findings) || Array.isArray(item.access_map) || (item.rule && item.finding) || (item.provider && item.account)) {
+          return "kingfisher";
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(item, "DetectorName") ||
+          Object.prototype.hasOwnProperty.call(item, "Verified") ||
+          Object.prototype.hasOwnProperty.call(item, "Raw") ||
+          Object.prototype.hasOwnProperty.call(item, "RawV2") ||
+          Object.prototype.hasOwnProperty.call(item, "Redacted")
+        ) {
+          return "trufflehog";
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(item, "RuleID") ||
+          Object.prototype.hasOwnProperty.call(item, "File") ||
+          Object.prototype.hasOwnProperty.call(item, "StartLine") ||
+          Object.prototype.hasOwnProperty.call(item, "Secret") ||
+          Object.prototype.hasOwnProperty.call(item, "Match")
+        ) {
+          return "gitleaks";
+        }
+      }
+
+      return "kingfisher";
+    }
+
+    function unwrapImportedEntries(payload, format) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && typeof payload === "object") {
+        if (format === "trufflehog" && Array.isArray(payload.results)) return payload.results;
+        if (format === "gitleaks" && Array.isArray(payload.results)) return payload.results;
+      }
+      return payload ? [payload] : [];
+    }
+
+    function buildGitMetadata(commitId, email, fileUrl) {
+      const gitMetadata = {};
+      if (commitId || email) {
+        gitMetadata.commit = {};
+        if (commitId) gitMetadata.commit.id = String(commitId);
+        if (email) gitMetadata.commit.committer = { email: String(email) };
+      }
+      if (fileUrl) {
+        gitMetadata.file = { url: String(fileUrl) };
+      }
+      return Object.keys(gitMetadata).length ? gitMetadata : null;
+    }
+
+    function buildImportedSummary(toolName, normalizedFindings) {
+      const counts = calculateValidationCounts(normalizedFindings.map((entry) => ({
+        finding: entry.finding,
+      })));
+      return {
+        findings: normalizedFindings.length,
+        active_findings: counts.active || 0,
+        inactive_findings: counts.inactive || 0,
+        unknown_validation_findings: counts.unknown || 0,
+        access_map_identities: 0,
+        confidence_level: toolName === "Gitleaks" ? "imported" : "imported",
+        custom_rules_used: false,
+        successful_validations: counts.active || 0,
+        failed_validations: counts.inactive || 0,
+        skipped_validations: counts.not_attempted || 0,
+      };
+    }
+
+    function normalizeGitleaksFinding(item) {
+      if (!item || typeof item !== "object") return null;
+      const ruleId = String(firstNonEmpty(item.RuleID, item.ruleID, item.RuleId, item.Rule) || "imported.gitleaks.unknown");
+      const description = String(firstNonEmpty(item.Description, item.description, item.RuleID, item.Rule) || ruleId);
+      const path = String(firstNonEmpty(item.File, item.file, item.SymlinkFile, item.symlinkFile) || "");
+      const line = toNumberOrNull(firstNonEmpty(item.StartLine, item.startLine, item.lineNumber));
+      const columnStart = toNumberOrNull(firstNonEmpty(item.StartColumn, item.startColumn));
+      const columnEnd = toNumberOrNull(firstNonEmpty(item.EndColumn, item.endColumn));
+      const snippet = String(firstNonEmpty(item.Secret, item.secret, item.Match, item.match, item.line, description) || "");
+      const entropy = firstNonEmpty(item.Entropy, item.entropy, item.OffenderEntropy, item.offenderEntropy);
+      const secretIdentity = String(firstNonEmpty(item.Secret, item.secret, item.Match, item.match) || "");
+      const fingerprint = String(
+        firstNonEmpty(item.Fingerprint, item.fingerprint) ||
+        (secretIdentity
+          ? buildSyntheticFingerprint("gitleaks", [ruleId, secretIdentity])
+          : buildSyntheticFingerprint("gitleaks", [ruleId, path, line, columnStart, snippet]))
+      );
+      const gitMetadata = buildGitMetadata(
+        firstNonEmpty(item.Commit, item.commit),
+        firstNonEmpty(item.Email, item.email),
+        firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url)
+      );
+
+      return {
+        rule: {
+          id: "imported.gitleaks." + slugifyIdentifier(ruleId),
+          name: description,
+        },
+        finding: {
+          snippet,
+          fingerprint,
+          confidence: "medium",
+          entropy: entropy !== "" ? String(entropy) : "",
+          validation: {
+            status: "Not Attempted",
+            response: "",
+          },
+          language: "Imported",
+          line,
+          column_start: columnStart,
+          column_end: columnEnd,
+          path,
+          git_metadata: gitMetadata,
+          viewer_import: {
+            source_tool: "Gitleaks",
+            source_rule_id: ruleId,
+            source_rule_name: description,
+          },
+        },
+      };
+    }
+
+    function normalizeTruffleHogFinding(item) {
+      if (!item || typeof item !== "object") return null;
+      const detectorName = String(firstNonEmpty(item.DetectorName, item.detectorName, item.DetectorDescription, item.detectorDescription) || "Unknown Detector");
+      const detectorDescription = String(firstNonEmpty(item.DetectorDescription, item.detectorDescription, detectorName) || detectorName);
+      const sourceMetadata = item.SourceMetadata || item.sourceMetadata || {};
+      const path = String(firstNonEmpty(
+        findDeepValue(sourceMetadata, ["file", "path", "filename"]),
+        item.File,
+        item.file
+      ) || "");
+      const line = toNumberOrNull(firstNonEmpty(
+        findDeepValue(sourceMetadata, ["line", "line_number", "linenumber", "startline"]),
+        item.Line,
+        item.line
+      ));
+      const sourceUrl = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["url", "link", "htmlurl", "html_url", "rawurl", "raw_url"]),
+        item.Url,
+        item.url
+      );
+      const commitId = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["commit", "commitid", "hash", "sha"]),
+        item.Commit,
+        item.commit
+      );
+      const email = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["email", "authoremail", "committeremail"]),
+        item.Email,
+        item.email
+      );
+      const snippet = String(firstNonEmpty(item.Redacted, item.redacted, item.RawV2, item.rawV2, item.Raw, item.raw, detectorDescription) || "");
+      const secretIdentity = String(firstNonEmpty(item.RawV2, item.rawV2, item.Raw, item.raw, item.Redacted, item.redacted) || "");
+      const fingerprint = String(
+        firstNonEmpty(item.Fingerprint, item.fingerprint) ||
+        (secretIdentity
+          ? buildSyntheticFingerprint("trufflehog", [detectorName, secretIdentity])
+          : buildSyntheticFingerprint("trufflehog", [detectorName, path, line, snippet]))
+      );
+      const verified = Boolean(item.Verified);
+      const verificationError = String(firstNonEmpty(item.VerificationError, item.verificationError) || "");
+      const gitMetadata = buildGitMetadata(commitId, email, isHttpUrl(sourceUrl) ? sourceUrl : "");
+
+      return {
+        rule: {
+          id: "imported.trufflehog." + slugifyIdentifier(detectorName),
+          name: detectorName,
+        },
+        finding: {
+          snippet,
+          fingerprint,
+          confidence: verified ? "high" : "medium",
+          entropy: "",
+          validation: {
+            status: verified ? "Active Credential" : "Not Attempted",
+            response: verificationError,
+          },
+          language: "Imported",
+          line,
+          column_start: null,
+          column_end: null,
+          path,
+          git_metadata: gitMetadata,
+          viewer_import: {
+            source_tool: "TruffleHog",
+            source_rule_id: detectorName,
+            source_rule_name: detectorName,
+            source_rule_description: detectorDescription,
+          },
+        },
+      };
+    }
+
+    function normalizeImportedPayload(payload, toolName) {
+      const format = toolName === "TruffleHog" ? "trufflehog" : "gitleaks";
+      const entries = unwrapImportedEntries(payload, format);
+      const normalizedFindings = entries
+        .map((item) => format === "trufflehog" ? normalizeTruffleHogFinding(item) : normalizeGitleaksFinding(item))
+        .filter(Boolean);
+      const firstEntry = entries.find((item) => item && typeof item === "object") || {};
+      const notes = toolName === "TruffleHog"
+        ? [
+            "Imported from TruffleHog JSON. Kingfisher import deduplicates repeated TruffleHog findings by secret identity. Only findings TruffleHog marked verified are shown as active credentials; all other findings stay in Not Attempted.",
+            "Imported reports do not include Kingfisher access-map data, validate commands, or revoke commands. Re-scan with Kingfisher and --access-map for full enrichment.",
+          ]
+        : [
+            "Imported from Gitleaks JSON. Findings are normalized for browsing, but validation, revoke commands, and access-map blast radius are unavailable in the imported report.",
+            "Re-scan with Kingfisher and --access-map to add validation context and blast-radius mapping.",
+          ];
+      const target = String(firstNonEmpty(
+        firstEntry.SourceName,
+        firstEntry.sourceName,
+        firstEntry.Repo,
+        firstEntry.repo,
+        firstEntry.Repository,
+        firstEntry.repository
+      ) || "");
+
+      return {
+        f: normalizedFindings,
+        am: [],
+        rd: {
+          findings: normalizedFindings,
+          access_map: [],
+          metadata: {
+            generated_at: new Date().toISOString(),
+            scan_timestamp: new Date().toISOString(),
+            target,
+            kingfisher_version: "",
+            summary: buildImportedSummary(toolName, normalizedFindings),
+            viewer_import: buildViewerImportMetadata(toolName, {
+              imported: true,
+              accessMapSupported: false,
+              validateCommandSupported: false,
+              revokeCommandSupported: false,
+              notes,
+            }),
+          },
+        },
+      };
+    }
+
+    function normalizeKingfisherPayload(payload) {
+      const collected = collectReportData(payload);
+      const rd = collected.mainReport || collected.statsReport
+        ? Object.assign({}, collected.mainReport || {}, collected.statsReport || {})
+        : {};
+      rd.metadata = Object.assign({}, rd.metadata || {});
+      rd.metadata.viewer_import = mergeViewerImportMetadata(
+        buildViewerImportMetadata("Kingfisher", {
+          imported: false,
+          accessMapSupported: true,
+          validateCommandSupported: true,
+          revokeCommandSupported: true,
+          notes: [],
+        }),
+        rd.metadata.viewer_import
+      );
+      return { f: collected.findings, am: collected.accessMap, rd };
+    }
+
+    function normalizeReportPayload(payload) {
+      const format = detectReportFormat(payload);
+      if (format === "trufflehog") {
+        return normalizeImportedPayload(payload, "TruffleHog");
+      }
+      if (format === "gitleaks") {
+        return normalizeImportedPayload(payload, "Gitleaks");
+      }
+      return normalizeKingfisherPayload(payload);
+    }
+
+    function mergeRawReportData(base, incoming) {
+      if (!base) return incoming || null;
+      if (!incoming) return base;
+
+      const merged = Object.assign({}, base, incoming);
+      merged.metadata = Object.assign({}, base.metadata || {}, incoming.metadata || {});
+      merged.metadata.viewer_import = mergeViewerImportMetadata(
+        base.metadata && base.metadata.viewer_import,
+        incoming.metadata && incoming.metadata.viewer_import
+      );
+
+      if (!merged.metadata.target) {
+        merged.metadata.target = firstNonEmpty(base.metadata && base.metadata.target, incoming.metadata && incoming.metadata.target) || "";
+      }
+      if (!merged.metadata.scan_timestamp) {
+        merged.metadata.scan_timestamp = firstNonEmpty(base.metadata && base.metadata.scan_timestamp, incoming.metadata && incoming.metadata.scan_timestamp) || new Date().toISOString();
+      }
+      if (!merged.metadata.generated_at) {
+        merged.metadata.generated_at = firstNonEmpty(base.metadata && base.metadata.generated_at, incoming.metadata && incoming.metadata.generated_at) || new Date().toISOString();
+      }
+
+      return merged;
     }
 
     function processFiles(files) {
@@ -1982,6 +2404,11 @@
 
       const scanMetaSection = document.getElementById("scan-meta-section");
       if (scanMetaSection) scanMetaSection.classList.add("hidden");
+      const importNote = document.getElementById("import-note");
+      if (importNote) {
+        importNote.classList.add("hidden");
+        importNote.innerHTML = "";
+      }
       const blastSection = document.getElementById("fd-blast-radius");
       if (blastSection) blastSection.classList.add("hidden");
       const findingDetail = document.getElementById("finding-detail");
@@ -2016,8 +2443,7 @@
         const { f, am, rd } = parseSingleText(text);
         findings.push(...f);
         accessMap.push(...am);
-        if (!rawData && rd) rawData = rd;
-        else if (rd) Object.assign(rawData, rd);
+        rawData = mergeRawReportData(rawData, rd);
       }
 
       // Deduplicate findings by fingerprint
@@ -2043,10 +2469,6 @@
     }
 
     function parseSingleText(text) {
-      let f = [];
-      let am = [];
-      let rd = null;
-
       let parsed = parsePossiblyMultiJson(text);
 
       if (parsed === null) {
@@ -2063,23 +2485,10 @@
             console.warn("Skipping invalid JSON line", i);
           }
         }
-
-        const collected = collectReportData(entries);
-        f = collected.findings;
-        am = collected.accessMap;
-        if (collected.mainReport || collected.statsReport) {
-          rd = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
-        }
-      } else {
-        const collected = collectReportData(parsed);
-        f = collected.findings;
-        am = collected.accessMap;
-        if (collected.mainReport || collected.statsReport || parsed) {
-          rd = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
-        }
+        return normalizeReportPayload(entries);
       }
 
-      return { f, am, rd };
+      return normalizeReportPayload(parsed);
     }
 
     function deduplicateFindings(list) {
@@ -2128,6 +2537,25 @@
       setTimeout(() => loader.classList.add("hidden"), 250);
     }
 
+    function formatViewerImportSource(viewerImport) {
+      const tools = toArray(viewerImport && viewerImport.tools).map((tool) => String(tool)).filter(Boolean);
+      if (tools.length === 0) return "";
+      return viewerImport && viewerImport.imported ? "Imported: " + tools.join(" + ") : tools.join(" + ");
+    }
+
+    function getAccessMapEmptyMessage() {
+      if (scanMetadata.imported) {
+        return "Imported reports do not include Kingfisher access-map data. Re-scan with <code>kingfisher scan --access-map</code> for blast-radius mapping.";
+      }
+      return "No Access Map entries in this report. Run a scan with <code>--access-map</code> to map credential blast radius.";
+    }
+
+    function getImportNoticeHtml(importNotes) {
+      const notes = toArray(importNotes).map((note) => String(note)).filter(Boolean);
+      if (!notes.length) return "";
+      return `<strong>Imported report limits:</strong> ${notes.map((note) => escapeHtml(note)).join(" ")}`;
+    }
+
     function extractScanMetadata() {
       scanMetadata = {};
       if (!rawData || typeof rawData !== "object") {
@@ -2138,6 +2566,9 @@
       // Try to extract metadata from the raw report data
       const data = rawData;
       const reportMeta = data.metadata && typeof data.metadata === "object" ? data.metadata : {};
+      const viewerImport = reportMeta.viewer_import && typeof reportMeta.viewer_import === "object"
+        ? reportMeta.viewer_import
+        : buildViewerImportMetadata("Kingfisher", {});
       scanMetadata.timestamp =
         reportMeta.scan_timestamp ||
         reportMeta.generated_at ||
@@ -2163,6 +2594,15 @@
       if (duration) {
         scanMetadata.duration = typeof duration === "number" ? (duration / 1000).toFixed(1) + "s" : String(duration);
       }
+
+      scanMetadata.reportSource = formatViewerImportSource(viewerImport);
+      scanMetadata.imported = Boolean(viewerImport.imported);
+      scanMetadata.importNotes = toArray(viewerImport.notes).map((note) => String(note)).filter(Boolean);
+      scanMetadata.capabilities = {
+        accessMapSupported: viewerImport.access_map_supported !== false,
+        validateCommandSupported: viewerImport.validate_command_supported !== false,
+        revokeCommandSupported: viewerImport.revoke_command_supported !== false,
+      };
 
       // Version
       scanMetadata.version =
@@ -2227,8 +2667,11 @@
       const target = document.getElementById("meta-target");
       const durationWrap = document.getElementById("meta-duration-wrap");
       const duration = document.getElementById("meta-duration");
+      const sourceWrap = document.getElementById("meta-source-wrap");
+      const source = document.getElementById("meta-source");
       const versionWrap = document.getElementById("meta-version-wrap");
       const version = document.getElementById("meta-version");
+      const importNote = document.getElementById("import-note");
 
       section.classList.remove("hidden");
       if (ts) ts.textContent = scanMetadata.timestamp || new Date().toLocaleString();
@@ -2247,11 +2690,29 @@
         durationWrap.style.display = "none";
       }
 
+      if (scanMetadata.reportSource) {
+        sourceWrap.style.display = "";
+        source.textContent = scanMetadata.reportSource;
+      } else {
+        sourceWrap.style.display = "none";
+      }
+
       if (scanMetadata.version) {
         versionWrap.style.display = "";
         version.textContent = scanMetadata.version;
       } else {
         versionWrap.style.display = "none";
+      }
+
+      if (importNote) {
+        const importHtml = getImportNoticeHtml(scanMetadata.importNotes);
+        if (importHtml) {
+          importNote.classList.remove("hidden");
+          importNote.innerHTML = importHtml;
+        } else {
+          importNote.classList.add("hidden");
+          importNote.innerHTML = "";
+        }
       }
     }
 
@@ -2759,6 +3220,7 @@
       if (scanMetadata.timestamp) metaLines.push(`<strong>Scan Date:</strong> ${escapeHtml(scanMetadata.timestamp)}`);
       if (scanMetadata.target) metaLines.push(`<strong>Target:</strong> ${escapeHtml(scanMetadata.target)}`);
       if (scanMetadata.duration) metaLines.push(`<strong>Duration:</strong> ${escapeHtml(scanMetadata.duration)}`);
+      if (scanMetadata.reportSource) metaLines.push(`<strong>Source:</strong> ${escapeHtml(scanMetadata.reportSource)}`);
       if (scanMetadata.version) metaLines.push(`<strong>Version:</strong> ${escapeHtml(scanMetadata.version)}`);
       if (scanMetadata.latestVersion) metaLines.push(`<strong>Latest:</strong> ${escapeHtml(scanMetadata.latestVersion)}`);
       if (scanMetadata.updateCheckStatus) metaLines.push(`<strong>Update Check:</strong> ${escapeHtml(scanMetadata.updateCheckStatus)}`);
@@ -2811,6 +3273,7 @@
           ${counts.inactive > 0 ? `${counts.inactive} credential${counts.inactive !== 1 ? "s were" : " was"} inactive at scan time.` : ""}
           ${counts.not_attempted > 0 ? `${counts.not_attempted} ${counts.not_attempted !== 1 ? "were" : "was"} not validated.` : ""}
           ${counts.canary > 0 ? `${counts.canary} ${counts.canary !== 1 ? "were" : "was"} canary token${counts.canary !== 1 ? "s" : ""} (skipped).` : ""}
+          ${scanMetadata.imported ? `Imported reports do not include Kingfisher access-map data or command workflows.` : ""}
         </div>`;
       } else {
         execSummary = `<div style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:16px;">
@@ -3174,6 +3637,7 @@
     function showFindingDetail(f) {
       const rule = f.rule || {};
       const finding = f.finding || {};
+      const importInfo = finding.viewer_import && typeof finding.viewer_import === "object" ? finding.viewer_import : null;
 
       const panel = document.getElementById("finding-detail");
       panel.classList.remove("hidden");
@@ -3248,6 +3712,11 @@
         statusEl.innerHTML = `<span class="status-badge ${badgeClass}">${escapeHtml(statusRaw)}</span>`;
       }
 
+      const sourceEl = document.getElementById("fd-source");
+      if (sourceEl) {
+        sourceEl.textContent = importInfo && importInfo.source_tool ? importInfo.source_tool : (scanMetadata.reportSource || "Kingfisher");
+      }
+
       const path = finding.path || "";
       if (fdPathInput) {
         fdPathInput.value = path || "—";
@@ -3273,6 +3742,21 @@
 
       document.getElementById("fd-snippet").textContent = finding.snippet || "";
 
+      const importNoteEl = document.getElementById("fd-import-note");
+      if (importNoteEl) {
+        if (importInfo && scanMetadata.imported) {
+          const toolName = escapeHtml(importInfo.source_tool || "Imported report");
+          const note = scanMetadata.importNotes && scanMetadata.importNotes.length
+            ? scanMetadata.importNotes.join(" ")
+            : "This finding was imported into the viewer and does not include Kingfisher-native access-map or command metadata.";
+          importNoteEl.classList.remove("hidden");
+          importNoteEl.innerHTML = `<strong>${toolName} import:</strong> ${escapeHtml(note)}`;
+        } else {
+          importNoteEl.classList.add("hidden");
+          importNoteEl.innerHTML = "";
+        }
+      }
+
       const valBox = document.getElementById("fd-validation-box");
       if (finding.validation && finding.validation.response) {
         valBox.classList.remove("hidden");
@@ -3287,7 +3771,7 @@
       const validateBox = document.getElementById("fd-validate-box");
       const validateCmd = document.getElementById("fd-validate-cmd");
       const validateCopyBtn = document.getElementById("fd-validate-copy");
-      if (finding.validate_command) {
+      if (finding.validate_command && (!importInfo || scanMetadata.capabilities.validateCommandSupported)) {
         validateBox.classList.remove("hidden");
         validateCmd.textContent = finding.validate_command;
         
@@ -3314,7 +3798,7 @@
       const revokeBox = document.getElementById("fd-revoke-box");
       const revokeCmd = document.getElementById("fd-revoke-cmd");
       const revokeCopyBtn = document.getElementById("fd-revoke-copy");
-      if (finding.revoke_command) {
+      if (finding.revoke_command && (!importInfo || scanMetadata.capabilities.revokeCommandSupported)) {
         revokeBox.classList.remove("hidden");
         revokeCmd.textContent = finding.revoke_command;
         
@@ -3378,11 +3862,18 @@
     function generateRiskRationale(finding, accessEntries) {
       const rule = finding.rule || {};
       const fd = finding.finding || {};
+      const importInfo = fd.viewer_import && typeof fd.viewer_import === "object" ? fd.viewer_import : null;
       const statusRaw = fd.validation && fd.validation.status ? String(fd.validation.status) : "";
       const normalizedStatus = normalizeValidationStatus(statusRaw);
       const isActive = normalizedStatus === "active";
 
       if (!accessEntries || accessEntries.length === 0) {
+        if (importInfo && scanMetadata.imported) {
+          return {
+            level: isActive ? "low" : "none",
+            text: `This finding was imported from ${escapeHtml(importInfo.source_tool || "an external tool")}. Imported reports do not carry Kingfisher access-map data, so blast radius cannot be derived here. Re-scan with <code>kingfisher scan --access-map</code> for native mapping.`,
+          };
+        }
         if (isActive) {
           return {
             level: "medium",
@@ -3902,7 +4393,7 @@
 
       if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
         list.innerHTML =
-          '<div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No access map data available</div>';
+          `<div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">${getAccessMapEmptyMessage()}</div>`;
         return;
       }
 

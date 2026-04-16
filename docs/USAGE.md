@@ -128,6 +128,10 @@ kingfisher view ./reports/
 
 The browser-based viewer also supports loading multiple files via drag-and-drop or the file picker, with the same fingerprint-based deduplication.
 
+The local viewer also accepts Gitleaks JSON and TruffleHog JSON/JSONL as imported report formats. Imported findings are normalized into the viewer for triage, filtering, and export, which makes the viewer useful as a shared local workbench even when the original scan came from another tool.
+
+Imported reports are display-oriented. They do not include Kingfisher-native `access_map` data, `validate` / `revoke` commands, or the same fingerprint semantics as a native Kingfisher report. TruffleHog findings marked as verified are shown as active credentials; all other imported findings are treated as not attempted rather than inactive. For full validation context and blast-radius mapping, re-scan with Kingfisher and add `--access-map` when appropriate.
+
 ### Pipe any text directly into Kingfisher by passing `-`
 
 ```bash

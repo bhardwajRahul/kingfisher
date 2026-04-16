@@ -5104,6 +5104,7 @@ dependencies = [
  "serde-sarif",
  "serde_json",
  "serde_yaml",
+ "sha1",
  "sha2 0.11.0",
  "smallvec",
  "strum 0.28.0",

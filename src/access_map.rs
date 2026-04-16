@@ -6,6 +6,7 @@ use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
 
 mod airtable;
 mod algolia;
+mod alibaba;
 mod anthropic;
 mod artifactory;
 mod auth0;
@@ -84,6 +85,7 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
         AccessMapProvider::Microsoftteams => microsoft_teams::map_access(&args).await?,
         AccessMapProvider::Airtable => airtable::map_access(&args).await?,
+        AccessMapProvider::Alibaba => alibaba::map_access(&args).await?,
         AccessMapProvider::Circleci => circleci::map_access(&args).await?,
         AccessMapProvider::Digitalocean => digitalocean::map_access(&args).await?,
         AccessMapProvider::Fastly => fastly::map_access(&args).await?,
@@ -168,6 +170,13 @@ pub enum AccessMapRequest {
     MicrosoftTeams { webhook_url: String, fingerprint: String },
     /// An Airtable API token.
     Airtable { token: String, fingerprint: String },
+    /// Alibaba Cloud access key credentials.
+    Alibaba {
+        access_key: String,
+        secret_key: String,
+        session_token: Option<String>,
+        fingerprint: String,
+    },
     /// A CircleCI API token.
     CircleCI { token: String, fingerprint: String },
     /// A DigitalOcean API token.
@@ -432,6 +441,16 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
             AccessMapRequest::Airtable { token, fingerprint } => {
                 (map_token(&AirtableMapper, &token).await, fingerprint)
             }
+            AccessMapRequest::Alibaba { access_key, secret_key, session_token, fingerprint } => (
+                alibaba::map_access_with_credentials(
+                    &access_key,
+                    &secret_key,
+                    session_token.as_deref(),
+                )
+                .await
+                .unwrap_or_else(|err| build_failed_result("alibaba", &access_key, err)),
+                fingerprint,
+            ),
             AccessMapRequest::CircleCI { token, fingerprint } => {
                 (map_token(&CircleCiMapper, &token).await, fingerprint)
             }

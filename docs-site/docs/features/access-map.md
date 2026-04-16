@@ -158,6 +158,45 @@ kingfisher access-map aws ./aws.env --json-out aws.access-map.json
 
 Kingfisher performs read-only enumeration for the IAM principal and, when allowed by the credential, visible resources in several common AWS services including S3, EC2, IAM, Lambda, DynamoDB, KMS, Secrets Manager, SQS, SNS, RDS, ECR, and SSM Parameter Store.
 
+### Alibaba Cloud (`alibaba` / `aliyun`)
+
+- **Credential**: an Alibaba Cloud access key pair, with an optional STS security token.
+- **Supported formats for `kingfisher access-map alibaba <FILE>`**:
+  - **JSON object** with support for:
+    - `access_key_id` / `accessKeyId` / `AccessKeyId`
+    - `access_key_secret` / `accessKeySecret` / `AccessKeySecret`
+    - optional `security_token` / `securityToken` / `SecurityToken`
+  - **Key/value file** containing `KEY=VALUE` or `KEY: VALUE` lines, supporting:
+    - `access_key_id` or `AccessKeyId`
+    - `access_key_secret` or `AccessKeySecret`
+    - optional `security_token` or `SecurityToken`
+
+#### Standalone examples (Alibaba Cloud)
+
+```bash
+cat > ./alibaba.json <<'EOF'
+{
+  "access_key_id": "LTAI....",
+  "access_key_secret": "....",
+  "security_token": "...."
+}
+EOF
+
+kingfisher access-map alibaba ./alibaba.json --json-out alibaba.access-map.json
+```
+
+```bash
+cat > ./alibaba.env <<'EOF'
+access_key_id=LTAI....
+access_key_secret=....
+security_token=....
+EOF
+
+kingfisher access-map alibaba ./alibaba.env --json-out alibaba.access-map.json
+```
+
+Kingfisher resolves the Alibaba Cloud caller identity with `sts:GetCallerIdentity` for both long-lived access key pairs and STS temporary credentials discovered during scanning. Current coverage is identity-focused: it maps the account and resolved RAM principal, and records that broader Alibaba service enumeration is not yet available.
+
 ### GCP (`gcp`)
 
 - **Credential**: a Google Cloud **service account key JSON** file.

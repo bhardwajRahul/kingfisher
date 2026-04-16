@@ -10,6 +10,7 @@ use std::sync::{LazyLock, OnceLock};
 
 use anyhow::Result;
 use dashmap::DashMap;
+use futures::FutureExt;
 use http::StatusCode;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
@@ -435,7 +436,8 @@ pub async fn validate_single_match(
     max_body_len: usize,
 ) {
     let fp = validation_dedup_key(m);
-    let timeout_result = time::timeout(validation_timeout, async {
+    let timeout_result = time::timeout(
+        validation_timeout,
         timed_validate_single_match(
             m,
             parser,
@@ -448,8 +450,8 @@ pub async fn validate_single_match(
             rate_limiter,
             max_body_len,
         )
-        .await
-    })
+        .boxed(),
+    )
     .await;
 
     if timeout_result.is_err() {

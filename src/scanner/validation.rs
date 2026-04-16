@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use crossbeam_skiplist::SkipMap;
 use dashmap::DashMap;
-use futures::{stream, StreamExt};
+use futures::{stream, FutureExt, StreamExt};
 use indicatif::{ProgressBar, ProgressStyle};
 use liquid::Parser;
 use reqwest::StatusCode;
@@ -196,6 +196,24 @@ impl AccessMapCollector {
         let key = xxhash_rust::xxh3::xxh3_64(format!("airtable|{token}").as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::Airtable {
             token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_alibaba(
+        &self,
+        access_key: &str,
+        secret_key: &str,
+        session_token: Option<&str>,
+        fingerprint: String,
+    ) {
+        let key = xxhash_rust::xxh3::xxh3_64(
+            format!("alibaba|{access_key}|{secret_key}|{}", session_token.unwrap_or("")).as_bytes(),
+        );
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Alibaba {
+            access_key: access_key.to_string(),
+            secret_key: secret_key.to_string(),
+            session_token: session_token.map(|value| value.to_string()),
             fingerprint,
         });
     }
@@ -550,6 +568,7 @@ pub async fn run_secret_validation(
                 // Now we use the cloned `pb`
                 pb.inc(1);
             }
+            .boxed()
         })
         .await;
         // This is now valid because the original `pb` was never moved
@@ -677,6 +696,7 @@ pub async fn run_secret_validation(
                                     out.extend(dups);
                                     out
                                 }
+                                .boxed()
                             }))
                             .buffer_unordered(concurrency)
                             .collect()
@@ -684,6 +704,7 @@ pub async fn run_secret_validation(
 
                         validated.into_iter().flatten().collect::<Vec<_>>()
                     }
+                    .boxed()
                 })
                 .collect();
 
@@ -804,7 +825,8 @@ async fn validate_single(
     }
     // If we reach here, we're the first task to validate this key
     // Perform validation
-    let outcome = timeout(validation_timeout, async {
+    let outcome = timeout(
+        validation_timeout,
         validate_single_match(
             om,
             parser,
@@ -817,8 +839,8 @@ async fn validate_single(
             rate_limiter,
             max_body_len,
         )
-        .await
-    })
+        .boxed(),
+    )
     .await;
     // Store result in cache
     match outcome {
@@ -989,6 +1011,45 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
 
                 if !token.is_empty() && !organization.is_empty() {
                     collector.record_azure_devops(&token, &organization, fp.clone());
+                }
+            }
+            if om.rule.id() == "kingfisher.alibabacloud.2" {
+                let secret_key = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let access_key =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "AKID")
+                        .or_else(|| om.dependent_captures.get("AKID").cloned())
+                        .unwrap_or_default();
+
+                if !access_key.is_empty() && !secret_key.is_empty() {
+                    collector.record_alibaba(&access_key, &secret_key, None, fp.clone());
+                }
+            }
+            if om.rule.id() == "kingfisher.alibabacloud.5" {
+                let secret_key = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let access_key =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "STS_AKID")
+                        .or_else(|| om.dependent_captures.get("STS_AKID").cloned())
+                        .unwrap_or_default();
+                let session_token =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "SECURITY_TOKEN")
+                        .or_else(|| om.dependent_captures.get("SECURITY_TOKEN").cloned())
+                        .unwrap_or_default();
+
+                if !access_key.is_empty() && !secret_key.is_empty() && !session_token.is_empty() {
+                    collector.record_alibaba(
+                        &access_key,
+                        &secret_key,
+                        Some(&session_token),
+                        fp.clone(),
+                    );
                 }
             }
             if is_gitlab_rule {
@@ -1379,5 +1440,23 @@ mod tests {
         assert!(!is_counted_validation_status(StatusCode::PRECONDITION_REQUIRED));
         assert!(is_counted_validation_status(StatusCode::OK));
         assert!(is_counted_validation_status(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn access_map_collector_dedupes_alibaba_credentials() {
+        let collector = AccessMapCollector::default();
+        collector.record_alibaba("LTAIexample", "secret-value", None, "fp-1".to_string());
+        collector.record_alibaba("LTAIexample", "secret-value", None, "fp-2".to_string());
+
+        let requests = collector.into_requests();
+        assert_eq!(requests.len(), 1);
+        match &requests[0] {
+            AccessMapRequest::Alibaba { access_key, secret_key, session_token, .. } => {
+                assert_eq!(access_key, "LTAIexample");
+                assert_eq!(secret_key, "secret-value");
+                assert!(session_token.is_none());
+            }
+            other => panic!("unexpected request: {other:?}"),
+        }
     }
 }

@@ -67,6 +67,9 @@ pub enum AccessMapProvider {
     Microsoftteams,
     /// Airtable
     Airtable,
+    /// Alibaba Cloud
+    #[clap(alias = "aliyun")]
+    Alibaba,
     /// CircleCI
     Circleci,
     /// DigitalOcean
