@@ -19,7 +19,7 @@ Kingfisher ships a browser-based report viewer that can also be hosted from the 
 
 The hosted docs-site version is upload-based. It does not use the CLI-only local `/report` endpoint that powers `kingfisher view`.
 
-Use the hosted version when you want a shareable static viewer on GitHub Pages.
+Use the hosted version when you want a hosted static viewer on GitHub Pages.
 
 Use the local CLI viewer when you want Kingfisher to open a report directly from disk:
 
