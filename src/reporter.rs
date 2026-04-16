@@ -902,6 +902,11 @@ impl DetailsReporter {
 
         let validation_status = if rm.validation_success {
             "Active Credential".to_string()
+        } else if rm.validation_response_status == StatusCode::PRECONDITION_REQUIRED.as_u16()
+            && validation_body::as_str(&rm.validation_response_body)
+                .starts_with("(skip list entry)")
+        {
+            "Canary Token (Skipped)".to_string()
         } else if matches!(
             rm.validation_response_status,
             status if status == StatusCode::CONTINUE.as_u16()
@@ -1945,7 +1950,7 @@ mod tests {
         let scan_args = sample_scan_args();
 
         let record = reporter.build_finding_record(&report_match, &scan_args);
-        assert_eq!(record.finding.validation.status, "Not Attempted");
+        assert_eq!(record.finding.validation.status, "Canary Token (Skipped)");
         assert_eq!(
             record.finding.validation.response,
             "(skip list entry) AWS validation not attempted for account 111122223333."

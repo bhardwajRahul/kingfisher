@@ -70,23 +70,21 @@ rules:
           method: POST
           url: >
             {%- assign base_url = LIVEKIT_URL | replace: "wss://", "https://" | replace: "ws://", "http://" -%}
-            {{ base_url }}/twirp/livekit.RoomService/ListRooms
+            {{ base_url }}/twirp/livekit.RoomService/ListParticipants
           headers:
             Content-Type: application/json
             Accept: application/json
-            Authorization: '{%- assign header = "HS256" | jwt_header -%}{%- assign now = "" | unix_timestamp -%}{%- assign exp = now | plus: 300 -%}{%- assign nbf = now | minus: 5 -%}{%- assign payload_json = ''{"iss":"'' | append: API_KEY | append: ''","sub":"kingfisher-validation","exp":'' | append: exp | append: '',"nbf":'' | append: nbf | append: '',"video":{"roomList":true}}'' -%}{%- assign payload = payload_json | b64url_enc -%}{%- assign signing_input = header | append: "." | append: payload -%}{%- assign sig_b64 = signing_input | hmac_sha256: TOKEN -%}{%- assign sig = sig_b64 | replace: "+", "-" | replace: "/", "_" | replace: "=", "" -%}Bearer {{ header }}.{{ payload }}.{{ sig }}'
+            Authorization: '{%- assign header = "HS256" | jwt_header -%}{%- assign now = "" | unix_timestamp -%}{%- assign exp = now | plus: 300 -%}{%- assign nbf = now | minus: 5 -%}{%- assign payload_json = ''{"iss":"'' | append: API_KEY | append: ''","sub":"kingfisher-validation","exp":'' | append: exp | append: '',"nbf":'' | append: nbf | append: '',"video":{"roomAdmin":true,"room":"__kingfisher_validation__"}}'' -%}{%- assign payload = payload_json | b64url_enc -%}{%- assign signing_input = header | append: "." | append: payload -%}{%- assign sig_b64 = signing_input | hmac_sha256: TOKEN -%}{%- assign sig = sig_b64 | replace: "+", "-" | replace: "/", "_" | replace: "=", "" -%}Bearer {{ header }}.{{ payload }}.{{ sig }}'
           body: |
-            {}
+            {"room":"__kingfisher_validation__"}
           response_matcher:
             - report_response: true
             - type: StatusMatch
-              status: [200]
+              status: [200, 404]
             - type: StatusMatch
               status: [401, 403]
               negative: true
             - type: JsonValid
-            - type: WordMatch
-              words: ['"rooms"']
     # LiveKit validation needs the URL and API key as well, so standalone API secrets must remain
     # detectable even when contextual verification is unavailable.
 

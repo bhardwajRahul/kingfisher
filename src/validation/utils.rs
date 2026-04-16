@@ -1,7 +1,131 @@
+use std::sync::LazyLock;
+
+use tl::{HTMLTag, Node, Parser, ParserOptions};
+
 use crate::validation::SerializableCaptures;
 
 // Re-export from the scanner crate so the rest of this module can use it.
 pub use kingfisher_scanner::validation::{check_url_resolvable, is_ssrf_safe_ip};
+
+static HTML_PARSER_OPTIONS: LazyLock<ParserOptions> = LazyLock::new(ParserOptions::default);
+
+fn collapse_whitespace(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut prev_was_whitespace = false;
+
+    for ch in input.chars() {
+        if ch.is_whitespace() {
+            if !prev_was_whitespace {
+                out.push(' ');
+                prev_was_whitespace = true;
+            }
+        } else {
+            out.push(ch);
+            prev_was_whitespace = false;
+        }
+    }
+
+    out.trim().to_string()
+}
+
+fn decode_common_html_entities(input: &str) -> String {
+    let mut decoded = input.to_string();
+    const ENTITY_REPLACEMENTS: [(&str, &str); 8] = [
+        ("&nbsp;", " "),
+        ("&#160;", " "),
+        ("&amp;", "&"),
+        ("&lt;", "<"),
+        ("&gt;", ">"),
+        ("&quot;", "\""),
+        ("&#34;", "\""),
+        ("&#39;", "'"),
+    ];
+
+    for (entity, replacement) in ENTITY_REPLACEMENTS {
+        decoded = decoded.replace(entity, replacement);
+    }
+
+    decoded
+}
+
+fn collect_visible_text_from_tag(tag: &HTMLTag<'_>, parser: &Parser<'_>, out: &mut String) {
+    for handle in tag.children().top().iter() {
+        let Some(node) = handle.get(parser) else {
+            continue;
+        };
+
+        collect_visible_text(node, parser, out);
+    }
+}
+
+fn collect_visible_text(node: &Node<'_>, parser: &Parser<'_>, out: &mut String) {
+    match node {
+        Node::Raw(raw) => {
+            let chunk = raw.as_utf8_str();
+            let chunk = chunk.trim();
+            if !chunk.is_empty() {
+                if !out.is_empty() {
+                    out.push(' ');
+                }
+                out.push_str(chunk);
+            }
+        }
+        Node::Comment(_) => {}
+        Node::Tag(tag) => {
+            let name = tag.name().as_utf8_str();
+            if name.eq_ignore_ascii_case("script")
+                || name.eq_ignore_ascii_case("style")
+                || name.eq_ignore_ascii_case("noscript")
+                || name.eq_ignore_ascii_case("template")
+            {
+                return;
+            }
+            collect_visible_text_from_tag(tag, parser, out);
+        }
+    }
+}
+
+fn extract_visible_text_from_html(input: &str) -> Option<String> {
+    let dom = tl::parse(input, *HTML_PARSER_OPTIONS).ok()?;
+    let parser = dom.parser();
+
+    let mut out = String::new();
+    for handle in dom.children() {
+        let Some(node) = handle.get(parser) else {
+            continue;
+        };
+        collect_visible_text(node, parser, &mut out);
+    }
+
+    Some(collapse_whitespace(&decode_common_html_entities(&out)))
+}
+
+fn strip_html_markup(input: &str) -> String {
+    extract_visible_text_from_html(input)
+        .unwrap_or_else(|| collapse_whitespace(&decode_common_html_entities(input)))
+}
+
+fn truncate_to_char_boundary(input: &str, max_len: usize) -> String {
+    if max_len == 0 || input.len() <= max_len {
+        return input.to_string();
+    }
+
+    let mut end = max_len.min(input.len());
+    while end > 0 && !input.is_char_boundary(end) {
+        end -= 1;
+    }
+
+    input[..end].to_string()
+}
+
+/// Formats validation response text for report output.
+///
+/// When `strip_html` is true, HTML markup is stripped and common entities are decoded before
+/// optional truncation.
+pub fn format_response_body_for_display(body: &str, max_len: usize, strip_html: bool) -> String {
+    let rendered = if strip_html { strip_html_markup(body) } else { body.to_string() };
+    truncate_to_char_boundary(&rendered, max_len)
+}
 
 /// Return (NAME, value, start, end) for the captures we care about.
 ///
@@ -273,6 +397,28 @@ mod tests {
         assert!(is_ssrf_safe_ip(&"8.8.8.8".parse().unwrap()));
         assert!(is_ssrf_safe_ip(&"1.1.1.1".parse().unwrap()));
         assert!(is_ssrf_safe_ip(&"2606:4700::1111".parse().unwrap()));
+    }
+
+    #[test]
+    fn format_response_body_for_display_strips_html() {
+        let html = r#"<!doctype html>
+            <html>
+              <head>
+                <script>console.log("ignore");</script>
+              </head>
+              <body><h1>Hello &amp; goodbye</h1><p>World</p></body>
+            </html>"#;
+
+        let rendered = format_response_body_for_display(html, 0, true);
+
+        assert_eq!(rendered, "Hello & goodbye World");
+    }
+
+    #[test]
+    fn format_response_body_for_display_truncates_on_utf8_boundary() {
+        let body = "é".repeat(10);
+        let rendered = format_response_body_for_display(&body, 7, false);
+        assert_eq!(rendered, "ééé");
     }
 
     #[tokio::test]

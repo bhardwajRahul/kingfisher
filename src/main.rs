@@ -346,7 +346,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                             let envelope = reporter.build_report_envelope(&scan_args)?;
                             let report_bytes = serde_json::to_vec_pretty(&envelope)?;
                             let view_args = view::ViewArgs {
-                                report: None,
+                                reports: vec![],
                                 port: scan_args.view_report_port,
                                 address: scan_args.view_report_address.clone(),
                                 open_browser: true,

@@ -5,16 +5,18 @@ rules:
       (?x)
       \b
       (
-        tr_(?P<env>dev|prod|stg)_[A-Za-z0-9]{20,40}
+        tr_(?:dev|prod|stg)_[A-Za-z0-9]{20}
       )
       \b
     pattern_requirements:
       min_digits: 1
+      min_uppercase: 1
+      min_lowercase: 1
     min_entropy: 3.0
     confidence: medium
     examples:
-      - 'TRIGGER_SECRET_KEY=tr_dev_1a2b3c4d5e6f7g8h9i0j'
-      - 'TRIGGER_SECRET_KEY=tr_prod_xK8m2LpQr5nW0vYz3cJ7'
+      - 'TRIGGER_SECRET_KEY=tr_dev_AN0MnvS4n4GdfhELPUMU'
+      - 'TRIGGER_SECRET_KEY=tr_prod_KCqL36ucD5LTPa9kdnMj'
     references:
       - https://trigger.dev/docs/management/authentication
       - https://trigger.dev/docs/management/envvars/list
@@ -26,7 +28,7 @@ rules:
       content:
         request:
           method: GET
-          url: 'https://api.trigger.dev/api/v1/projects/{{ TRIGGER_PROJECT_REF }}/envvars/{{ env | replace: "stg", "staging" }}'
+          url: 'https://api.trigger.dev/api/v1/projects/{{ TRIGGER_PROJECT_REF }}/envvars/{{ TOKEN | split: "_" | slice: 1, 1 | first | replace: "stg", "staging" }}'
           headers:
             Authorization: "Bearer {{ TOKEN }}"
             Accept: application/json
@@ -42,15 +44,17 @@ rules:
       (?x)
       \b
       (
-        tr_pat_[A-Za-z0-9]{20,40}
+        tr_pat_[A-Za-z0-9]{20}
       )
       \b
     pattern_requirements:
       min_digits: 1
+      min_uppercase: 1
+      min_lowercase: 1
     min_entropy: 3.0
     confidence: medium
     examples:
-      - 'TRIGGER_ACCESS_TOKEN=tr_pat_xK8m2LpQr5nW0vYz3cJ7aB4d'
+      - 'TRIGGER_ACCESS_TOKEN=tr_pat_G8DwRcZEc0ONFMtkVHt8'
     references:
       - https://trigger.dev/docs/management/authentication
       - https://trigger.dev/docs/management/envvars/list

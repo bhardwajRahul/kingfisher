@@ -4,6 +4,11 @@ rules:
     pattern: |
       (?xi)
       \b
+      close
+      (?:.|[\n\r]){0,32}?
+      (?:API[_-]?KEY|SECRET|TOKEN|KEY)
+      (?:.|[\n\r]){0,16}?
+      \b
       (
         api_[A-Za-z0-9]{18,26}\.[A-Za-z0-9]{18,26}
       )

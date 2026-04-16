@@ -28,9 +28,11 @@ pub const DEFAULT_ADDRESS: &str = "127.0.0.1";
 /// View a Kingfisher access-map report locally.
 #[derive(clap::Args, Debug)]
 pub struct ViewArgs {
-    /// Path to a JSON or JSONL access-map report to load automatically
-    #[arg(value_name = "REPORT", value_hint = clap::ValueHint::FilePath)]
-    pub report: Option<PathBuf>,
+    /// Paths to JSON/JSONL reports or directories containing them.
+    /// Multiple files are merged and deduplicated by fingerprint.
+    /// Directories are scanned (non-recursively) for .json/.jsonl files.
+    #[arg(value_name = "REPORT", value_hint = clap::ValueHint::AnyPath)]
+    pub reports: Vec<PathBuf>,
 
     /// Local port for the embedded viewer (default 7890)
     #[arg(long, default_value_t = DEFAULT_PORT)]
@@ -70,27 +72,99 @@ pub fn ensure_port_available(port: u16, address: &str, flag_name: &str) -> Resul
     Ok(())
 }
 
+/// Resolve report paths: expand directories (non-recursively) into their
+/// `.json` / `.jsonl` children, expand tildes, and filter to valid extensions.
+/// Non-matching files inside directories are silently skipped.
+async fn resolve_report_paths(raw: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+
+    for raw_path in raw {
+        let expanded = expand_tilde(raw_path)?;
+        let meta = tokio::fs::metadata(&expanded)
+            .await
+            .with_context(|| format!("Cannot access path: {}", expanded.display()))?;
+
+        if meta.is_dir() {
+            let mut read_dir = tokio::fs::read_dir(&expanded)
+                .await
+                .with_context(|| format!("Cannot read directory: {}", expanded.display()))?;
+            while let Some(entry) = read_dir.next_entry().await? {
+                let child = entry.path();
+                if child.is_file() && is_report_extension(&child) {
+                    paths.push(child);
+                }
+            }
+        } else if meta.is_file() {
+            if !is_report_extension(&expanded) {
+                warn!(path = %expanded.display(), "Skipping file with unsupported extension");
+                continue;
+            }
+            paths.push(expanded);
+        }
+    }
+
+    Ok(paths)
+}
+
+fn is_report_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            let lower = ext.to_ascii_lowercase();
+            lower == "json" || lower == "jsonl"
+        })
+        .unwrap_or(false)
+}
+
+/// Load multiple report files and concatenate their contents with newline
+/// separators so the viewer can parse them as JSONL.
+async fn load_and_combine_reports(paths: &[PathBuf]) -> Result<Vec<u8>> {
+    let mut combined = Vec::new();
+    let mut loaded = 0usize;
+
+    for path in paths {
+        match tokio::fs::read(path).await {
+            Ok(bytes) => {
+                if !combined.is_empty() {
+                    combined.push(b'\n');
+                }
+                combined.extend_from_slice(&bytes);
+                loaded += 1;
+            }
+            Err(err) => {
+                warn!(path = %path.display(), %err, "Failed to read report file, skipping");
+            }
+        }
+    }
+
+    if loaded == 0 && !paths.is_empty() {
+        return Err(anyhow!("Failed to read any of the {} report file(s)", paths.len()));
+    }
+
+    if loaded > 0 {
+        info!(loaded, total = paths.len(), "Loaded report files");
+    }
+
+    Ok(combined)
+}
+
 /// Run the `kingfisher view` subcommand.
 pub async fn run(args: ViewArgs) -> Result<()> {
     let report = if let Some(report_bytes) = args.report_bytes.as_ref() {
         Some(report_bytes.clone())
-    } else if let Some(path) = args.report.as_ref() {
-        let expanded_path = expand_tilde(path)?;
-        let ext = path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| ext.to_ascii_lowercase())
-            .unwrap_or_default();
-
-        if ext != "json" && ext != "jsonl" {
-            return Err(anyhow!("Report must be a JSON or JSONL file (got extension: {})", ext));
+    } else if !args.reports.is_empty() {
+        let paths = resolve_report_paths(&args.reports).await?;
+        if paths.is_empty() {
+            warn!("No JSON/JSONL report files found in the provided paths");
+            None
+        } else {
+            let combined = load_and_combine_reports(&paths).await?;
+            if combined.is_empty() {
+                None
+            } else {
+                Some(combined)
+            }
         }
-
-        Some(
-            tokio::fs::read(&expanded_path)
-                .await
-                .with_context(|| format!("Failed to read report at {}", expanded_path.display()))?,
-        )
     } else {
         None
     };
@@ -110,7 +184,7 @@ pub async fn run(args: ViewArgs) -> Result<()> {
     info!(%address, "Starting access-map viewer");
     eprintln!("Serving access-map viewer at {} (Ctrl+C to stop)", url);
 
-    let open_browser = args.open_browser || args.report.is_some() || args.report_bytes.is_some();
+    let open_browser = args.open_browser || !args.reports.is_empty() || args.report_bytes.is_some();
     if open_browser {
         let url = url.clone();
         tokio::task::spawn_blocking(move || {

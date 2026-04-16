@@ -330,12 +330,14 @@ async fn execute_http_validation(
     let body =
         response.text().await.unwrap_or_else(|e| format!("Failed to read response body: {}", e));
 
-    // Truncate body for display if too long
-    let display_body = preview_body_for_display(&body, 500);
-
     // Validate the response
     let matchers = http_validation.request.response_matcher.as_deref().unwrap_or(&[]);
     let html_allowed = http_validation.request.response_is_html;
+    let display_body = if html_allowed {
+        crate::validation::utils::format_response_body_for_display(&body, 500, true)
+    } else {
+        preview_body_for_display(&body, 500)
+    };
     let is_valid = validate_response(matchers, &body, &status, &headers, html_allowed);
 
     Ok(DirectValidationResult {

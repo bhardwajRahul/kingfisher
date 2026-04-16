@@ -121,7 +121,7 @@ kingfisher scan /path/to/repo \
 ```
 
 **What you'll see**  
-Findings tied to a skip-listed account report `Validation: Not Attempted` and note in the `Response:` that the entry came from the skip list:
+Findings tied to a skip-listed account report `Validation: Canary Token (Skipped)` and note in the `Response:` that the entry came from the skip list:
 
 ```bash
 AWS SECRET ACCESS KEY => [KINGFISHER.AWS.2]
@@ -129,7 +129,7 @@ AWS SECRET ACCESS KEY => [KINGFISHER.AWS.2]
  |Fingerprint...: 2141074333616819500
  |Confidence....: medium
  |Entropy.......: 5.00
- |Validation....: Not Attempted
+ |Validation....: Canary Token (Skipped)
  |__Response....: (skip list entry) AWS validation not attempted for account 171436882533.
  |Language......: Unknown
  |Line Num......: 21
@@ -137,7 +137,7 @@ AWS SECRET ACCESS KEY => [KINGFISHER.AWS.2]
 ```
 
 **Why this matters**  
-Skipping prevents noisy tripwires in prod telemetry while keeping the status explicit—"Not Attempted" isn't a pass. If needed, verify these credentials out-of-band or with a safe, non-triggering method.
+Skipping prevents noisy tripwires in prod telemetry while keeping the status explicit—"Canary Token (Skipped)" signals that the credential likely belongs to an active honeypot but was intentionally not validated. If needed, verify these credentials out-of-band or with a safe, non-triggering method.
 
 #### Common CLI flows
 

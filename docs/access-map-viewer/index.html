@@ -1257,10 +1257,10 @@
       <div style="padding:22px;">
         <div class="upload-area" id="drop-zone">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">Drag &amp; drop a report here</div>
-          <div class="upload-sub">…or click to choose a file</div>
-            <div class="upload-sub">Your file stays in the browser—load JSON or JSONL reports locally.</div>
-          <input type="file" id="file-input" hidden accept=".json,.jsonl">
+          <div class="upload-text">Drag &amp; drop reports here</div>
+          <div class="upload-sub">…or click to choose files</div>
+            <div class="upload-sub">Your files stay in the browser—load JSON or JSONL reports locally. Multiple files are merged and deduplicated.</div>
+          <input type="file" id="file-input" hidden accept=".json,.jsonl" multiple>
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
       </div>
@@ -1397,6 +1397,7 @@
                     <option value="active">Active Credential</option>
                     <option value="inactive">Inactive Credential</option>
                     <option value="not_attempted">Not Attempted</option>
+                    <option value="canary">Canary Token (Skipped)</option>
                   </select>
                   <span class="rows-label">Rows</span>
                   <select id="rows-select" class="rows-select">
@@ -1611,7 +1612,7 @@
 
     dropZone.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length) processFile(e.target.files[0]);
+      if (e.target.files.length) processFiles(Array.from(e.target.files));
     });
     dropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -1624,7 +1625,7 @@
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dropZone.classList.remove("active");
-      if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) processFiles(Array.from(e.dataTransfer.files));
     });
 
     navButtons.forEach((btn) => {
@@ -1859,25 +1860,69 @@
       return { findings, accessMap, mainReport, statsReport };
     }
 
-    function processFile(file) {
-      loaderText.textContent = 'Processing "' + file.name + '"…';
+    function processFiles(files) {
+      const validFiles = files.filter((f) => {
+        const name = f.name.toLowerCase();
+        return name.endsWith(".json") || name.endsWith(".jsonl");
+      });
+
+      if (validFiles.length === 0) {
+        errorMsg.textContent = "No JSON or JSONL files found in the selection.";
+        errorMsg.classList.remove("hidden");
+        return;
+      }
+
+      const label = validFiles.length === 1
+        ? 'Processing "' + validFiles[0].name + '"…'
+        : "Processing " + validFiles.length + " files…";
+      loaderText.textContent = label;
       loader.classList.remove("hidden");
       errorMsg.classList.add("hidden");
       errorMsg.textContent = "";
 
       setTimeout(() => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            parseAndRender(e.target.result);
-          } catch (err) {
-            console.error(err);
-            errorMsg.textContent = "Error parsing file: " + err.message;
-            errorMsg.classList.remove("hidden");
-            loader.classList.add("hidden");
-          }
-        };
-        reader.readAsText(file);
+        let completed = 0;
+        const texts = new Array(validFiles.length);
+
+        validFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            texts[idx] = e.target.result;
+            completed++;
+            if (completed === validFiles.length) {
+              try {
+                parseAndRenderMultiple(texts);
+              } catch (err) {
+                console.error(err);
+                errorMsg.textContent = "Error parsing files: " + err.message;
+                errorMsg.classList.remove("hidden");
+                loader.classList.add("hidden");
+              }
+            }
+          };
+          reader.onerror = () => {
+            texts[idx] = null;
+            completed++;
+            if (completed === validFiles.length) {
+              const validTexts = texts.filter(Boolean);
+              if (validTexts.length === 0) {
+                errorMsg.textContent = "Failed to read any files.";
+                errorMsg.classList.remove("hidden");
+                loader.classList.add("hidden");
+              } else {
+                try {
+                  parseAndRenderMultiple(validTexts);
+                } catch (err) {
+                  console.error(err);
+                  errorMsg.textContent = "Error parsing files: " + err.message;
+                  errorMsg.classList.remove("hidden");
+                  loader.classList.add("hidden");
+                }
+              }
+            }
+          };
+          reader.readAsText(file);
+        });
       }, 30);
     }
 
@@ -1959,11 +2004,48 @@
       }
     }
 
+    function parseAndRenderMultiple(texts) {
+      const t0 = performance.now();
+      findings = [];
+      accessMap = [];
+      rawData = null;
+
+      for (let i = 0; i < texts.length; i++) {
+        const text = texts[i];
+        if (!text) continue;
+        const { f, am, rd } = parseSingleText(text);
+        findings.push(...f);
+        accessMap.push(...am);
+        if (!rawData && rd) rawData = rd;
+        else if (rd) Object.assign(rawData, rd);
+      }
+
+      // Deduplicate findings by fingerprint
+      findings = deduplicateFindings(findings);
+      // Deduplicate access map entries by fingerprint
+      accessMap = deduplicateAccessMap(accessMap);
+
+      finalizeRender(t0);
+    }
+
     function parseAndRender(text) {
       const t0 = performance.now();
       findings = [];
       accessMap = [];
       rawData = null;
+
+      const { f, am, rd } = parseSingleText(text);
+      findings = deduplicateFindings(f);
+      accessMap = deduplicateAccessMap(am);
+      rawData = rd;
+
+      finalizeRender(t0);
+    }
+
+    function parseSingleText(text) {
+      let f = [];
+      let am = [];
+      let rd = null;
 
       let parsed = parsePossiblyMultiJson(text);
 
@@ -1983,20 +2065,48 @@
         }
 
         const collected = collectReportData(entries);
-        findings = collected.findings;
-        accessMap = collected.accessMap;
+        f = collected.findings;
+        am = collected.accessMap;
         if (collected.mainReport || collected.statsReport) {
-          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
+          rd = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
         }
       } else {
         const collected = collectReportData(parsed);
-        findings = collected.findings;
-        accessMap = collected.accessMap;
+        f = collected.findings;
+        am = collected.accessMap;
         if (collected.mainReport || collected.statsReport || parsed) {
-          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
+          rd = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
         }
       }
 
+      return { f, am, rd };
+    }
+
+    function deduplicateFindings(list) {
+      const seen = new Set();
+      const result = [];
+      for (const f of list) {
+        const fp = f.finding && f.finding.fingerprint ? f.finding.fingerprint : "";
+        if (fp && seen.has(fp)) continue;
+        if (fp) seen.add(fp);
+        result.push(f);
+      }
+      return result;
+    }
+
+    function deduplicateAccessMap(list) {
+      const seen = new Set();
+      const result = [];
+      for (const entry of list) {
+        const fp = entry.fingerprint || "";
+        if (fp && seen.has(fp)) continue;
+        if (fp) seen.add(fp);
+        result.push(entry);
+      }
+      return result;
+    }
+
+    function finalizeRender(t0) {
       currentPage = 1;
       currentFilter = "";
       validationFilter = "all";
@@ -2192,6 +2302,8 @@
           return normalizedStatus === "inactive";
         } else if (validation === "not_attempted") {
           return normalizedStatus === "not_attempted";
+        } else if (validation === "canary") {
+          return normalizedStatus === "canary";
         }
 
         return true;
@@ -2284,11 +2396,15 @@
         return "not_attempted";
       }
 
+      if (normalized === "canary token (skipped)" || normalized === "canary") {
+        return "canary";
+      }
+
       return "unknown";
     }
 
     function calculateValidationCounts(list = findings) {
-      const counts = { active: 0, inactive: 0, not_attempted: 0, unknown: 0 };
+      const counts = { active: 0, inactive: 0, not_attempted: 0, canary: 0, unknown: 0 };
       (list || []).forEach((f) => {
         const status =
           f.finding && f.finding.validation && f.finding.validation.status
@@ -2309,6 +2425,7 @@
         active: "#22c55e",
         inactive: "#f97316",
         not_attempted: "#38bdf8",
+        canary: "#a855f7",
         unknown: "#9ca3af",
       };
 
@@ -2316,6 +2433,7 @@
         { key: "active", label: "Active", color: palette.active },
         { key: "inactive", label: "Inactive", color: palette.inactive },
         { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
+        { key: "canary", label: "Canary Token", color: palette.canary },
         { key: "unknown", label: "Unknown", color: palette.unknown },
       ];
 
@@ -2554,7 +2672,7 @@
         return;
       }
 
-      const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
+      const statusOrder = { active: 0, inactive: 1, canary: 2, not_attempted: 3, unknown: 4 };
       let baseFindings =
         scope === "filtered" ? getFilteredSortedFindings().slice() : (Array.isArray(findings) ? findings.slice() : []);
       if (activeOnly) {
@@ -2692,6 +2810,7 @@
           <strong>Review Recommended:</strong> This scan found <strong>${baseFindings.length} finding${baseFindings.length !== 1 ? "s" : ""}</strong>.
           ${counts.inactive > 0 ? `${counts.inactive} credential${counts.inactive !== 1 ? "s were" : " was"} inactive at scan time.` : ""}
           ${counts.not_attempted > 0 ? `${counts.not_attempted} ${counts.not_attempted !== 1 ? "were" : "was"} not validated.` : ""}
+          ${counts.canary > 0 ? `${counts.canary} ${counts.canary !== 1 ? "were" : "was"} canary token${counts.canary !== 1 ? "s" : ""} (skipped).` : ""}
         </div>`;
       } else {
         execSummary = `<div style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:16px;">
@@ -2752,6 +2871,7 @@
         <span><span class="dot" style="background:#22c55e"></span> Active: ${counts.active || 0}</span>
         <span><span class="dot" style="background:#f97316"></span> Inactive: ${counts.inactive || 0}</span>
         <span><span class="dot" style="background:#38bdf8"></span> Not Attempted: ${counts.not_attempted || 0}</span>
+        <span><span class="dot" style="background:#a855f7"></span> Canary Token: ${counts.canary || 0}</span>
         <span><span class="dot" style="background:#9ca3af"></span> Unknown: ${counts.unknown || 0}</span>
       </div>
     </div>
@@ -3632,7 +3752,7 @@
       }
 
       // Sort: active first, then by rule name
-      const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
+      const statusOrder = { active: 0, inactive: 1, canary: 2, not_attempted: 3, unknown: 4 };
       const sorted = pool.sort((a, b) => {
         const fa = a.finding || {};
         const fb = b.finding || {};

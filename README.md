@@ -61,7 +61,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
-- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json`
+- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json` (supports multiple files and directories)
 - **Audit reporting**: Generate compliance-oriented HTML reports with scan metadata and validation ordering
 - **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
@@ -432,6 +432,12 @@ kingfisher scan /path/to/code --access-map --view-report
 
 # View access-map reports locally
 kingfisher view kingfisher.json
+
+# Combine multiple reports (deduplicated by fingerprint)
+kingfisher view report1.json report2.jsonl
+
+# Load all reports from a directory (non-recursive, skips non-JSON/JSONL files)
+kingfisher view ./reports/
 ```
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**

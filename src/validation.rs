@@ -829,7 +829,11 @@ async fn timed_validate_single_match<'a>(
                             return;
                         }
                     };
-                    let display_body = truncate_preview(&body, max_body_len);
+                    let display_body = if http_validation.request.response_is_html {
+                        utils::format_response_body_for_display(&body, max_body_len, true)
+                    } else {
+                        truncate_preview(&body, max_body_len)
+                    };
 
                     m.validation_response_status = status;
                     let body_opt = validation_body::from_string(display_body.clone());

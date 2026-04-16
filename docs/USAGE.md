@@ -116,6 +116,18 @@ kingfisher view kingfisher.json
 
 The `view` subcommand starts a server (default port `7890`, bind address `127.0.0.1`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically and Kingfisher will open your browser, or open the page and upload a report in the browser. If port 7890 is already in use, re-run with `--port <PORT>`. To allow access from Docker or other hosts, use `--address 0.0.0.0`.
 
+You can pass multiple files or a directory to combine reports. Findings are deduplicated by fingerprint. Non-matching files in a directory are silently skipped (no recursion).
+
+```bash
+# Combine multiple report files
+kingfisher view report1.json report2.jsonl
+
+# Load all JSON/JSONL reports from a directory
+kingfisher view ./reports/
+```
+
+The browser-based viewer also supports loading multiple files via drag-and-drop or the file picker, with the same fingerprint-based deduplication.
+
 ### Pipe any text directly into Kingfisher by passing `-`
 
 ```bash
