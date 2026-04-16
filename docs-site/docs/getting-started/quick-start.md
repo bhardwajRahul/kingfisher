@@ -59,6 +59,8 @@ kingfisher scan /path/to/code --view-report
 
 You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`.
 
+If you want a shareable upload-based version, the docs site also hosts the [report viewer](../features/report-viewer.md).
+
 ## 4. Show Only Live Secrets
 
 Filter to only secrets confirmed active by provider APIs:
