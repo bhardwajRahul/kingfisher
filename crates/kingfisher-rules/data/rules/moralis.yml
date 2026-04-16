@@ -6,8 +6,6 @@ rules:
       \b
       moralis
       (?:.|[\n\r]){0,32}?
-      (?:API[_-]?KEY|SECRET|TOKEN|KEY|WEB3)
-      (?:.|[\n\r]){0,16}?
       \b
       (
         [0-9a-zA-Z]{64}

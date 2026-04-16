@@ -38,5 +38,5 @@ rules:
           response_matcher:
             - report_response: true
             - type: StatusMatch
-              status: [200, 403]
+              status: [200]
             - type: JsonValid

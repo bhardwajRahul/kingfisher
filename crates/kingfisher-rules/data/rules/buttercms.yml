@@ -25,7 +25,7 @@ rules:
       content:
         request:
           method: GET
-          url: "https://api.buttercms.com/v2/posts/?auth_token={{ TOKEN }}&page_size=1"
+          url: "https://api.buttercms.com/v2/authors/?auth_token={{ TOKEN }}"
           headers:
             Accept: application/json
           response_matcher:

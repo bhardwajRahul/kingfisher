@@ -581,21 +581,19 @@ async fn timed_validate_single_match<'a>(
     };
 
     for dep in m.rule.syntax().depends_on_rule.iter().flatten() {
-        if let Some(vals) = dependent_variables.get(&dep.variable.to_uppercase()) {
-            for (val, span) in vals {
-                // Skip adding captured values for TOKEN dependencies
-                if dep.variable.eq_ignore_ascii_case("TOKEN") {
-                    continue;
-                }
-                captured_values.push((
-                    dep.variable.to_uppercase(),
-                    val.clone(),
-                    span.start,
-                    span.end,
-                ));
+        // Skip adding captured values for TOKEN dependencies
+        if dep.variable.eq_ignore_ascii_case("TOKEN") {
+            continue;
+        }
+        let dep_name = dep.variable.to_uppercase();
+        if let Some(vals) = dependent_variables.get(&dep_name) {
+            if let Some((val, span)) =
+                select_closest_dependency_value(vals, m.matching_input_offset_span)
+            {
+                captured_values.push((dep_name.clone(), val.clone(), span.start, span.end));
                 // Store the dependent capture for later use in reporting
                 // (e.g., generating validate/revoke commands)
-                m.dependent_captures.insert(dep.variable.to_uppercase(), val.clone());
+                m.dependent_captures.insert(dep_name, val);
             }
         }
     }
@@ -1626,6 +1624,56 @@ fn populate_globals_from_captures(
     }
 }
 
+fn select_closest_dependency_value(
+    values: &[(String, OffsetSpan)],
+    target_span: OffsetSpan,
+) -> Option<(String, OffsetSpan)> {
+    let mut best_before: Option<(usize, (String, OffsetSpan))> = None;
+    let mut best_overlap: Option<(usize, (String, OffsetSpan))> = None;
+    let mut best_after: Option<(usize, (String, OffsetSpan))> = None;
+
+    for (value, span) in values {
+        if span.end <= target_span.start {
+            let distance = target_span.start - span.end;
+            match &mut best_before {
+                Some((best_distance, best_value)) if distance < *best_distance => {
+                    *best_distance = distance;
+                    *best_value = (value.clone(), *span);
+                }
+                None => {
+                    best_before = Some((distance, (value.clone(), *span)));
+                }
+                _ => {}
+            }
+        } else if span.start >= target_span.end {
+            let distance = span.start - target_span.end;
+            match &mut best_after {
+                Some((best_distance, best_value)) if distance < *best_distance => {
+                    *best_distance = distance;
+                    *best_value = (value.clone(), *span);
+                }
+                None => {
+                    best_after = Some((distance, (value.clone(), *span)));
+                }
+                _ => {}
+            }
+        } else {
+            match &mut best_overlap {
+                Some((best_distance, best_value)) if 0 < *best_distance => {
+                    *best_distance = 0;
+                    *best_value = (value.clone(), *span);
+                }
+                None => {
+                    best_overlap = Some((0, (value.clone(), *span)));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    best_before.or(best_overlap).or(best_after).map(|(_, value)| value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1654,6 +1702,35 @@ mod tests {
 
         assert!(globals.get("TOKEN").is_none());
         assert_eq!(globals.get("CHECKSUM"), Some(Value::scalar("123456")).as_ref());
+    }
+
+    #[test]
+    fn select_closest_dependency_value_prefers_nearest_preceding_dependency() {
+        let values = vec![
+            ("first".to_string(), OffsetSpan::from_range(10..20)),
+            ("second".to_string(), OffsetSpan::from_range(40..50)),
+            ("third".to_string(), OffsetSpan::from_range(80..90)),
+        ];
+
+        let selected =
+            select_closest_dependency_value(&values, OffsetSpan::from_range(55..60)).unwrap();
+
+        assert_eq!(selected.0, "second");
+        assert_eq!(selected.1, OffsetSpan::from_range(40..50));
+    }
+
+    #[test]
+    fn select_closest_dependency_value_falls_back_to_nearest_following_dependency() {
+        let values = vec![
+            ("first".to_string(), OffsetSpan::from_range(70..80)),
+            ("second".to_string(), OffsetSpan::from_range(90..100)),
+        ];
+
+        let selected =
+            select_closest_dependency_value(&values, OffsetSpan::from_range(55..60)).unwrap();
+
+        assert_eq!(selected.0, "first");
+        assert_eq!(selected.1, OffsetSpan::from_range(70..80));
     }
 
     #[test]
