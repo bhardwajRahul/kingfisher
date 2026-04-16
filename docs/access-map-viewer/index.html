@@ -243,12 +243,12 @@
 
     /* Upload */
     .upload-area {
-      padding: 32px;
+      padding: 36px 28px 24px;
       text-align: center;
       background: var(--surface-muted);
       cursor: pointer;
       transition: all 0.2s ease;
-      border-bottom: 1px solid var(--border);
+      border: 1px dashed var(--border);
       border-radius: var(--radius);
     }
     .upload-area:hover,
@@ -256,9 +256,95 @@
       background: var(--brand-soft);
       border-color: var(--brand);
     }
-    .upload-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.8; }
-    .upload-text { font-size: 16px; font-weight: 500; }
-    .upload-sub { color: var(--text-muted); margin-top: 4px; }
+    .upload-icon {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 16px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      opacity: 0.9;
+    }
+    .upload-text {
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .upload-sub {
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .upload-action-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .upload-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      box-shadow: var(--shadow-sm);
+    }
+    .upload-action-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .upload-help-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+      text-align: left;
+    }
+    .upload-help-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .upload-help-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--brand-dark);
+      margin-bottom: 6px;
+    }
+    .upload-help-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+    .upload-help-text strong {
+      color: var(--text-main);
+      font-weight: 700;
+    }
 
     /* Metrics */
     .metrics-grid {
@@ -639,11 +725,118 @@
       flex-shrink: 0;
     }
 
-    #status-chart {
+    #status-chart,
+    #source-chart {
       background: var(--surface-muted);
       border: 1px solid var(--border);
       border-radius: 10px;
       box-shadow: var(--shadow-sm);
+    }
+
+    .dashboard-breakdown {
+      padding: 0 20px 20px;
+    }
+    .breakdown-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .breakdown-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-strong);
+    }
+    .breakdown-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .breakdown-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .breakdown-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .breakdown-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-main);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .breakdown-table th,
+    .breakdown-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .breakdown-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      background: var(--surface);
+    }
+    .breakdown-sort-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      font-weight: inherit;
+      cursor: pointer;
+    }
+    .breakdown-sort-indicator {
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 10px;
+      text-align: center;
+    }
+    .breakdown-table tr:last-child td {
+      border-bottom: 0;
+    }
+    .breakdown-name {
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+    .breakdown-count {
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+    .breakdown-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
     }
 
     /* Findings table */
@@ -1238,9 +1431,9 @@
         <span class="hero__subtitle">Access Map &amp; Findings</span>
       </div>
     </div>
-    <div style="display:flex; gap:10px; align-items:center;">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
       <button class="btn" id="theme-toggle" type="button">Light Mode</button>
-      <button class="btn" id="reset-btn">Load New Report</button>
+      <button class="btn" id="reset-btn" type="button">Clear and Load New Report(s)</button>
     </div>
   </header>
 
@@ -1257,9 +1450,30 @@
       <div style="padding:22px;">
         <div class="upload-area" id="drop-zone">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">Drag &amp; drop reports here</div>
-          <div class="upload-sub">...or click to choose files</div>
-            <div class="upload-sub">Your files stay in the browser. Supported inputs: Kingfisher JSON/JSONL, Gitleaks JSON, and TruffleHog JSON/JSONL. Multiple files are merged and deduplicated.</div>
+          <div class="upload-text">Load one or more reports</div>
+          <div class="upload-sub">Drop files anywhere in this card, or click to choose them from disk.</div>
+          <div class="upload-action-row">
+            <span class="upload-primary">Choose Reports</span>
+            <span class="upload-action-hint">JSON and JSONL only</span>
+          </div>
+          <div class="upload-help-grid">
+            <div class="upload-help-card">
+              <div class="upload-help-label">Formats</div>
+              <div class="upload-help-text"><strong>Kingfisher</strong> JSON/JSONL, <strong>Gitleaks</strong> JSON, and <strong>TruffleHog</strong> JSON/JSONL.</div>
+            </div>
+            <div class="upload-help-card">
+              <div class="upload-help-label">Merge More</div>
+              <div class="upload-help-text">Choose multiple files at once, or drag in more report files after loading to merge them into the same view.</div>
+            </div>
+            <div class="upload-help-card">
+              <div class="upload-help-label">Deduplication</div>
+              <div class="upload-help-text"><strong>Kingfisher</strong> reports are already deduplicated. For imported <strong>Gitleaks</strong> and <strong>TruffleHog</strong> reports, the viewer attempts deduplication by finding fingerprint: native fingerprints when present, otherwise a synthetic fingerprint built from the tool, detector, and secret identity, with path/line/snippet fallback when needed.</div>
+            </div>
+            <div class="upload-help-card">
+              <div class="upload-help-label">Privacy</div>
+              <div class="upload-help-text">Everything stays in your browser. Files are not uploaded anywhere.</div>
+            </div>
+          </div>
           <input type="file" id="file-input" hidden accept=".json,.jsonl" multiple>
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
@@ -1343,7 +1557,7 @@
               <div class="panel__header">
                 <div class="panel__title">
                   <h3>Finding Status Distribution</h3>
-                  <p>Active vs Inactive vs Not Attempted</p>
+                  <p>Validation state and report source mix</p>
                 </div>
               </div>
               <div class="chart-grid">
@@ -1352,6 +1566,55 @@
                   <div class="chart-legend" id="status-legend">
                     <!-- filled by JS -->
                   </div>
+                </div>
+                <div class="chart-card">
+                  <canvas id="source-chart" width="260" height="220"></canvas>
+                  <div class="chart-legend" id="source-legend">
+                    <!-- filled by JS -->
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Detector Families</h3>
+                  <p>Collapsed Kingfisher rule families plus imported detector names</p>
+                </div>
+              </div>
+              <div class="dashboard-breakdown" style="margin-bottom: 18px;">
+                <div class="breakdown-card">
+                  <div class="breakdown-header">
+                    <div>
+                      <div class="breakdown-title">Detector distribution by source</div>
+                      <div class="breakdown-sub">Top detector families for each loaded tool, grouped into a chart per source.</div>
+                    </div>
+                  </div>
+                  <div class="chart-grid" id="source-detector-charts">
+                    <!-- filled by JS -->
+                  </div>
+                </div>
+              </div>
+              <div class="dashboard-breakdown">
+                <div class="breakdown-card">
+                  <div class="breakdown-header">
+                    <div>
+                      <div class="breakdown-title">Most frequent findings</div>
+                      <div class="breakdown-sub">Use this to spot the noisiest rule families and imported detectors quickly.</div>
+                    </div>
+                    <div class="breakdown-controls">
+                      <div class="pager">
+                        <button id="detector-breakdown-prev" class="pager-btn" type="button">&lsaquo;</button>
+                        <span id="detector-breakdown-page-info">0 of 0</span>
+                        <button id="detector-breakdown-next" class="pager-btn" type="button">&rsaquo;</button>
+                      </div>
+                      <label class="breakdown-toggle" for="detector-breakdown-active-only">
+                        <input id="detector-breakdown-active-only" type="checkbox">
+                        <span>Active only</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div id="detector-breakdown"></div>
                 </div>
               </div>
             </section>
@@ -1394,6 +1657,12 @@
                   <button class="btn" id="download-json" type="button">Download JSON</button>
                   <button class="btn" id="download-csv" type="button">Export CSV</button>
                   <input type="text" id="search-input" class="search-input" placeholder="Search rule, path, snippet">
+                  <select id="source-filter" class="rows-select">
+                    <option value="all" selected>All sources</option>
+                    <option value="kingfisher">Kingfisher</option>
+                    <option value="gitleaks">Gitleaks</option>
+                    <option value="trufflehog">TruffleHog</option>
+                  </select>
                   <select id="validation-filter" class="rows-select">
                     <option value="all" selected>All validation states</option>
                     <option value="active">Active Credential</option>
@@ -1559,10 +1828,15 @@
     let filteredAccessMapView = [];
     let currentFilter = "";
     let validationFilter = "all";
+    let sourceFilter = "all";
     let pageSize = 10;
     let currentPage = 1;
     let sortField = "rule";
     let sortDirection = "asc";
+    let detectorBreakdownSortField = "count";
+    let detectorBreakdownSortDirection = "desc";
+    let detectorBreakdownActiveOnly = false;
+    let detectorBreakdownPage = 1;
     let autoCollapsedAccessMap = false;
     let currentDetailFinding = null;
     let scanMetadata = {};
@@ -1579,8 +1853,14 @@
     const reportScopeSelect = document.getElementById("report-scope");
     const downloadAccessReportBtn = document.getElementById("download-access-report");
     const exportFindingRiskBtn = document.getElementById("fd-export-risk-report");
+    const sourceDetectorCharts = document.getElementById("source-detector-charts");
+    const detectorBreakdownActiveOnlyToggle = document.getElementById("detector-breakdown-active-only");
+    const detectorBreakdownPrev = document.getElementById("detector-breakdown-prev");
+    const detectorBreakdownNext = document.getElementById("detector-breakdown-next");
+    const detectorBreakdownPageInfo = document.getElementById("detector-breakdown-page-info");
 
     const searchInput = document.getElementById("search-input");
+    const sourceSelect = document.getElementById("source-filter");
     const validationSelect = document.getElementById("validation-filter");
     const rowsSelect = document.getElementById("rows-select");
     const pagePrev = document.getElementById("page-prev");
@@ -1600,6 +1880,9 @@
     const navButtons = document.querySelectorAll("[data-view-target]");
     const statusChartCanvas = document.getElementById("status-chart");
     const statusLegend = document.getElementById("status-legend");
+    const sourceChartCanvas = document.getElementById("source-chart");
+    const sourceLegend = document.getElementById("source-legend");
+    const detectorBreakdown = document.getElementById("detector-breakdown");
     const viewRegistry = {
       "view-dashboard": document.getElementById("view-dashboard"),
       "view-access": document.getElementById("view-access"),
@@ -1618,9 +1901,20 @@
 
     setTheme(localStorage.getItem(THEME_KEY));
 
-    dropZone.addEventListener("click", () => fileInput.click());
+    function hasLoadedReportData() {
+      return findings.length > 0 || accessMap.length > 0 || rawData !== null;
+    }
+
+    function openReplaceFilePicker() {
+      fileInput.value = "";
+      fileInput.click();
+    }
+
+    dropZone.addEventListener("click", () => openReplaceFilePicker());
     fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length) processFiles(Array.from(e.target.files));
+      if (e.target.files.length) {
+        processFiles(Array.from(e.target.files), { append: false });
+      }
     });
     dropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -1633,7 +1927,9 @@
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dropZone.classList.remove("active");
-      if (e.dataTransfer.files.length) processFiles(Array.from(e.dataTransfer.files));
+      if (e.dataTransfer.files.length) {
+        processFiles(Array.from(e.dataTransfer.files), { append: hasLoadedReportData() });
+      }
     });
 
     navButtons.forEach((btn) => {
@@ -1644,7 +1940,7 @@
 
     resetButton.addEventListener("click", () => {
       const confirmReset = confirm(
-        "Loading a new report will clear the currently loaded data (your file stays on disk). Continue?",
+        "Clearing and loading a new report will discard the currently loaded data from the viewer (your files stay on disk). Continue?",
       );
 
       if (confirmReset) {
@@ -1663,6 +1959,36 @@
       currentPage = 1;
       renderFindingsTable();
     });
+
+    sourceSelect.addEventListener("change", (e) => {
+      sourceFilter = e.target.value || "all";
+      currentPage = 1;
+      renderFindingsTable();
+    });
+
+    if (detectorBreakdownActiveOnlyToggle) {
+      detectorBreakdownActiveOnlyToggle.addEventListener("change", (e) => {
+        detectorBreakdownActiveOnly = Boolean(e.target.checked);
+        detectorBreakdownPage = 1;
+        renderDetectorBreakdown();
+      });
+    }
+
+    if (detectorBreakdownPrev) {
+      detectorBreakdownPrev.addEventListener("click", () => {
+        if (detectorBreakdownPage > 1) {
+          detectorBreakdownPage--;
+          renderDetectorBreakdown();
+        }
+      });
+    }
+
+    if (detectorBreakdownNext) {
+      detectorBreakdownNext.addEventListener("click", () => {
+        detectorBreakdownPage++;
+        renderDetectorBreakdown();
+      });
+    }
 
     rowsSelect.addEventListener("change", (e) => {
       pageSize = parseInt(e.target.value, 10) || 10;
@@ -2188,11 +2514,11 @@
       const firstEntry = entries.find((item) => item && typeof item === "object") || {};
       const notes = toolName === "TruffleHog"
         ? [
-            "Imported from TruffleHog JSON. Kingfisher import deduplicates repeated TruffleHog findings by secret identity. Only findings TruffleHog marked verified are shown as active credentials; all other findings stay in Not Attempted.",
+            "Imported from TruffleHog JSON. Native Kingfisher reports are already deduplicated; for TruffleHog imports, the viewer attempts deduplication by finding fingerprint, preferring detector plus secret identity and falling back to path, line, and snippet when needed. Only findings TruffleHog marked verified are shown as active credentials; all other findings stay in Not Attempted.",
             "Imported reports do not include Kingfisher access-map data, validate commands, or revoke commands. Re-scan with Kingfisher and --access-map for full enrichment.",
           ]
         : [
-            "Imported from Gitleaks JSON. Findings are normalized for browsing, but validation, revoke commands, and access-map blast radius are unavailable in the imported report.",
+            "Imported from Gitleaks JSON. Native Kingfisher reports are already deduplicated; for Gitleaks imports, the viewer attempts deduplication by finding fingerprint, preferring rule plus secret identity and falling back to path, line, column, and snippet when needed.",
             "Re-scan with Kingfisher and --access-map to add validation context and blast-radius mapping.",
           ];
       const target = String(firstNonEmpty(
@@ -2282,7 +2608,7 @@
       return merged;
     }
 
-    function processFiles(files) {
+    function processFiles(files, { append = false } = {}) {
       const validFiles = files.filter((f) => {
         const name = f.name.toLowerCase();
         return name.endsWith(".json") || name.endsWith(".jsonl");
@@ -2295,8 +2621,8 @@
       }
 
       const label = validFiles.length === 1
-        ? 'Processing "' + validFiles[0].name + '"…'
-        : "Processing " + validFiles.length + " files…";
+        ? (append ? 'Importing "' + validFiles[0].name + '"…' : 'Processing "' + validFiles[0].name + '"…')
+        : (append ? "Importing " + validFiles.length + " additional files…" : "Processing " + validFiles.length + " files…");
       loaderText.textContent = label;
       loader.classList.remove("hidden");
       errorMsg.classList.add("hidden");
@@ -2313,7 +2639,7 @@
             completed++;
             if (completed === validFiles.length) {
               try {
-                parseAndRenderMultiple(texts);
+                parseAndRenderMultiple(texts, { append });
               } catch (err) {
                 console.error(err);
                 errorMsg.textContent = "Error parsing files: " + err.message;
@@ -2333,7 +2659,7 @@
                 loader.classList.add("hidden");
               } else {
                 try {
-                  parseAndRenderMultiple(validTexts);
+                  parseAndRenderMultiple(validTexts, { append });
                 } catch (err) {
                   console.error(err);
                   errorMsg.textContent = "Error parsing files: " + err.message;
@@ -2382,15 +2708,20 @@
 
       currentFilter = "";
       validationFilter = "all";
+      sourceFilter = "all";
       pageSize = 10;
       currentPage = 1;
       sortField = "rule";
       sortDirection = "asc";
+      detectorBreakdownActiveOnly = false;
+      detectorBreakdownPage = 1;
 
       searchInput.value = "";
       validationSelect.value = "all";
+      sourceSelect.value = "all";
       rowsSelect.value = "10";
       treeSearch.value = "";
+      if (detectorBreakdownActiveOnlyToggle) detectorBreakdownActiveOnlyToggle.checked = false;
 
       setAccessMapCollapsed(true, { auto: true });
       if (amToggle) amToggle.disabled = true;
@@ -2427,29 +2758,30 @@
       fileInput.value = "";
 
       if (promptFilePicker) {
-        fileInput.click();
+        openReplaceFilePicker();
       }
     }
 
-    function parseAndRenderMultiple(texts) {
+    function parseAndRenderMultiple(texts, { append = false } = {}) {
       const t0 = performance.now();
-      findings = [];
-      accessMap = [];
-      rawData = null;
+      const nextFindings = append ? findings.slice() : [];
+      const nextAccessMap = append ? accessMap.slice() : [];
+      let nextRawData = append ? rawData : null;
 
       for (let i = 0; i < texts.length; i++) {
         const text = texts[i];
         if (!text) continue;
         const { f, am, rd } = parseSingleText(text);
-        findings.push(...f);
-        accessMap.push(...am);
-        rawData = mergeRawReportData(rawData, rd);
+        nextFindings.push(...f);
+        nextAccessMap.push(...am);
+        nextRawData = mergeRawReportData(nextRawData, rd);
       }
 
       // Deduplicate findings by fingerprint
-      findings = deduplicateFindings(findings);
+      findings = deduplicateFindings(nextFindings);
       // Deduplicate access map entries by fingerprint
-      accessMap = deduplicateAccessMap(accessMap);
+      accessMap = deduplicateAccessMap(nextAccessMap);
+      rawData = nextRawData;
 
       finalizeRender(t0);
     }
@@ -2519,8 +2851,10 @@
       currentPage = 1;
       currentFilter = "";
       validationFilter = "all";
+      sourceFilter = "all";
       searchInput.value = "";
       validationSelect.value = "all";
+      sourceSelect.value = "all";
 
       extractScanMetadata();
       setActiveView("view-dashboard");
@@ -2732,11 +3066,27 @@
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
       renderStatusChart(validationCounts);
+      renderSourceChart(calculateSourceCounts());
+      renderSourceDetectorCharts();
+      renderDetectorBreakdown();
+    }
+
+    function getFindingSourceTool(finding) {
+      const importInfo = finding && finding.viewer_import && typeof finding.viewer_import === "object"
+        ? finding.viewer_import
+        : null;
+      const sourceTool = importInfo && importInfo.source_tool
+        ? String(importInfo.source_tool).trim().toLowerCase()
+        : "";
+      if (sourceTool === "gitleaks") return "gitleaks";
+      if (sourceTool === "trufflehog") return "trufflehog";
+      return "kingfisher";
     }
 
     function getFilteredSortedFindings() {
       const filterLower = currentFilter.toLowerCase();
       const validation = validationFilter;
+      const source = sourceFilter;
 
       let arr = findings.filter((f) => {
         const rule = f.rule || {};
@@ -2745,6 +3095,7 @@
         const path = (finding.path || "").toLowerCase();
         const snippet = (finding.snippet || "").toLowerCase();
         const fingerprint = (finding.fingerprint || "").toLowerCase();
+        const sourceTool = getFindingSourceTool(finding);
         const status = (finding.validation && finding.validation.status
           ? String(finding.validation.status)
           : "").toLowerCase();
@@ -2756,6 +3107,10 @@
         }
 
         const normalizedStatus = normalizeValidationStatus(status);
+
+        if (source !== "all" && sourceTool !== source) {
+          return false;
+        }
 
         if (validation === "active") {
           return normalizedStatus === "active";
@@ -2877,37 +3232,219 @@
       return counts;
     }
 
-    function renderStatusChart(counts) {
-      if (!statusChartCanvas) return;
-      const ctx = statusChartCanvas.getContext("2d");
+    function calculateSourceCounts(list = findings) {
+      const counts = { kingfisher: 0, gitleaks: 0, trufflehog: 0 };
+      (list || []).forEach((f) => {
+        const finding = f && f.finding ? f.finding : {};
+        const source = getFindingSourceTool(finding);
+        counts[source] = (counts[source] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function normalizeRuleFamilyId(ruleId) {
+      const normalized = String(ruleId || "").trim();
+      if (!normalized) return "";
+      return normalized.replace(/\.\d+$/, "").replace(/^kingfisher\./, "");
+    }
+
+    function getFindingDetectorLabel(entry) {
+      const rule = entry && entry.rule ? entry.rule : {};
+      const finding = entry && entry.finding ? entry.finding : {};
+      const source = getFindingSourceTool(finding);
+
+      if (source === "kingfisher") {
+        return normalizeRuleFamilyId(rule.id) || String(rule.name || rule.id || "Unknown");
+      }
+
+      const importInfo = finding.viewer_import && typeof finding.viewer_import === "object"
+        ? finding.viewer_import
+        : null;
+      return String(
+        (importInfo && (importInfo.source_rule_name || importInfo.source_rule_id)) ||
+        rule.name ||
+        rule.id ||
+        "Unknown"
+      );
+    }
+
+    function getDetectorBreakdownEntries(list = findings) {
+      const grouped = new Map();
+      const workingList = detectorBreakdownActiveOnly
+        ? (list || []).filter((entry) => {
+            const finding = entry && entry.finding ? entry.finding : {};
+            const normalizedStatus = normalizeValidationStatus(
+              finding.validation && finding.validation.status ? finding.validation.status : ""
+            );
+            return normalizedStatus === "active";
+          })
+        : (list || []);
+
+      workingList.forEach((entry) => {
+        const finding = entry && entry.finding ? entry.finding : {};
+        const source = getFindingSourceTool(finding);
+        const normalizedStatus = normalizeValidationStatus(
+          finding.validation && finding.validation.status ? finding.validation.status : ""
+        );
+        const label = getFindingDetectorLabel(entry);
+
+        const key = source + "::" + label;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            key,
+            source,
+            label,
+            count: 0,
+            active: 0,
+          });
+        }
+        const current = grouped.get(key);
+        current.count += 1;
+        if (normalizedStatus === "active") current.active += 1;
+      });
+
+      const entries = Array.from(grouped.values());
+      const dirFactor = detectorBreakdownSortDirection === "asc" ? 1 : -1;
+      entries.sort((a, b) => {
+        let va;
+        let vb;
+        switch (detectorBreakdownSortField) {
+          case "label":
+            va = (a.label || "").toLowerCase();
+            vb = (b.label || "").toLowerCase();
+            break;
+          case "source":
+            va = getSourceDisplayName(a.source).toLowerCase();
+            vb = getSourceDisplayName(b.source).toLowerCase();
+            break;
+          case "active":
+            va = Number(a.active || 0);
+            vb = Number(b.active || 0);
+            break;
+          case "count":
+          default:
+            va = Number(a.count || 0);
+            vb = Number(b.count || 0);
+            break;
+        }
+
+        if (typeof va === "number" && typeof vb === "number") {
+          if (va < vb) return -1 * dirFactor;
+          if (va > vb) return 1 * dirFactor;
+          return a.label.localeCompare(b.label);
+        }
+
+        if (va < vb) return -1 * dirFactor;
+        if (va > vb) return 1 * dirFactor;
+        return Number(b.count || 0) - Number(a.count || 0);
+      });
+
+      return entries;
+    }
+
+    function getChartColor(index) {
+      const palette = [
+        "#0ea5e9",
+        "#8b5cf6",
+        "#22c55e",
+        "#f97316",
+        "#ec4899",
+        "#eab308",
+        "#14b8a6",
+        "#ef4444",
+      ];
+      return palette[index % palette.length];
+    }
+
+    function getSourceDetectorChartEntries(list = findings) {
+      const groupedBySource = new Map();
+      (list || []).forEach((entry) => {
+        const finding = entry && entry.finding ? entry.finding : {};
+        const source = getFindingSourceTool(finding);
+        const label = getFindingDetectorLabel(entry);
+        if (!groupedBySource.has(source)) groupedBySource.set(source, new Map());
+        const detectorCounts = groupedBySource.get(source);
+        detectorCounts.set(label, (detectorCounts.get(label) || 0) + 1);
+      });
+
+      return ["kingfisher", "gitleaks", "trufflehog"]
+        .filter((source) => groupedBySource.has(source))
+        .map((source) => {
+          const countsMap = groupedBySource.get(source);
+          const sortedEntries = Array.from(countsMap.entries())
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => {
+              if (b.count !== a.count) return b.count - a.count;
+              return a.label.localeCompare(b.label);
+            });
+
+          const topEntries = sortedEntries.slice(0, 6);
+          const otherCount = sortedEntries.slice(6).reduce((sum, entry) => sum + entry.count, 0);
+          if (otherCount > 0) topEntries.push({ label: "Other", count: otherCount });
+
+          const dataPoints = topEntries.map((entry, index) => ({
+            key: entry.label,
+            label: entry.label,
+            color: entry.label === "Other" ? "#94a3b8" : getChartColor(index),
+          }));
+          const counts = {};
+          topEntries.forEach((entry) => {
+            counts[entry.label] = entry.count;
+          });
+
+          return {
+            source,
+            sourceLabel: getSourceDisplayName(source),
+            detectorCount: sortedEntries.length,
+            counts,
+            dataPoints,
+          };
+        });
+    }
+
+    function toggleDetectorBreakdownSort(field) {
+      if (detectorBreakdownSortField === field) {
+        detectorBreakdownSortDirection = detectorBreakdownSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        detectorBreakdownSortField = field;
+        detectorBreakdownSortDirection = field === "label" || field === "source" ? "asc" : "desc";
+      }
+      detectorBreakdownPage = 1;
+      renderDetectorBreakdown();
+    }
+
+    function getDetectorBreakdownSortIndicator(field) {
+      if (detectorBreakdownSortField !== field) return "";
+      return detectorBreakdownSortDirection === "asc" ? "▲" : "▼";
+    }
+
+    function getSourceBadgeClass(source) {
+      if (source === "gitleaks") return "badge-github";
+      if (source === "trufflehog") return "badge-gcp";
+      return "badge-aws";
+    }
+
+    function getSourceDisplayName(source) {
+      if (source === "gitleaks") return "Gitleaks";
+      if (source === "trufflehog") return "TruffleHog";
+      return "Kingfisher";
+    }
+
+    function renderDonutChart(canvas, legendEl, dataPoints, counts, emptyLabel) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const palette = {
-        active: "#22c55e",
-        inactive: "#f97316",
-        not_attempted: "#38bdf8",
-        canary: "#a855f7",
-        unknown: "#9ca3af",
-      };
-
-      const dataPoints = [
-        { key: "active", label: "Active", color: palette.active },
-        { key: "inactive", label: "Inactive", color: palette.inactive },
-        { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
-        { key: "canary", label: "Canary Token", color: palette.canary },
-        { key: "unknown", label: "Unknown", color: palette.unknown },
-      ];
-
       const total = dataPoints.reduce((sum, entry) => sum + (counts[entry.key] || 0), 0);
-      ctx.clearRect(0, 0, statusChartCanvas.width, statusChartCanvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const style = getComputedStyle(document.documentElement);
       const surfaceColor = style.getPropertyValue("--surface") || "#0d1424";
       const textColor = style.getPropertyValue("--text-main") || "#e5e7eb";
 
-      const radius = Math.min(statusChartCanvas.width, statusChartCanvas.height) / 2 - 10;
-      const centerX = statusChartCanvas.width / 2;
-      const centerY = statusChartCanvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) / 2 - 10;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
 
       ctx.save();
       ctx.fillStyle = surfaceColor;
@@ -2921,7 +3458,7 @@
         ctx.font = "600 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("No validation data yet", centerX, centerY);
+        ctx.fillText(emptyLabel, centerX, centerY);
       } else {
         let startAngle = -Math.PI / 2;
         dataPoints.forEach((entry) => {
@@ -2954,9 +3491,10 @@
       ctx.fillText(total + " findings", centerX, centerY);
       ctx.restore();
 
-      if (statusLegend) {
-        statusLegend.innerHTML = "";
+      if (legendEl) {
+        legendEl.innerHTML = "";
         dataPoints.forEach((entry) => {
+          if ((counts[entry.key] || 0) === 0) return;
           const row = document.createElement("div");
           row.className = "chart-legend-item";
           const swatch = document.createElement("span");
@@ -2966,9 +3504,144 @@
           text.textContent = `${entry.label}: ${counts[entry.key] || 0}`;
           row.appendChild(swatch);
           row.appendChild(text);
-          statusLegend.appendChild(row);
+          legendEl.appendChild(row);
         });
       }
+    }
+
+    function renderStatusChart(counts) {
+      const palette = {
+        active: "#22c55e",
+        inactive: "#f97316",
+        not_attempted: "#38bdf8",
+        canary: "#a855f7",
+        unknown: "#9ca3af",
+      };
+      const dataPoints = [
+        { key: "active", label: "Active", color: palette.active },
+        { key: "inactive", label: "Inactive", color: palette.inactive },
+        { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
+        { key: "canary", label: "Canary Token", color: palette.canary },
+        { key: "unknown", label: "Unknown", color: palette.unknown },
+      ];
+      renderDonutChart(statusChartCanvas, statusLegend, dataPoints, counts, "No validation data yet");
+    }
+
+    function renderSourceChart(counts) {
+      const dataPoints = [
+        { key: "kingfisher", label: "Kingfisher", color: "#0e7c56" },
+        { key: "gitleaks", label: "Gitleaks", color: "#2563eb" },
+        { key: "trufflehog", label: "TruffleHog", color: "#7c3aed" },
+      ];
+      const loadedSources = dataPoints.filter((entry) => (counts[entry.key] || 0) > 0);
+      renderDonutChart(
+        sourceChartCanvas,
+        sourceLegend,
+        loadedSources,
+        counts,
+        "No source data yet",
+      );
+    }
+
+    function renderSourceDetectorCharts() {
+      if (!sourceDetectorCharts) return;
+      const chartEntries = getSourceDetectorChartEntries(findings);
+      if (!chartEntries.length) {
+        sourceDetectorCharts.innerHTML = '<div class="breakdown-empty">No findings loaded yet.</div>';
+        return;
+      }
+
+      sourceDetectorCharts.innerHTML = "";
+      chartEntries.forEach((entry, index) => {
+        const card = document.createElement("div");
+        card.className = "chart-card";
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 260;
+        canvas.height = 220;
+        canvas.id = `source-detector-chart-${index}`;
+
+        const legendWrap = document.createElement("div");
+        legendWrap.className = "chart-legend";
+
+        const heading = document.createElement("div");
+        heading.style.marginBottom = "10px";
+
+        const titleRow = document.createElement("div");
+        titleRow.className = "chart-legend-item";
+        titleRow.style.fontWeight = "700";
+        titleRow.textContent = `${entry.sourceLabel} detector mix`;
+
+        const subtitleRow = document.createElement("div");
+        subtitleRow.className = "chart-legend-item";
+        subtitleRow.style.color = "var(--text-muted)";
+        subtitleRow.textContent = `${entry.detectorCount} detector families${entry.detectorCount > 6 ? ", top 6 plus Other" : ""}`;
+
+        heading.appendChild(titleRow);
+        heading.appendChild(subtitleRow);
+        legendWrap.appendChild(heading);
+
+        const legend = document.createElement("div");
+        legend.className = "chart-legend";
+        card.appendChild(canvas);
+        legendWrap.appendChild(legend);
+        card.appendChild(legendWrap);
+        sourceDetectorCharts.appendChild(card);
+
+        renderDonutChart(canvas, legend, entry.dataPoints, entry.counts, "No detector data yet");
+      });
+    }
+
+    function renderDetectorBreakdown() {
+      if (!detectorBreakdown) return;
+      const entries = getDetectorBreakdownEntries(findings);
+      const pageSize = 25;
+      const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+      detectorBreakdownPage = Math.min(Math.max(1, detectorBreakdownPage), totalPages);
+
+      if (detectorBreakdownPrev) detectorBreakdownPrev.disabled = detectorBreakdownPage <= 1;
+      if (detectorBreakdownNext) detectorBreakdownNext.disabled = detectorBreakdownPage >= totalPages;
+
+      if (!entries.length) {
+        if (detectorBreakdownPageInfo) detectorBreakdownPageInfo.textContent = "0 of 0";
+        detectorBreakdown.innerHTML = `<div class="breakdown-empty">${
+          detectorBreakdownActiveOnly ? "No active findings loaded yet." : "No findings loaded yet."
+        }</div>`;
+        return;
+      }
+
+      const pageStart = (detectorBreakdownPage - 1) * pageSize;
+      const pageEntries = entries.slice(pageStart, pageStart + pageSize);
+      const rangeStart = pageStart + 1;
+      const rangeEnd = Math.min(pageStart + pageEntries.length, entries.length);
+      if (detectorBreakdownPageInfo) {
+        detectorBreakdownPageInfo.textContent = `${rangeStart}-${rangeEnd} of ${entries.length}`;
+      }
+
+      const rows = pageEntries.map((entry) => `
+        <tr>
+          <td>
+            <div class="breakdown-name">${escapeHtml(entry.label)}</div>
+          </td>
+          <td><span class="badge ${getSourceBadgeClass(entry.source)}">${escapeHtml(getSourceDisplayName(entry.source))}</span></td>
+          <td class="breakdown-count">${entry.count}</td>
+          <td class="breakdown-count">${entry.active}</td>
+        </tr>
+      `).join("");
+
+      detectorBreakdown.innerHTML = `
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('label')">Detector <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("label")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('source')">Source <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("source")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('count')">${detectorBreakdownActiveOnly ? "Active findings" : "Findings"} <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("count")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('active')">Active <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("active")}</span></button></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
     }
 
     function triggerDownload(filename, content, type) {
