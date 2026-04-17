@@ -23,7 +23,7 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - miro_key = meyJtaXJvLm9yaWdpbiI6ImV1MDEifQ_o-P91OccaII0A63CDSK--x21xiI
+      - miro_key = eyJtaXJvLm9yaWdpbiI6ImV1MDEifQ_o-P91OccaII0A63CDSK--x21xiI
       - 'MIRO_TOKEN="eyJtaXJvLm9yaWdpbiI6InVzMDEifQ_kL8m2Nq7RpWxYz3AbCdEfGhI"'
     references:
       - https://developers.miro.com/docs/rest-api-authorization

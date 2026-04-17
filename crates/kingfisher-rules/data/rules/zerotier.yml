@@ -6,8 +6,6 @@ rules:
       \b
       (?:zerotier|zt)
       (?:.|[\n\r]){0,32}?
-      (?:API[_-]?(?:TOKEN|KEY)|TOKEN|SECRET|KEY|ACCESS)
-      (?:.|[\n\r]){0,16}?
       \b
       (
         [A-Za-z0-9]{32}
