@@ -2,15 +2,15 @@ rules:
   - name: Canva Connect API Client ID
     id: kingfisher.canva.2
     pattern: |
-      (?xi)
+      (?x)
       \b
-      (?:canva|CANVA_CLIENT_ID)
+      (?i:canva|CANVA_CLIENT_ID)
       (?:.|[\n\r]){0,32}?
-      (?:client[_\s-]*id|app[_\s-]*id)
+      (?i:client[_\s-]*id|app[_\s-]*id)
       (?:.|[\n\r]){0,16}?
       \b
       (
-        OC-[A-Za-z0-9_-]{8,32}
+        OC-[A-Za-z0-9_-]{8,16}
       )
       \b
     pattern_requirements:
