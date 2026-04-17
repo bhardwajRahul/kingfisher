@@ -1,11 +1,11 @@
 use std::{sync::Arc, time::Instant};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use regex::bytes::Regex;
 use tracing::{debug, debug_span, error};
 use vectorscan_rs::{BlockDatabase, Flag, Pattern};
 
-use crate::rule::{Rule, RULE_COMMENTS_PATTERN};
+use crate::rule::{RULE_COMMENTS_PATTERN, Rule};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleDetectionProfileKind {

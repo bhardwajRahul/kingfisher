@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
-use kingfisher_core::{calculate_shannon_entropy, Blob, BlobIdMap, LocationMapping, OffsetSpan};
+use kingfisher_core::{Blob, BlobIdMap, LocationMapping, OffsetSpan, calculate_shannon_entropy};
 use kingfisher_rules::RulesDatabase;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::debug;
@@ -297,11 +297,7 @@ impl Scanner {
 
     fn redact(&self, bytes: &[u8]) -> String {
         let s = String::from_utf8_lossy(bytes);
-        if s.len() <= 8 {
-            "*".repeat(s.len())
-        } else {
-            format!("{}...{}", &s[..4], "*".repeat(4))
-        }
+        if s.len() <= 8 { "*".repeat(s.len()) } else { format!("{}...{}", &s[..4], "*".repeat(4)) }
     }
 
     fn scan_base64_content(

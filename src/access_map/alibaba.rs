@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
-use anyhow::{anyhow, Context, Result};
-use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
+use anyhow::{Context, Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::STANDARD as b64};
 use chrono::Utc;
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
-use reqwest::{header, Client, Url};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+use reqwest::{Client, Url, header};
 use serde::Deserialize;
 use serde_json::Value;
 use sha1::{Digest, Sha1};
@@ -13,8 +13,8 @@ use uuid::Uuid;
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const STS_API: &str = "https://sts.aliyuncs.com/";

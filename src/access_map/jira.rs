@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
@@ -7,8 +7,8 @@ use crate::cli::commands::access_map::AccessMapArgs;
 use crate::validation::GLOBAL_USER_AGENT;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 // ─── API response types ─────────────────────────────────────────────────────
@@ -55,8 +55,7 @@ const RISKY_PERMISSIONS: &[&str] =
     &["DELETE_ISSUES", "EDIT_ISSUES", "CREATE_ISSUES", "MANAGE_WATCHERS"];
 const READ_PERMISSIONS: &[&str] = &["BROWSE_PROJECTS"];
 
-const CHECKED_PERMISSIONS: &str =
-    "BROWSE_PROJECTS,CREATE_ISSUES,EDIT_ISSUES,DELETE_ISSUES,MANAGE_WATCHERS,ADMINISTER_PROJECTS,SYSTEM_ADMIN";
+const CHECKED_PERMISSIONS: &str = "BROWSE_PROJECTS,CREATE_ISSUES,EDIT_ISSUES,DELETE_ISSUES,MANAGE_WATCHERS,ADMINISTER_PROJECTS,SYSTEM_ADMIN";
 
 // ─── Public entry points ────────────────────────────────────────────────────
 

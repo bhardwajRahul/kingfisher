@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use liquid::Object;
 use liquid_core::{Value, ValueView};
 use regex::Regex;
@@ -22,10 +22,10 @@ use crate::{
     liquid_filters::register_all,
     rule_loader::RuleLoader,
     template_vars::extract_template_vars,
+    validation::GLOBAL_USER_AGENT,
     validation::aws::{revoke_aws_access_key, validate_aws_credentials_input},
     validation::gcp::revoke_gcp_service_account_key,
     validation::httpvalidation::{build_request_builder, retry_request, validate_response},
-    validation::GLOBAL_USER_AGENT,
 };
 
 use kingfisher_rules::{
@@ -238,11 +238,7 @@ fn render_extractor(
 
 fn truncate_with_ellipsis(input: &str, max_chars: usize) -> String {
     let truncated: String = input.chars().take(max_chars).collect();
-    if input.chars().count() > max_chars {
-        format!("{}...", truncated)
-    } else {
-        input.to_string()
-    }
+    if input.chars().count() > max_chars { format!("{}...", truncated) } else { input.to_string() }
 }
 
 /// Extract a value from an HTTP response using the specified extractor.
@@ -733,11 +729,7 @@ pub fn print_results(results: &[DirectRevocationResult], format: &str, use_color
                 }
 
                 let revoked_str = if result.revoked {
-                    if use_color {
-                        "\x1b[32m✓ REVOKED\x1b[0m"
-                    } else {
-                        "REVOKED"
-                    }
+                    if use_color { "\x1b[32m✓ REVOKED\x1b[0m" } else { "REVOKED" }
                 } else if use_color {
                     "\x1b[31m✗ FAILED\x1b[0m"
                 } else {
@@ -766,8 +758,8 @@ pub fn any_revoked(results: &[DirectRevocationResult]) -> bool {
 mod tests {
     use super::*;
     use kingfisher_rules::{HttpValidation, ResponseExtractor, Revocation};
-    use reqwest::header::{HeaderMap, HeaderValue};
     use reqwest::StatusCode;
+    use reqwest::header::{HeaderMap, HeaderValue};
     use std::collections::{BTreeMap, BTreeSet};
 
     // ---- extract_value_from_response: JsonPath ----

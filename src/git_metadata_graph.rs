@@ -1,14 +1,14 @@
 use std::{collections::BinaryHeap, time::Instant};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use bstr::{BString, ByteSlice};
 use fixedbitset::FixedBitSet;
 use gix::{
-    hashtable::{hash_map, HashMap},
+    ObjectId, OdbHandle,
+    hashtable::{HashMap, hash_map},
     object::Kind,
     objs::tree::EntryKind,
     prelude::*,
-    ObjectId, OdbHandle,
 };
 use globset::GlobSet;
 
@@ -502,7 +502,7 @@ fn visit_tree(
 mod tests {
     use std::{fs, path::Path, sync::Arc};
 
-    use anyhow::{bail, Result};
+    use anyhow::{Result, bail};
     use bstr::ByteSlice;
     use git2::{Repository as Git2Repository, Signature};
     use gix::{open::Options, open_opts};
@@ -573,10 +573,12 @@ mod tests {
             .collect();
 
         assert_eq!(matching.len(), 1);
-        assert!(matching[0]
-            .first_seen
-            .iter()
-            .all(|appearance| appearance.path.to_str_lossy() != "excluded/secret.txt"));
+        assert!(
+            matching[0]
+                .first_seen
+                .iter()
+                .all(|appearance| appearance.path.to_str_lossy() != "excluded/secret.txt")
+        );
 
         Ok(())
     }

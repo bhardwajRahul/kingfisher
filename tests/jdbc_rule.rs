@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use kingfisher::{rules::rule::RuleSyntax, safe_list};
 
 fn load_jdbc_rule() -> Result<RuleSyntax> {

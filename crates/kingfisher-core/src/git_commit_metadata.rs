@@ -3,7 +3,7 @@
 //! This module provides types for tracking commit information associated
 //! with blobs found in git history.
 
-use gix::{date::Time, ObjectId};
+use gix::{ObjectId, date::Time};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

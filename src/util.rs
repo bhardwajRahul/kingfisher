@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     fs::File,
-    io::{stdin, stdout, BufReader, BufWriter},
+    io::{BufReader, BufWriter, stdin, stdout},
     path::Path,
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -59,11 +59,7 @@ pub fn redaction_enabled() -> bool {
 /// Returns either the original value or a redacted placeholder depending on
 /// the current redaction setting.
 pub fn display_value(value: &'static str) -> Cow<'static, str> {
-    if redaction_enabled() {
-        Cow::Owned(redact_value(value))
-    } else {
-        Cow::Borrowed(value)
-    }
+    if redaction_enabled() { Cow::Owned(redact_value(value)) } else { Cow::Borrowed(value) }
 }
 // Generate a random salt (16-character alphanumeric string)
 fn generate_salt() -> String {

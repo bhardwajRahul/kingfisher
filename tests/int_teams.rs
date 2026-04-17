@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use kingfisher::{
     cli::{
+        GlobalArgs,
         commands::{
             azure::AzureRepoType,
             bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
@@ -15,7 +16,6 @@ use kingfisher::{
             scan::{ConfidenceLevel, ScanArgs},
         },
         global::{Mode, TlsMode},
-        GlobalArgs,
     },
     findings_store::FindingsStore,
     rule_loader::RuleLoader,
@@ -26,8 +26,8 @@ use kingfisher::{
 use tempfile::TempDir;
 use url::Url;
 use wiremock::{
-    matchers::{method, path},
     Mock, MockServer, ResponseTemplate,
+    matchers::{method, path},
 };
 
 #[tokio::test]

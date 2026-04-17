@@ -3,16 +3,16 @@ use std::{
     path::Path,
     process::Command,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     time::{Duration, Instant as StdInstant, Instant},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
-use base64::{engine::general_purpose::STANDARD, Engine};
+use anyhow::{Context, Result, anyhow, bail};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use bstr::{BString, ByteSlice};
-use gix::{object::tree::diff::ChangeDetached, object::tree::EntryKind, Repository as GixRepo};
+use gix::{Repository as GixRepo, object::tree::EntryKind, object::tree::diff::ChangeDetached};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::{
     iter::plumbing::Folder,
@@ -24,10 +24,13 @@ use tracing::{debug, error};
 use smallvec::smallvec;
 
 use crate::{
+    DirectoryResult, EnumeratorConfig, EnumeratorFileResult, FileResult, FilesystemEnumerator,
+    FoundInput, GitDiffConfig, GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator,
+    PathBuf,
     binary::is_binary,
     blob::{Blob, BlobAppearance, BlobId, BlobIdMap},
     cli::commands::{github::GitHistoryMode, scan},
-    decompress::{decompress_file_to_temp, CompressedContent},
+    decompress::{CompressedContent, decompress_file_to_temp},
     findings_store,
     git_commit_metadata::CommitMetadata,
     git_repo_enumerator::{GitBlobMetadata, GitBlobSource, MIN_SCANNABLE_BLOB_SIZE},
@@ -44,9 +47,6 @@ use crate::{
     },
     scanner_pool::ScannerPool,
     sqlite::extract_sqlite_contents,
-    DirectoryResult, EnumeratorConfig, EnumeratorFileResult, FileResult, FilesystemEnumerator,
-    FoundInput, GitDiffConfig, GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator,
-    PathBuf,
 };
 
 type OwnedBlob = Blob<'static>;
@@ -1081,11 +1081,7 @@ fn run_git_command(path: &Path, args: &[&str], bubble_up_error: bool) -> Result<
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if stdout.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(stdout))
-    }
+    if stdout.is_empty() { Ok(None) } else { Ok(Some(stdout)) }
 }
 
 fn resolve_diff_ref<'repo>(
@@ -1173,8 +1169,8 @@ mod tests {
     use std::path::Path;
 
     use super::{
-        enumerate_git_diff_repo, reference_candidates, FileResult, GitBlobSource, GitDiffConfig,
-        ParallelBlobIterator,
+        FileResult, GitBlobSource, GitDiffConfig, ParallelBlobIterator, enumerate_git_diff_repo,
+        reference_candidates,
     };
     use anyhow::Result;
     use bstr::ByteSlice;

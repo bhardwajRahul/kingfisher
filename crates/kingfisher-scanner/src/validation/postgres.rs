@@ -4,18 +4,18 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring, verify_tls12_signature, verify_tls13_signature};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{client::ClientConfig, DigitallySignedStruct, RootCertStore, SignatureScheme};
-use rustls_native_certs::{load_native_certs, CertificateResult};
+use rustls::{DigitallySignedStruct, RootCertStore, SignatureScheme, client::ClientConfig};
+use rustls_native_certs::{CertificateResult, load_native_certs};
 use sha1::{Digest, Sha1};
 use tokio::time::{error::Elapsed, timeout};
 use tokio_postgres::{
+    Config, Error,
     config::{Host, SslMode},
     tls::NoTls,
-    Config, Error,
 };
 use tokio_postgres_rustls::MakeRustlsConnect;
 use tracing::debug;
@@ -226,7 +226,7 @@ async fn check_postgres_db_connection(
             Ok(Err(e)) => return Err(anyhow!("Postgres connection failed: {e}")),
 
             Err(_) => {
-                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"))
+                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"));
             }
         }
     }

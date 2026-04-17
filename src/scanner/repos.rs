@@ -13,7 +13,7 @@ use url::Url;
 
 use crate::blob::BlobIdMap;
 use crate::{
-    azure, bitbucket,
+    PathBuf, azure, bitbucket,
     blob::BlobMetadata,
     cli::{
         commands::{github::GitCloneMode, github::GitHistoryMode, scan},
@@ -29,7 +29,7 @@ use crate::{
     s3,
     scanner::processing::BlobProcessor,
     scanner_pool::ScannerPool,
-    slack, teams, PathBuf,
+    slack, teams,
 };
 
 pub type DatastoreMessage = (OriginSet, BlobMetadata, Vec<(Option<f64>, Match)>);

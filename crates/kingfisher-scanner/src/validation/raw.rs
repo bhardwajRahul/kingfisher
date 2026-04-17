@@ -6,9 +6,9 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{anyhow, Context, Result};
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
-use hmac::{digest::KeyInit, Hmac, Mac};
+use anyhow::{Context, Result, anyhow};
+use base64::{Engine, engine::general_purpose::STANDARD as B64};
+use hmac::{Hmac, Mac, digest::KeyInit};
 use http::StatusCode;
 use ldap3::LdapConnSettings;
 use liquid::Object;
@@ -16,7 +16,7 @@ use liquid_core::ValueView;
 use percent_encoding::percent_decode_str;
 use reqwest::Client;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring, verify_tls12_signature, verify_tls13_signature};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use rustls::{ClientConfig, DigitallySignedStruct, RootCertStore, SignatureScheme};
 use sha2::{Digest, Sha256, Sha512};
@@ -225,11 +225,7 @@ async fn connect_from_url(
     let host = url.host_str().ok_or_else(|| anyhow!("URL is missing host"))?;
     let tls = matches!(url.scheme(), "ftps" | "amqps" | "rediss" | "ldaps");
     let port = url.port().unwrap_or(if tls { tls_default_port } else { plain_default_port });
-    if tls {
-        connect_tls(host, port, use_lax_tls).await
-    } else {
-        connect_plain(host, port).await
-    }
+    if tls { connect_tls(host, port, use_lax_tls).await } else { connect_plain(host, port).await }
 }
 
 async fn validate_azure_batch(globals: &Object, client: &Client) -> Result<RawValidationOutcome> {

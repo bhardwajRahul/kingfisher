@@ -13,7 +13,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
     {
         use std::fs::File;
 
-        use flate2::{write::GzEncoder, Compression};
+        use flate2::{Compression, write::GzEncoder};
         use tar::Builder;
 
         let f = File::create(&tar_gz)?;

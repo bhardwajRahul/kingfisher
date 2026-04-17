@@ -11,7 +11,7 @@ use flate2::read::{GzDecoder, ZlibDecoder};
 use lzma_rs::xz_decompress;
 use memmap2::Mmap;
 use tar::Archive;
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 use uuid::Uuid;
 use zip::ZipArchive;
 
@@ -350,12 +350,12 @@ pub fn decompress_file_to_temp(path: &Path) -> Result<(CompressedContent, TempDi
 mod tests {
     use std::{fs::File, io::Write};
 
-    use flate2::{write::GzEncoder, Compression};
+    use flate2::{Compression, write::GzEncoder};
     use tar::Builder;
     use tempfile::tempdir;
-    use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
+    use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
-    use super::{decompress_once, CompressedContent};
+    use super::{CompressedContent, decompress_once};
 
     /// 1) Fully unpack:
     ///    - 1st decompress `.gz` -- get a `.tar` file
@@ -498,11 +498,11 @@ mod tests {
     fn smoke_decompress_nested_tar_gz_archives() -> anyhow::Result<()> {
         use std::{fs::File, io::Read, path::PathBuf};
 
-        use flate2::{write::GzEncoder, Compression};
+        use flate2::{Compression, write::GzEncoder};
         use tar::Builder;
         use tempfile::tempdir;
 
-        use super::{decompress_once, CompressedContent};
+        use super::{CompressedContent, decompress_once};
 
         let tmp = tempdir()?;
 

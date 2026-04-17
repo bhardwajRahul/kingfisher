@@ -270,8 +270,8 @@ fn line_has_directive(line: &[u8], tokens: &[Vec<u8>]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        line_bounds, line_has_directive, should_skip_for_directive_search, trim_ascii_whitespace,
-        InlineIgnoreConfig,
+        InlineIgnoreConfig, line_bounds, line_has_directive, should_skip_for_directive_search,
+        trim_ascii_whitespace,
     };
     use crate::location::OffsetSpan;
 

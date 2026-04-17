@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use gcloud_storage::{
-    client::{google_cloud_auth::credentials::CredentialsFile, Client, ClientConfig},
+    client::{Client, ClientConfig, google_cloud_auth::credentials::CredentialsFile},
     http::objects::{
         download::Range,
         get::GetObjectRequest,

@@ -14,7 +14,7 @@ use std::{
 use dashmap::DashMap;
 use rustc_hash::FxHashSet;
 use schemars::JsonSchema;
-use serde::{ser::SerializeSeq, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeSeq};
 use smallvec::SmallVec;
 
 use crate::git_commit_metadata::CommitMetadata;

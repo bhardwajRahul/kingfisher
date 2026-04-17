@@ -7,7 +7,7 @@ use std::{
 use anyhow::Result;
 use chrono::{Local, Utc};
 use http::StatusCode;
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use schemars::JsonSchema;
 use serde::Serialize;
 use url::Url;
@@ -21,10 +21,10 @@ use crate::{
     cli,
     cli::global::GlobalArgs,
     finding_data, findings_store,
-    matcher::{compute_finding_fingerprint, Match},
+    matcher::{Match, compute_finding_fingerprint},
     origin::{Origin, OriginSet},
-    rules::rule::Confidence,
     rules::Revocation,
+    rules::rule::Confidence,
     template_vars::extract_template_vars,
     validation_body::{self, ValidationResponseBody},
 };
@@ -42,7 +42,7 @@ use styles::{StyledObject, Styles};
 use crate::{
     cli::commands::output::ReportOutputFormat,
     location::SourceSpan,
-    origin::{get_repo_url, GitRepoOrigin},
+    origin::{GitRepoOrigin, get_repo_url},
 };
 
 /// Shell-escape a string for safe command-line usage using single quotes.
@@ -244,11 +244,7 @@ fn build_var_args(
         }
     }
 
-    if var_args.is_empty() {
-        String::new()
-    } else {
-        format!("{} ", var_args.join(" "))
-    }
+    if var_args.is_empty() { String::new() } else { format!("{} ", var_args.join(" ")) }
 }
 
 /// Generate a kingfisher revoke command for an active credential if the rule supports revocation.
@@ -763,11 +759,7 @@ impl DetailsReporter {
                     }
                 } else {
                     // When not filtering by only_valid, use visibility if desired.
-                    if filter_visible {
-                        match_item.visible
-                    } else {
-                        true
-                    }
+                    if filter_visible { match_item.visible } else { true }
                 }
             })
             .map(|msg| {
@@ -1105,11 +1097,7 @@ impl DetailsReporter {
     }
 
     fn non_empty_string(value: String) -> Option<String> {
-        if value.trim().is_empty() {
-            None
-        } else {
-            Some(value)
-        }
+        if value.trim().is_empty() { None } else { Some(value) }
     }
 
     pub fn build_finding_records(
@@ -1323,11 +1311,7 @@ fn format_resource(resource: &ResourceExposure) -> String {
     }
 
     let resource_type = resource.resource_type.trim();
-    if resource_type.is_empty() {
-        name.to_string()
-    } else {
-        format!("{}:{}", resource_type, name)
-    }
+    if resource_type.is_empty() { name.to_string() } else { format!("{}:{}", resource_type, name) }
 }
 /// A trait for things that can be output as a document.
 ///
@@ -1579,7 +1563,7 @@ mod tests {
         origin::{Origin, OriginSet},
         rules::rule::{Confidence, Rule, RuleSyntax},
     };
-    use gix::{date::Time, ObjectId};
+    use gix::{ObjectId, date::Time};
     use smallvec::SmallVec;
     use std::collections::BTreeMap;
     use std::path::PathBuf;

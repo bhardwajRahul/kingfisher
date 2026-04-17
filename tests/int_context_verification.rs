@@ -113,9 +113,9 @@ fn scan_inputs_exclude_parser_fixture_directory() -> Result<()> {
     let inputs = scan_inputs_without_parser_fixtures()?;
 
     assert!(inputs.iter().all(|path| Path::new(path) != Path::new("testdata/parsers")));
-    assert!(inputs
-        .iter()
-        .any(|path| Path::new(path) == Path::new("testdata/python_vulnerable.py")));
+    assert!(
+        inputs.iter().any(|path| Path::new(path) == Path::new("testdata/python_vulnerable.py"))
+    );
 
     Ok(())
 }

@@ -10,6 +10,7 @@ use std::{
 use anyhow::Result;
 use kingfisher::{
     cli::{
+        GlobalArgs,
         commands::{
             azure::AzureRepoType,
             bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
@@ -22,7 +23,6 @@ use kingfisher::{
             scan::{ConfidenceLevel, ScanArgs},
         },
         global::{Mode, TlsMode},
-        GlobalArgs,
     },
     findings_store::FindingsStore,
     rule_loader::RuleLoader,

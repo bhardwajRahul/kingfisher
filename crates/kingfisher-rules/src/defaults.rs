@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use include_dir::{include_dir, Dir, DirEntry};
+use include_dir::{Dir, DirEntry, include_dir};
 
 use crate::rule::Confidence;
 use crate::rules::Rules;

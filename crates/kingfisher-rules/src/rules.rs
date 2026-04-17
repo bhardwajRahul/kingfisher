@@ -1,7 +1,7 @@
 //! Rule collection and loading utilities.
 
-use anyhow::{bail, Context, Result};
-use ignore::{types::TypesBuilder, WalkBuilder};
+use anyhow::{Context, Result, bail};
+use ignore::{WalkBuilder, types::TypesBuilder};
 use serde::Deserialize;
 use thiserror::Error;
 use tracing::{debug, debug_span, error};

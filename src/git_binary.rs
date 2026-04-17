@@ -81,11 +81,7 @@ fn format_git_error_summary(stdout: &[u8], stderr: &[u8]) -> String {
     if let Some(line) = summarize_output(stdout) {
         messages.push(line);
     }
-    if messages.is_empty() {
-        String::new()
-    } else {
-        format!(": {}", messages.join(" | "))
-    }
+    if messages.is_empty() { String::new() } else { format!(": {}", messages.join(" | ")) }
 }
 
 fn summarize_output(output: &[u8]) -> Option<String> {

@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, Url};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, Url, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const DEFAULT_GITHUB_API: &str = "https://api.github.com";

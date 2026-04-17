@@ -1,14 +1,14 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, StatusCode};
-use serde::{de::DeserializeOwned, Deserialize};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, StatusCode, header};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const HARNESS_API: &str = "https://app.harness.io";

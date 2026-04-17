@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, Method, StatusCode};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, Method, StatusCode, header};
 use serde::Deserialize;
 use serde_json::json;
 use tracing::warn;
@@ -7,8 +7,8 @@ use tracing::warn;
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const OPENAI_API: &str = "https://api.openai.com/v1";
@@ -968,7 +968,7 @@ fn severity_to_str(severity: Severity) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{scope_has_read_access, scope_has_write_access, ScopeResult};
+    use super::{ScopeResult, scope_has_read_access, scope_has_write_access};
 
     #[test]
     fn scope_helpers_track_read_and_write_access_independently() {

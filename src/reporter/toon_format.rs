@@ -85,11 +85,7 @@ fn json_string(value: Option<&serde_json::Value>, path: &[&str]) -> Option<Strin
 
 fn non_empty(value: String) -> Option<String> {
     let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
+    if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
 }
 
 impl DetailsReporter {

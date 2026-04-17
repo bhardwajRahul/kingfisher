@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use http::StatusCode;
 use tracing::debug;
 use url::Url;

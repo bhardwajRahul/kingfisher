@@ -5,16 +5,16 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use axum::{
+    Router,
     body::Body,
     extract::State,
-    http::{header, HeaderValue, StatusCode, Uri},
+    http::{HeaderValue, StatusCode, Uri, header},
     response::Response,
     routing::get,
-    Router,
 };
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use tokio::net::TcpListener;
 use tracing::{info, warn};
 
@@ -159,11 +159,7 @@ pub async fn run(args: ViewArgs) -> Result<()> {
             None
         } else {
             let combined = load_and_combine_reports(&paths).await?;
-            if combined.is_empty() {
-                None
-            } else {
-                Some(combined)
-            }
+            if combined.is_empty() { None } else { Some(combined) }
         }
     } else {
         None

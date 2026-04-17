@@ -12,7 +12,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::{info, warn};
-use url::{form_urlencoded, Url};
+use url::{Url, form_urlencoded};
 
 use crate::{findings_store, git_host, git_url::GitUrl, validation::GLOBAL_USER_AGENT};
 use std::str::FromStr;

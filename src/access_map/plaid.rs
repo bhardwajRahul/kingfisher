@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, StatusCode};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, StatusCode, header};
 use serde::Deserialize;
 use tracing::warn;
 
@@ -7,8 +7,8 @@ use crate::cli::commands::access_map::AccessMapArgs;
 use crate::validation::GLOBAL_USER_AGENT;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 // ---------------------------------------------------------------------------

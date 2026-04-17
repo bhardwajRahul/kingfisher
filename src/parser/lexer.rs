@@ -528,11 +528,7 @@ where
         return Flow::Continue;
     }
     let candidate = format!("{key} = {value}");
-    if sink(&candidate) {
-        Flow::Continue
-    } else {
-        Flow::Break
-    }
+    if sink(&candidate) { Flow::Continue } else { Flow::Break }
 }
 
 fn normalize_key(key: &str, keep_full_key: bool) -> String {

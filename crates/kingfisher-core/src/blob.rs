@@ -14,8 +14,8 @@ use std::{
     io::{Read, Write},
     path::Path,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc, OnceLock,
+        atomic::{AtomicU64, Ordering},
     },
 };
 

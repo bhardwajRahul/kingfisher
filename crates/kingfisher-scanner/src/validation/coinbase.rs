@@ -1,21 +1,21 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use anyhow::{Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::Utc;
 use ed25519_dalek::SigningKey as Ed25519Key;
 use p256::{
-    ecdsa::{signature::Signer as _, SigningKey},
-    pkcs8::DecodePrivateKey,
     SecretKey,
+    ecdsa::{SigningKey, signature::Signer as _},
+    pkcs8::DecodePrivateKey,
 };
 use reqwest::{Client, StatusCode, Url};
 use sha1::{Digest, Sha1};
 
 use super::http_validation as httpvalidation;
 use super::{
-    validation_body, Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS,
+    Cache, CachedResponse, VALIDATION_CACHE_SECONDS, ValidationResponseBody, validation_body,
 };
 
 pub fn generate_coinbase_cache_key(cred_name: &str, private_key: &str) -> String {
@@ -82,70 +82,72 @@ fn build_jwt(
 
     let nonce: [u8; 16] = rand::random();
 
-    match SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))
-    { Ok(secret_key) => {
-        let signing_key = SigningKey::from(secret_key);
-        let header = serde_json::json!({
-            "typ": "JWT",
-            "alg": "ES256",
-            "kid": key_name,
-            "nonce": hex::encode(nonce),
-        });
-        let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string());
+    match SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem)) {
+        Ok(secret_key) => {
+            let signing_key = SigningKey::from(secret_key);
+            let header = serde_json::json!({
+                "typ": "JWT",
+                "alg": "ES256",
+                "kid": key_name,
+                "nonce": hex::encode(nonce),
+            });
+            let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string());
 
-        let now = Utc::now().timestamp();
-        let claims = serde_json::json!({
-            "sub": key_name,
-            "iss": "cdp",
-            "nbf": now,
-            "exp": now + 120,
-            "uri": format!("{} {}{}", method, host, endpoint),
-        });
-        let claims_b64 = URL_SAFE_NO_PAD.encode(claims.to_string());
+            let now = Utc::now().timestamp();
+            let claims = serde_json::json!({
+                "sub": key_name,
+                "iss": "cdp",
+                "nbf": now,
+                "exp": now + 120,
+                "uri": format!("{} {}{}", method, host, endpoint),
+            });
+            let claims_b64 = URL_SAFE_NO_PAD.encode(claims.to_string());
 
-        let signing_input = format!("{header_b64}.{claims_b64}");
-        let sig: p256::ecdsa::Signature = signing_key.sign(signing_input.as_bytes());
-        let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
+            let signing_input = format!("{header_b64}.{claims_b64}");
+            let sig: p256::ecdsa::Signature = signing_key.sign(signing_input.as_bytes());
+            let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
 
-        return Ok(format!("{signing_input}.{sig_b64}"));
-    } _ => {
-        let key_bytes = base64::engine::general_purpose::STANDARD
-            .decode(pem.as_bytes())
-            .map_err(|e| anyhow!("invalid base64 key: {e}"))?;
-        let signing_key = match key_bytes.len() {
-            32 => {
-                let arr: [u8; 32] = key_bytes[..32].try_into().unwrap();
-                Ed25519Key::from_bytes(&arr)
-            }
-            64 => {
-                let arr: [u8; 64] = key_bytes[..64].try_into().unwrap();
-                Ed25519Key::from_keypair_bytes(&arr)
-                    .map_err(|e| anyhow!("invalid Ed25519 key: {e}"))?
-            }
-            _ => return Err(anyhow!("invalid Ed25519 key length")),
-        };
+            return Ok(format!("{signing_input}.{sig_b64}"));
+        }
+        _ => {
+            let key_bytes = base64::engine::general_purpose::STANDARD
+                .decode(pem.as_bytes())
+                .map_err(|e| anyhow!("invalid base64 key: {e}"))?;
+            let signing_key = match key_bytes.len() {
+                32 => {
+                    let arr: [u8; 32] = key_bytes[..32].try_into().unwrap();
+                    Ed25519Key::from_bytes(&arr)
+                }
+                64 => {
+                    let arr: [u8; 64] = key_bytes[..64].try_into().unwrap();
+                    Ed25519Key::from_keypair_bytes(&arr)
+                        .map_err(|e| anyhow!("invalid Ed25519 key: {e}"))?
+                }
+                _ => return Err(anyhow!("invalid Ed25519 key length")),
+            };
 
-        let header = serde_json::json!({
-            "typ": "JWT",
-            "alg": "EdDSA",
-            "kid": key_name,
-            "nonce": hex::encode(nonce),
-        });
-        let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string());
+            let header = serde_json::json!({
+                "typ": "JWT",
+                "alg": "EdDSA",
+                "kid": key_name,
+                "nonce": hex::encode(nonce),
+            });
+            let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string());
 
-        let now = Utc::now().timestamp();
-        let claims = serde_json::json!({
-            "sub": key_name,
-            "iss": "cdp",
-            "nbf": now,
-            "exp": now + 120,
-            "uri": format!("{} {}{}", method, host, endpoint),
-        });
-        let claims_b64 = URL_SAFE_NO_PAD.encode(claims.to_string());
+            let now = Utc::now().timestamp();
+            let claims = serde_json::json!({
+                "sub": key_name,
+                "iss": "cdp",
+                "nbf": now,
+                "exp": now + 120,
+                "uri": format!("{} {}{}", method, host, endpoint),
+            });
+            let claims_b64 = URL_SAFE_NO_PAD.encode(claims.to_string());
 
-        let signing_input = format!("{header_b64}.{claims_b64}");
-        let sig: ed25519_dalek::Signature = signing_key.sign(signing_input.as_bytes());
-        let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
-        return Ok(format!("{signing_input}.{sig_b64}"));
-    }}
+            let signing_input = format!("{header_b64}.{claims_b64}");
+            let sig: ed25519_dalek::Signature = signing_key.sign(signing_input.as_bytes());
+            let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
+            return Ok(format!("{signing_input}.{sig_b64}"));
+        }
+    }
 }

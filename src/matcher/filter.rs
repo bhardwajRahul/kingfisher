@@ -18,9 +18,9 @@ use crate::{
 };
 
 use super::{
+    BlobMatch,
     captures::SerializableCaptures,
     dedup::{compute_match_key, record_match},
-    BlobMatch,
 };
 
 // Re-use the canonical secret capture selection from kingfisher-scanner.

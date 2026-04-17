@@ -2,12 +2,12 @@ use std::{
     fs,
     path::PathBuf,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crossbeam_channel;
 use crossbeam_skiplist::SkipMap;
 use indicatif::ProgressBar;
@@ -30,8 +30,9 @@ use crate::{
     rules_database::RulesDatabase,
     safe_list,
     scanner::{
-        clone_or_update_git_repos_streaming, enumerate_azure_repos, enumerate_bitbucket_repos,
-        enumerate_filesystem_inputs, enumerate_github_repos, enumerate_huggingface_repos,
+        AccessMapCollector, clone_or_update_git_repos_streaming, enumerate_azure_repos,
+        enumerate_bitbucket_repos, enumerate_filesystem_inputs, enumerate_github_repos,
+        enumerate_huggingface_repos,
         repos::{
             enumerate_gitea_repos, enumerate_gitlab_repos, fetch_confluence_pages,
             fetch_gcs_objects, fetch_git_host_artifacts, fetch_jira_issues, fetch_s3_objects,
@@ -39,7 +40,6 @@ use crate::{
         },
         run_secret_validation, save_docker_images,
         summary::{compute_scan_totals, print_scan_summary},
-        AccessMapCollector,
     },
     util::set_redaction_enabled,
     validation::CachedResponse,
@@ -504,11 +504,7 @@ fn apply_baseline_if_configured(
 }
 
 fn effective_max_validation_body_len(args: &scan::ScanArgs) -> usize {
-    if args.full_validation_response {
-        0
-    } else {
-        args.max_validation_response_length
-    }
+    if args.full_validation_response { 0 } else { args.max_validation_response_length }
 }
 
 /// Runs the validation phase on matches in the datastore.
@@ -883,11 +879,14 @@ async fn run_parallel_scan(
         aggregate_summary,
     );
 
-    match access_map_collector.take() { Some(collector) => {
-        finalize_access_map(datastore, collector, args).await?;
-    } _ => {
-        maybe_hint_access_map(datastore, args);
-    }}
+    match access_map_collector.take() {
+        Some(collector) => {
+            finalize_access_map(datastore, collector, args).await?;
+        }
+        _ => {
+            maybe_hint_access_map(datastore, args);
+        }
+    }
     Ok(())
 }
 
@@ -903,7 +902,9 @@ async fn finalize_access_map(
     let requests = collector.into_requests();
 
     if requests.is_empty() {
-        debug!("access-map enabled but no validated AWS, GCP, or Azure credentials were collected; skipping report output");
+        debug!(
+            "access-map enabled but no validated AWS, GCP, or Azure credentials were collected; skipping report output"
+        );
         let mut ds = datastore.lock().unwrap();
         ds.set_access_map_results(Vec::new());
         return Ok(());
@@ -976,8 +977,8 @@ fn maybe_hint_access_map(datastore: &Arc<Mutex<FindingsStore>>, args: &scan::Sca
 
     if has_mappable_identities {
         info!(
-                             "Access map not requested. Rerun with --access-map to include resource-level permissions, if authorized."
-                        );
+            "Access map not requested. Rerun with --access-map to include resource-level permissions, if authorized."
+        );
     }
 }
 

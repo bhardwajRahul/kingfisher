@@ -60,7 +60,7 @@ use console::Term;
 use kingfisher::{
     access_map, azure, bitbucket,
     cli::{
-        self,
+        self, CommandLineArgs, GlobalArgs,
         commands::{
             github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
@@ -71,12 +71,11 @@ use kingfisher::{
             },
         },
         global::Command,
-        CommandLineArgs, GlobalArgs,
     },
     direct_revoke, direct_validate, findings_store,
     findings_store::FindingsStore,
     gitea, github, huggingface,
-    reporter::{styles::Styles, DetailsReporter, ScanAuditContext},
+    reporter::{DetailsReporter, ScanAuditContext, styles::Styles},
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
@@ -181,7 +180,7 @@ fn setup_logging(global_args: &GlobalArgs) {
         tracing_subscriber::filter::Targets::new()
             .with_default(LevelFilter::ERROR) // Default for all modules
             .with_target("kingfisher", level) // Replace `kingfisher` with your
-                                              // crate's name
+        // crate's name
     };
     // Configure the formatter layer
     let fmt_layer = fmt::layer()
@@ -189,7 +188,7 @@ fn setup_logging(global_args: &GlobalArgs) {
         .with_target(true) // Enable target filtering
         .with_ansi(std::io::stderr().is_terminal()) // Emit ANSI colours when stderr is a TTY
         .without_time(); // Remove timestamps
-                         // Build and initialize the registry
+    // Build and initialize the registry
     registry()
         .with(fmt_layer) // Attach the formatter layer
         .with(filter) // Attach the filter
@@ -750,7 +749,9 @@ pub fn run_rules_check(args: &RulesCheckArgs) -> Result<()> {
                                 "    [!] Pattern requirements not met for example: {}",
                                 example
                             );
-                            println!("    The match does not satisfy the character requirements (min_digits, min_uppercase, etc.)");
+                            println!(
+                                "    The match does not satisfy the character requirements (min_digits, min_uppercase, etc.)"
+                            );
                             num_errors += 1;
                         }
                         PatternValidationResult::FailedChecksum { actual_len, expected_len } => {
@@ -822,7 +823,7 @@ pub fn run_rules_list(args: &RulesListArgs) -> Result<()> {
                 .max()
                 .unwrap_or(0)
                 .max(10); // "Confidence" header
-                          // Calculate pattern width based on terminal width
+            // Calculate pattern width based on terminal width
             let reserved_width = max_name_width + max_id_width + max_conf_width + 10;
             let pattern_width = term_width.saturating_sub(reserved_width);
             // Format pattern on a single line

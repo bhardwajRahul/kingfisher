@@ -14,7 +14,7 @@ use futures::FutureExt;
 use http::StatusCode;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
-use reqwest::{header, header::HeaderValue, multipart, Client, Url};
+use reqwest::{Client, Url, header, header::HeaderValue, multipart};
 use rustc_hash::FxHashMap;
 use tokio::{sync::Notify, time};
 use tracing::{debug, trace};
@@ -33,11 +33,11 @@ use crate::validation_rate_limit::should_rate_limit_validation;
 // Re-export TlsMode from kingfisher_rules for use in client_for_rule
 pub use kingfisher_rules::TlsMode as RuleTlsMode;
 
+pub use kingfisher_scanner::validation::CachedResponse;
 pub use kingfisher_scanner::validation::aws;
 pub use kingfisher_scanner::validation::http_validation as httpvalidation;
 pub use kingfisher_scanner::validation::mysql::validate_mysql;
 pub use kingfisher_scanner::validation::postgres::validate_postgres;
-pub use kingfisher_scanner::validation::CachedResponse;
 pub use kingfisher_scanner::validation::{
     azure, coinbase, gcp, jdbc, jwt, mongodb, mysql, postgres,
 };
@@ -232,11 +232,7 @@ impl ValidationClients {
             TlsMode::Lax => {
                 // Convert rule's TlsMode to CLI TlsMode for comparison
                 let rule_wants_lax = matches!(rule_tls_mode, Some(kingfisher_rules::TlsMode::Lax));
-                if rule_wants_lax {
-                    &self.lax
-                } else {
-                    &self.strict
-                }
+                if rule_wants_lax { &self.lax } else { &self.strict }
             }
             TlsMode::Strict => &self.strict,
         }
@@ -841,7 +837,10 @@ async fn validate_http(
             ) {
                 let std_headers = [
                     (header::USER_AGENT, GLOBAL_USER_AGENT.as_str()),
-                    (header::ACCEPT , "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"),
+                    (
+                        header::ACCEPT,
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    ),
                     (header::ACCEPT_LANGUAGE, "en-US,en;q=0.5"),
                     (header::ACCEPT_ENCODING, "gzip, deflate, br"),
                     (header::CONNECTION, "keep-alive"),

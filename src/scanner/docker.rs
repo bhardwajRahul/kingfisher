@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use base64::Engine;
 use indicatif::{ProgressBar, ProgressStyle};
-use oci_client::client::{linux_amd64_resolver, Client, ClientConfig};
-use oci_client::secrets::RegistryAuth;
 use oci_client::Reference;
+use oci_client::client::{Client, ClientConfig, linux_amd64_resolver};
+use oci_client::secrets::RegistryAuth;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tracing::debug;

@@ -9,16 +9,17 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use liquid::{
+    ParserBuilder,
     model::{KString, Value},
-    object, ParserBuilder,
+    object,
 };
 use regex::Regex;
 use schemars::{
+    JsonSchema,
     r#gen::SchemaGenerator,
     schema::{Schema, SchemaObject},
-    JsonSchema,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;

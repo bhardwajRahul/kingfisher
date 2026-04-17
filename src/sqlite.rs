@@ -1,7 +1,7 @@
 use std::fmt::Write as FmtWrite;
 use std::path::Path;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OpenFlags};
 use tracing::debug;
 

@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
@@ -7,8 +7,8 @@ use crate::cli::commands::access_map::AccessMapArgs;
 use crate::validation::GLOBAL_USER_AGENT;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 // ---------------------------------------------------------------------------
@@ -65,11 +65,7 @@ fn classify_scope(scope: &str) -> ScopeCategory {
         return ScopeCategory::Read;
     }
     // Default: treat unknown read: as read, unknown others as risky
-    if scope.starts_with("read:") {
-        ScopeCategory::Read
-    } else {
-        ScopeCategory::Risky
-    }
+    if scope.starts_with("read:") { ScopeCategory::Read } else { ScopeCategory::Risky }
 }
 
 enum ScopeCategory {

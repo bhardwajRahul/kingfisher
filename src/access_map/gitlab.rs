@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client, Url};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, Url, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ProviderMetadata, ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ProviderMetadata,
+    ResourceExposure, RoleBinding, Severity, build_recommendations,
 };
 
 const DEFAULT_GITLAB_API: &str = "https://gitlab.com/api/v4/";

@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use crossbeam_skiplist::SkipMap;
 use liquid::Object;
 use liquid_core::{Value, ValueView};
@@ -22,9 +22,10 @@ use crate::{
     cli::{commands::validate::ValidateArgs, global::GlobalArgs},
     liquid_filters::register_all,
     rule_loader::RuleLoader,
-    rules::{rule::Rule, HttpValidation, Validation},
+    rules::{HttpValidation, Validation, rule::Rule},
     template_vars::extract_template_vars,
     validation::{
+        GLOBAL_USER_AGENT,
         aws::validate_aws_credentials,
         azure::validate_azure_storage_credentials,
         coinbase::validate_cdp_api_key,
@@ -37,10 +38,9 @@ use crate::{
         mongodb::validate_mongodb,
         mysql::validate_mysql,
         postgres::validate_postgres,
-        GLOBAL_USER_AGENT,
     },
     validation_body,
-    validation_rate_limit::{should_rate_limit_validation, ValidationRateLimiter},
+    validation_rate_limit::{ValidationRateLimiter, should_rate_limit_validation},
 };
 
 use crate::grpc_validation;
@@ -1049,11 +1049,7 @@ pub fn print_results(results: &[DirectValidationResult], format: &str, use_color
                 }
 
                 let valid_str = if result.is_valid {
-                    if use_color {
-                        "\x1b[32m✓ VALID\x1b[0m"
-                    } else {
-                        "VALID"
-                    }
+                    if use_color { "\x1b[32m✓ VALID\x1b[0m" } else { "VALID" }
                 } else if use_color {
                     "\x1b[31m✗ INVALID\x1b[0m"
                 } else {

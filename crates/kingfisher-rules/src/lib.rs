@@ -18,9 +18,9 @@ pub mod rules_database;
 pub use rule::{
     ChecksumActual, ChecksumRequirement, Confidence, DependsOnRule, GrpcRequest, GrpcValidation,
     HttpMultiStepRevocation, HttpRequest, HttpValidation, MultipartConfig, MultipartPart,
-    PatternRequirementContext, PatternRequirements, PatternValidationResult, ReportResponseData,
-    ResponseExtractor, ResponseMatcher, Revocation, RevocationStep, Rule, RuleSyntax, TlsMode,
-    Validation, RULE_COMMENTS_PATTERN,
+    PatternRequirementContext, PatternRequirements, PatternValidationResult, RULE_COMMENTS_PATTERN,
+    ReportResponseData, ResponseExtractor, ResponseMatcher, Revocation, RevocationStep, Rule,
+    RuleSyntax, TlsMode, Validation,
 };
 
 // Re-export Rules collection
@@ -28,7 +28,7 @@ pub use rules::{Rules, RulesError};
 
 // Re-export RulesDatabase
 pub use rules_database::{
-    format_regex_pattern, RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase,
+    RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase, format_regex_pattern,
 };
 
 // Re-export defaults

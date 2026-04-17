@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use bytes::Bytes;
 use h2::client;
-use http::{header::HeaderName, HeaderMap, HeaderValue, Request, Uri};
+use http::{HeaderMap, HeaderValue, Request, Uri, header::HeaderName};
 use std::sync::OnceLock;
 
 use liquid::Object;

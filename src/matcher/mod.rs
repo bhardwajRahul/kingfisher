@@ -6,7 +6,7 @@ mod filter;
 mod fingerprint;
 
 // Re-export public API
-pub use base64_decode::{get_base64_strings, DecodedData};
+pub use base64_decode::{DecodedData, get_base64_strings};
 pub use captures::{Group, Groups, SerializableCapture, SerializableCaptures};
 pub use conversion::{Match, MatcherStats, OwnedBlobMatch};
 pub use fingerprint::compute_finding_fingerprint;
@@ -39,10 +39,10 @@ const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
 const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
 const RAW_MATCH_LOOKBACK: usize = 4 * 1024; // Re-scan a bounded suffix ending at the raw match.
 const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
-                                                   // The old tree-sitter limit was 128 KiB due to full-AST parsing cost.
-                                                   // The lightweight regex-based lexer is O(n) line-by-line, so we can afford
-                                                   // a much higher ceiling.  We still cap it to avoid spending time on huge
-                                                   // generated/minified blobs where context verification adds little value.
+// The old tree-sitter limit was 128 KiB due to full-AST parsing cost.
+// The lightweight regex-based lexer is O(n) line-by-line, so we can afford
+// a much higher ceiling.  We still cap it to avoid spending time on huge
+// generated/minified blobs where context verification adds little value.
 const CONTEXT_VERIFIER_MAX_LIMIT: usize = 2 * 1024 * 1024; // verify code context on blobs <= 2 MiB
 const CONTEXT_VERIFIER_MIN_LIMIT: usize = 0; // allow context verification starting at 0 bytes
 
@@ -186,11 +186,7 @@ impl<'a> Matcher<'a> {
         let raw_matches_scratch = Vec::new();
         let user_data = UserData { raw_matches_scratch, input_len: 0 };
         let profiler = shared_profiler.or_else(|| {
-            if enable_profiling {
-                Some(Arc::new(ConcurrentRuleProfiler::new()))
-            } else {
-                None
-            }
+            if enable_profiling { Some(Arc::new(ConcurrentRuleProfiler::new())) } else { None }
         });
         Ok(Matcher {
             scanner_pool,
@@ -757,10 +753,14 @@ mod test {
         let matches = match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
             ScanResult::New(matches) => matches,
             ScanResult::SeenWithMatches => {
-                panic!("unexpected scan result: blob should not be considered previously seen with matches")
+                panic!(
+                    "unexpected scan result: blob should not be considered previously seen with matches"
+                )
             }
             ScanResult::SeenSansMatches => {
-                panic!("unexpected scan result: blob should not be considered previously seen without matches")
+                panic!(
+                    "unexpected scan result: blob should not be considered previously seen without matches"
+                )
             }
         };
 
@@ -1223,8 +1223,8 @@ line2
     }
 
     #[test]
-    fn assignment_style_context_rule_survives_when_context_verification_is_unavailable(
-    ) -> Result<()> {
+    fn assignment_style_context_rule_survives_when_context_verification_is_unavailable()
+    -> Result<()> {
         let token = "xcexacEQFtULkSTDCXejdWy5ew8NyU9QJoip5a97TE7A";
         let rule = Rule::new(RuleSyntax {
             id: "kingfisher.livekit.2".into(),
@@ -1265,8 +1265,8 @@ line2
     }
 
     #[test]
-    fn depends_on_assignment_style_rule_survives_when_context_verification_is_unavailable(
-    ) -> Result<()> {
+    fn depends_on_assignment_style_rule_survives_when_context_verification_is_unavailable()
+    -> Result<()> {
         use crate::rules::rule::DependsOnRule;
 
         let token = "xcexacEQFtULkSTDCXejdWy5ew8NyU9QJoip5a97TE7A";

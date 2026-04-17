@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use anyhow::Result;
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
-use flate2::{write::GzEncoder, Compression};
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use flate2::{Compression, write::GzEncoder};
 use std::io::Write;
 
 use super::AccessMapResult;

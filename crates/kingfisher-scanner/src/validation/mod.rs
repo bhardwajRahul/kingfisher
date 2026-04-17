@@ -61,17 +61,17 @@ pub mod raw;
 
 // Re-exports
 pub use utils::{find_closest_variable, process_captures};
-pub use validation_body::{as_str, clone_as_string, from_string, ValidationResponseBody};
+pub use validation_body::{ValidationResponseBody, as_str, clone_as_string, from_string};
 
 #[cfg(feature = "validation-http")]
 pub use http_validation::{
-    build_request_builder, check_url_resolvable, generate_http_cache_key_parts, is_ssrf_safe_ip,
-    parse_http_method, process_headers, retry_multipart_request, retry_request, validate_response,
-    with_request_template_globals, SsrfBlockedError,
+    SsrfBlockedError, build_request_builder, check_url_resolvable, generate_http_cache_key_parts,
+    is_ssrf_safe_ip, parse_http_method, process_headers, retry_multipart_request, retry_request,
+    validate_response, with_request_template_globals,
 };
 
 #[cfg(feature = "validation-raw")]
-pub use raw::{required_vars as raw_required_vars, validate_raw, RawValidationOutcome};
+pub use raw::{RawValidationOutcome, required_vars as raw_required_vars, validate_raw};
 
 #[cfg(feature = "validation-http")]
 #[expect(deprecated)]

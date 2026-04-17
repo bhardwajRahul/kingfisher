@@ -12,11 +12,11 @@ use std::{
 // preview API surfaces we rely on, while the raw requests keep the binary lean and
 // let us opt into newer API versions as Microsoft rolls them out.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use tracing::warn;
-use url::{form_urlencoded, Url};
+use url::{Url, form_urlencoded};
 
 use crate::{findings_store, git_host, git_url::GitUrl};
 
@@ -73,11 +73,7 @@ fn normalize_repo_identifier(parts: &[String]) -> Option<String> {
     normalized.retain(|s| !s.is_empty());
     normalized.push(project.to_lowercase());
     normalized.push(repo.trim_end_matches(".git").to_lowercase());
-    if normalized.is_empty() {
-        None
-    } else {
-        Some(normalized.join("/"))
-    }
+    if normalized.is_empty() { None } else { Some(normalized.join("/")) }
 }
 
 fn parse_repo_identifier_from_path(path: &str) -> Option<String> {

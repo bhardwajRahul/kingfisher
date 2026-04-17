@@ -1,14 +1,14 @@
-use anyhow::{anyhow, Context, Result};
-use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
-use reqwest::{header, Client, Url};
+use anyhow::{Context, Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::STANDARD as b64};
+use reqwest::{Client, Url, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::validation::GLOBAL_USER_AGENT;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const AZURE_DEVOPS_PROFILE_API: &str =
@@ -524,15 +524,19 @@ async fn list_repositories(
             continue;
         }
 
-        let mut project_repos =
-            list_project_repositories(client, organization, project_name, auth_header.clone())
-                .await
-                .unwrap_or_else(|err| {
-                    warn!(
-                        "Azure DevOps access-map: project repo enumeration failed for {project_name}: {err}"
-                    );
-                    Vec::new()
-                });
+        let mut project_repos = list_project_repositories(
+            client,
+            organization,
+            project_name,
+            auth_header.clone(),
+        )
+        .await
+        .unwrap_or_else(|err| {
+            warn!(
+                "Azure DevOps access-map: project repo enumeration failed for {project_name}: {err}"
+            );
+            Vec::new()
+        });
         repos.append(&mut project_repos);
     }
 

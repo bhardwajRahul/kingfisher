@@ -122,7 +122,9 @@ static SAFE_LIST_FILTER_RULES: LazyLock<Vec<SafeRule>> = LazyLock::new(|| {
         },
         SafeRule {
             description: "URL with basic auth to host ending in example/test (placeholder)",
-            regex: compile(r"(?i)\b((?:https?:)?//[^:@]{3,50}:[^:@]{3,50}@[\w.]{0,16}(?:example|test))"),
+            regex: compile(
+                r"(?i)\b((?:https?:)?//[^:@]{3,50}:[^:@]{3,50}@[\w.]{0,16}(?:example|test))",
+            ),
         },
         SafeRule {
             description: "Assignment ending with SECRETMANAGER (explicit placeholder)",

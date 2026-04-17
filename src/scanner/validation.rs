@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use crossbeam_skiplist::SkipMap;
 use dashmap::DashMap;
-use futures::{stream, FutureExt, StreamExt};
+use futures::{FutureExt, StreamExt, stream};
 use indicatif::{ProgressBar, ProgressStyle};
 use liquid::Parser;
 use reqwest::StatusCode;
@@ -25,7 +25,7 @@ use crate::{
     matcher::OwnedBlobMatch,
     rules::rule::Validation,
     validation::{
-        collect_variables_and_dependencies, utils, validate_single_match, CachedResponse,
+        CachedResponse, collect_variables_and_dependencies, utils, validate_single_match,
     },
     validation_body,
     validation_rate_limit::ValidationRateLimiter,
@@ -861,7 +861,7 @@ async fn validate_single(
     let first = in_progress.insert(cache_key.clone(), ()).is_none();
     if !first {
         notify.notified().await; // suspend with zero polling
-                                 // cached result now present
+        // cached result now present
         if let Some(cached) = cache.get(&cache_key) {
             om.validation_success = cached.is_valid;
             om.validation_response_body = cached.body.clone();

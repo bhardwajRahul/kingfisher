@@ -1,5 +1,5 @@
-use anyhow::{bail, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, bail};
+use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use url::Url;

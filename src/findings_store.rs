@@ -45,11 +45,7 @@ fn origin_fp(os: &OriginSet) -> u64 {
 }
 
 fn dedup_origin_kind(origin: &OriginSet) -> &'static str {
-    if origin.iter().any(|o| matches!(o, Origin::Extended(_))) {
-        "ext"
-    } else {
-        "file_git"
-    }
+    if origin.iter().any(|o| matches!(o, Origin::Extended(_))) { "ext" } else { "file_git" }
 }
 
 const DEDUP_BLOOM_FP_RATE: f64 = 0.001;

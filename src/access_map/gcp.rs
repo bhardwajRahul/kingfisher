@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use anyhow::{anyhow, Context, Result};
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use anyhow::{Context, Result, anyhow};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use reqwest::{Client, StatusCode};
 use serde_json::Value;
 use tracing::warn;
@@ -24,8 +24,8 @@ struct Ancestor {
 }
 
 use super::{
-    build_default_resource, build_recommendations, AccessMapResult, AccessSummary,
-    AccessTokenDetails, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_default_resource, build_recommendations,
 };
 
 pub async fn map_access(credential_path: Option<&Path>) -> Result<AccessMapResult> {
@@ -258,7 +258,9 @@ async fn fetch_project_policy(
         }
 
         if let Some(disabled) = service_disabled_message(&body_v1)? {
-            verbose_warn!("GCP access-map: Cloud Resource Manager API disabled for project {project}: {disabled}");
+            verbose_warn!(
+                "GCP access-map: Cloud Resource Manager API disabled for project {project}: {disabled}"
+            );
             return Ok(None);
         }
 
@@ -298,7 +300,9 @@ async fn fetch_project_ancestry(
     let body = resp.bytes().await?;
 
     if let Some(disabled) = service_disabled_message(&body)? {
-        verbose_warn!("GCP access-map: Cloud Resource Manager API disabled for project {project_id}: {disabled}");
+        verbose_warn!(
+            "GCP access-map: Cloud Resource Manager API disabled for project {project_id}: {disabled}"
+        );
         return Ok(Vec::new());
     }
 
@@ -437,7 +441,9 @@ async fn fetch_service_account_metadata(
     let body = resp.bytes().await?;
 
     if let Some(disabled) = service_disabled_message(&body)? {
-        verbose_warn!("GCP access-map: IAM API disabled when fetching metadata for {client_email}: {disabled}");
+        verbose_warn!(
+            "GCP access-map: IAM API disabled when fetching metadata for {client_email}: {disabled}"
+        );
         return Ok(ServiceAccountMetadata::default());
     }
 
@@ -953,7 +959,9 @@ async fn enumerate_resources(
         let body = resp.bytes().await?;
 
         if let Some(disabled) = service_disabled_message(&body)? {
-            verbose_warn!("GCP access-map: Artifact Registry API disabled for project {project_id}: {disabled}");
+            verbose_warn!(
+                "GCP access-map: Artifact Registry API disabled for project {project_id}: {disabled}"
+            );
         } else if status.is_success() {
             let json: Value = serde_json::from_slice(&body)?;
             if let Some(items) = json.get("repositories").and_then(|i| i.as_array()) {
@@ -999,7 +1007,9 @@ async fn enumerate_resources(
         let body = resp.bytes().await?;
 
         if let Some(disabled) = service_disabled_message(&body)? {
-            verbose_warn!("GCP access-map: Kubernetes Engine API disabled for project {project_id}: {disabled}");
+            verbose_warn!(
+                "GCP access-map: Kubernetes Engine API disabled for project {project_id}: {disabled}"
+            );
         } else if status.is_success() {
             let json: Value = serde_json::from_slice(&body)?;
             if let Some(items) = json.get("clusters").and_then(|i| i.as_array()) {

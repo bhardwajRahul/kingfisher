@@ -1,10 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use reqwest::header::AUTHORIZATION;
 use serde::Deserialize;
 
 use super::{
-    build_recommendations, AccessMapArgs, AccessMapResult, AccessSummary, AccessTokenDetails,
-    PermissionSummary, ProviderMetadata, ResourceExposure, RoleBinding, Severity,
+    AccessMapArgs, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
+    ProviderMetadata, ResourceExposure, RoleBinding, Severity, build_recommendations,
 };
 
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {

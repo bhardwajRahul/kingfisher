@@ -3,11 +3,11 @@ use std::time::Duration;
 
 use std::sync::OnceLock;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring, verify_tls12_signature, verify_tls13_signature};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{client::ClientConfig, DigitallySignedStruct, SignatureScheme};
+use rustls::{DigitallySignedStruct, SignatureScheme, client::ClientConfig};
 use tokio::time::timeout;
 use tokio_postgres::config::SslMode;
 use tokio_postgres::tls::NoTls;
@@ -18,8 +18,8 @@ use tracing::{debug, warn};
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure,
-    RoleBinding, Severity,
+    AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    build_recommendations,
 };
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
@@ -367,7 +367,7 @@ async fn connect(pg_url: &str) -> Result<Client> {
             }
             Ok(Err(e)) => return Err(anyhow!("Postgres connection failed: {e}")),
             Err(_) => {
-                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"))
+                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"));
             }
         }
     }

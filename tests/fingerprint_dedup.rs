@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
-use gix::{date, ObjectId};
+use gix::{ObjectId, date};
 use kingfisher::{
     blob::{BlobId, BlobMetadata},
     findings_store::FindingsStore,
@@ -13,7 +13,7 @@ use kingfisher::{
     location::{Location, OffsetSpan, SourcePoint, SourceSpan},
     matcher::{Match, SerializableCapture, SerializableCaptures},
     origin::{Origin, OriginSet},
-    reporter::{styles::Styles, DetailsReporter, ReportMatch},
+    reporter::{DetailsReporter, ReportMatch, styles::Styles},
     rules::rule::{Confidence, Rule, RuleSyntax},
     util::intern,
 };

@@ -62,11 +62,7 @@ impl ContentInspector {
         let controls =
             bytes.iter().filter(|&&b| b < 32 && !matches!(b, b'\n' | b'\r' | b'\t')).count();
         let ratio = if bytes.is_empty() { 0.0 } else { controls as f64 / bytes.len() as f64 };
-        if ratio > self.max_control_ratio {
-            ContentType::BINARY
-        } else {
-            ContentType::TEXT
-        }
+        if ratio > self.max_control_ratio { ContentType::BINARY } else { ContentType::TEXT }
     }
 
     /// Guess MIME type from `path` extension.

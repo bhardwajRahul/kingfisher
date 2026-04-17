@@ -3,5 +3,5 @@
 //! This module re-exports types from [`kingfisher_rules::rules_database`].
 
 pub use kingfisher_rules::rules_database::{
-    format_regex_pattern, RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase,
+    RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase, format_regex_pattern,
 };

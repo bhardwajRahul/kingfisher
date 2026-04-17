@@ -1,6 +1,6 @@
 //! Collection of small Liquid filters that make HTTP validations & API-signing templates easy
 
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use crc32fast::Hasher;
 use hmac::{Hmac, Mac};
 use liquid_core::{
@@ -8,13 +8,13 @@ use liquid_core::{
     FromFilterParameters, ParseFilter, Result, Runtime, Value, ValueView,
 };
 
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use rand::{distr::Alphanumeric, RngExt};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use rand::{RngExt, distr::Alphanumeric};
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384};
 use time::{
-    format_description::well_known::{Iso8601, Rfc2822},
     OffsetDateTime,
+    format_description::well_known::{Iso8601, Rfc2822},
 };
 use uuid::Uuid;
 
@@ -1075,10 +1075,10 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     use hmac::{Hmac, Mac};
-    use liquid::{object, ParserBuilder};
-    use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+    use liquid::{ParserBuilder, object};
+    use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
     use regex::Regex;
     use sha1::Sha1;
     use sha2::{Digest, Sha256, Sha384};

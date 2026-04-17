@@ -1,9 +1,9 @@
 use bstr::BString;
 use regex::bytes::Regex;
 use schemars::{
+    JsonSchema,
     r#gen::SchemaGenerator,
     schema::{ArrayValidation, InstanceType, Schema},
-    JsonSchema,
 };
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use mysql_async::prelude::*;
 use mysql_async::{Opts, Pool};
 use tokio::time::timeout;
@@ -9,8 +9,8 @@ use tracing::warn;
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure,
-    RoleBinding, Severity,
+    AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    build_recommendations,
 };
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(8);

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, env, str::FromStr, time::Duration};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::StatusCode;
 use serde::Deserialize;
