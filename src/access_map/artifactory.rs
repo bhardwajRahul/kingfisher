@@ -18,7 +18,7 @@ struct ArtifactoryUser {
     name: Option<String>,
     email: Option<String>,
     admin: Option<bool>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "profileUpdatable")]
     profile_updatable: Option<bool>,
     #[serde(default)]

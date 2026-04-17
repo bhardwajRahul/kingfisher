@@ -1,10 +1,10 @@
-use once_cell::sync::Lazy;
 use std::path::Path;
+use std::sync::LazyLock;
 use tokei::LanguageType;
 
 // Precompute all (shebang_prefix_bytes, language) pairs once.
 // Sort longest-first so more specific shebangs win.
-static SHEBANG_PREFIXES: Lazy<Vec<(&'static [u8], LanguageType)>> = Lazy::new(|| {
+static SHEBANG_PREFIXES: LazyLock<Vec<(&'static [u8], LanguageType)>> = LazyLock::new(|| {
     let mut v = Vec::new();
     for &(lang, shebangs) in LanguageType::list() {
         for &sb in shebangs {
@@ -113,10 +113,10 @@ impl ContentInspector {
     #[must_use]
     pub fn guess_language(&self, path: &Path, content: &[u8]) -> Option<String> {
         // 1) Extension mapping (turbo, no I/O).
-        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if let Some(lang) = LanguageType::from_file_extension(&ext.to_ascii_lowercase()) {
-                return Some(lang.name().to_string());
-            }
+        if let Some(ext) = path.extension().and_then(|e| e.to_str())
+            && let Some(lang) = LanguageType::from_file_extension(&ext.to_ascii_lowercase())
+        {
+            return Some(lang.name().to_string());
         }
 
         // 2) Well-known filenames with no/odd extensions (avoid from_path to keep this pure).

@@ -22,7 +22,7 @@ struct HubSpotAccountInfo {
     #[serde(default)]
     time_zone: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     company_currency: Option<String>,
     #[serde(default)]
     ui_domain: Option<String>,
@@ -31,7 +31,7 @@ struct HubSpotAccountInfo {
 #[derive(Deserialize)]
 struct HubSpotOwner {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<String>,
     #[serde(default)]
     email: Option<String>,

@@ -13,7 +13,6 @@ use http::StatusCode;
 use ldap3::LdapConnSettings;
 use liquid::Object;
 use liquid_core::ValueView;
-use once_cell::sync::OnceCell;
 use percent_encoding::percent_decode_str;
 use reqwest::Client;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
@@ -37,7 +36,7 @@ pub struct RawValidationOutcome {
     pub body: String,
 }
 
-static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
+static INIT_PROVIDER: OnceLock<()> = OnceLock::new();
 static LAX_PROVIDER: OnceLock<Arc<CryptoProvider>> = OnceLock::new();
 
 fn ensure_crypto_provider() {

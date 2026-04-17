@@ -5,12 +5,12 @@ use chrono::Utc;
 use jsonwebtoken::{
     decode, decode_header, jwk::JwkSet, Algorithm, DecodingKey, Validation as JwtValidation,
 };
-use once_cell::sync::Lazy;
 use reqwest::{redirect::Policy, Client, Url};
 use serde::Deserialize;
+use std::sync::LazyLock;
 
 /// Global redirect-free client with strict TLS validation.
-static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
+static STRICT_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .redirect(Policy::none())
         .danger_accept_invalid_certs(false)
@@ -19,7 +19,7 @@ static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
 });
 
 /// Global redirect-free client with lax TLS validation (accepts any cert).
-static LAX_CLIENT: Lazy<Client> = Lazy::new(|| {
+static LAX_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .redirect(Policy::none())
         .danger_accept_invalid_certs(true)

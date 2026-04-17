@@ -586,15 +586,14 @@ async fn timed_validate_single_match<'a>(
             continue;
         }
         let dep_name = dep.variable.to_uppercase();
-        if let Some(vals) = dependent_variables.get(&dep_name) {
-            if let Some((val, span)) =
+        if let Some(vals) = dependent_variables.get(&dep_name)
+            && let Some((val, span)) =
                 select_closest_dependency_value(vals, m.matching_input_offset_span)
-            {
-                captured_values.push((dep_name.clone(), val.clone(), span.start, span.end));
-                // Store the dependent capture for later use in reporting
-                // (e.g., generating validate/revoke commands)
-                m.dependent_captures.insert(dep_name, val);
-            }
+        {
+            captured_values.push((dep_name.clone(), val.clone(), span.start, span.end));
+            // Store the dependent capture for later use in reporting
+            // (e.g., generating validate/revoke commands)
+            m.dependent_captures.insert(dep_name, val);
         }
     }
 

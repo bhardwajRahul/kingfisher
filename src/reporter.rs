@@ -1268,12 +1268,11 @@ impl DetailsReporter {
         self.styles.style_finding_active_heading.apply_to(val)
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn style_rule<D>(&self, val: D) -> StyledObject<D> {
         self.styles.style_rule.apply_to(val)
     }
 
-    #[allow(dead_code)]
     fn style_heading<D>(&self, val: D) -> StyledObject<D> {
         self.styles.style_heading.apply_to(val)
     }

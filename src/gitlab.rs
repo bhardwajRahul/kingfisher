@@ -108,10 +108,10 @@ fn parse_excluded_project(raw: &str) -> Option<String> {
         return Some(name);
     }
 
-    if let Some(idx) = trimmed.rfind(':') {
-        if let Some(name) = parse_project_path(&trimmed[idx + 1..]) {
-            return Some(name);
-        }
+    if let Some(idx) = trimmed.rfind(':')
+        && let Some(name) = parse_project_path(&trimmed[idx + 1..])
+    {
+        return Some(name);
     }
 
     parse_project_path(trimmed)

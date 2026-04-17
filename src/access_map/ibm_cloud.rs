@@ -18,7 +18,7 @@ struct IbmApiKeyDetails {
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     entity_tag: Option<String>,
     #[serde(default)]
     iam_id: Option<String>,
@@ -27,7 +27,7 @@ struct IbmApiKeyDetails {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     description: Option<String>,
     #[serde(default)]
     created_at: Option<String>,
@@ -40,10 +40,10 @@ struct IbmTokenResponse {
     #[serde(default)]
     access_token: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     token_type: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     expires_in: Option<u64>,
     #[serde(default)]
     scope: Option<String>,
@@ -52,7 +52,7 @@ struct IbmTokenResponse {
 #[derive(Deserialize)]
 struct IbmResourceInstance {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<String>,
     #[serde(default)]
     name: Option<String>,

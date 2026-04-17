@@ -22,7 +22,12 @@ rules:
       content:
         request:
           method: GET
-          url: https://www.crossmint.com/api/v1-alpha2/wallets
+          url: >
+            {%- if TOKEN contains "sk_staging_" -%}
+            https://staging.crossmint.com/api/v1-alpha2/wallets
+            {%- else -%}
+            https://www.crossmint.com/api/v1-alpha2/wallets
+            {%- endif -%}
           headers:
             x-api-key: "{{ TOKEN }}"
             Accept: application/json

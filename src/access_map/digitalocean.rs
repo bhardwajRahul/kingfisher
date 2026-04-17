@@ -25,7 +25,7 @@ struct DigitalOceanAccount {
     #[serde(default)]
     uuid: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     status: Option<String>,
     #[serde(default)]
     team: Option<DigitalOceanTeam>,
@@ -36,7 +36,7 @@ struct DigitalOceanTeam {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     uuid: Option<String>,
 }
 

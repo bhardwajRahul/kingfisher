@@ -40,7 +40,7 @@ struct JiraPermissionEntry {
 
 #[derive(Deserialize)]
 struct JiraProject {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<String>,
     key: String,
     name: String,

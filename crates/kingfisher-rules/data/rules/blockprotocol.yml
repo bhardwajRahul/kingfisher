@@ -5,7 +5,7 @@ rules:
       (?x)
       \b
       (
-        b10ck5\.[a-zA-Z0-9]{28,36}\.[a-zA-Z0-9]{32,40}
+        b10ck5\.[a-zA-Z0-9]{32}\.[a-zA-Z0-9]{36}
       )
       \b
     pattern_requirements:
@@ -14,7 +14,7 @@ rules:
     confidence: high
     categories: [api, key]
     examples:
-      - 'BLOCK_PROTOCOL_API_KEY=b10ck5.AbCdEfGhIjKlMnOpQrStUvWxYz1234.AbCdEfGhIjKlMnOpQrStUvWxYz12345678'
+      - 'BLOCK_PROTOCOL_API_KEY=b10ck5.AbCdEfGhIjKlMnOpQrStUvWxYz123456.AbCdEfGhIjKlMnOpQrStUvWxYz1234567890'
     references:
       - https://blockprotocol.org/docs/hub/api
     validation:

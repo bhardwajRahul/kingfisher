@@ -468,12 +468,11 @@ fn extract_roles(policy: &Value, client_email: &str) -> Vec<String> {
     let mut role_bindings = Vec::new();
     if let Some(bindings) = policy["bindings"].as_array() {
         for binding in bindings {
-            if let Some(role_name) = binding["role"].as_str() {
-                if let Some(members) = binding["members"].as_array() {
-                    if members.iter().any(|m| m.as_str() == Some(&email_member)) {
-                        role_bindings.push(role_name.to_string());
-                    }
-                }
+            if let Some(role_name) = binding["role"].as_str()
+                && let Some(members) = binding["members"].as_array()
+                && members.iter().any(|m| m.as_str() == Some(&email_member))
+            {
+                role_bindings.push(role_name.to_string());
             }
         }
     }

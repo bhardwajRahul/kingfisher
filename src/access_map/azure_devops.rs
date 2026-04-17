@@ -452,10 +452,10 @@ fn select_matching_pat(
     let mut candidates: Vec<&AzureDevopsPat> = pats
         .iter()
         .filter(|pat| {
-            if let Some(user_id) = user_id {
-                if let Some(pat_user_id) = pat.user_id.as_deref() {
-                    return pat_user_id == user_id;
-                }
+            if let Some(user_id) = user_id
+                && let Some(pat_user_id) = pat.user_id.as_deref()
+            {
+                return pat_user_id == user_id;
             }
             true
         })

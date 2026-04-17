@@ -38,7 +38,7 @@ struct BrevoPlan {
 #[derive(Deserialize)]
 struct BrevoSender {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<u64>,
     #[serde(default)]
     name: Option<String>,

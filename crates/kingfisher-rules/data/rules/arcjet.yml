@@ -5,15 +5,24 @@ rules:
       (?x)
       \b
       (
-        ajkey_[A-Za-z0-9]{24,44}
+        ajkey_[a-z0-9]{26}
       )
       \b
     pattern_requirements:
-      min_digits: 1
-    min_entropy: 3.0
+      min_digits: 3
+      min_lowercase: 6
+    min_entropy: 3.5
     confidence: medium
+    categories: [api, key]
     examples:
-      - 'ARCJET_KEY=ajkey_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
-      - 'ARCJET_KEY="ajkey_xK8m2LpQr5nW0vYz3cJ7aB4dE6fG8h"'
+      - 'ARCJET_KEY=ajkey_01kpe3gbb3ek3asrwvfsmtjtam'
+      - 'ARCJET_KEY="ajkey_01kpe3k7r4n6v9s2q1w8x5y7zc"'
     references:
-      - https://docs.arcjet.com/get-started
+      - https://docs.arcjet.com/environment
+      - https://docs.arcjet.com/reference/nodejs
+      - https://docs.arcjet.com/troubleshooting/
+      - https://github.com/arcjet/arcjet-js/blob/main/protocol/client.ts
+      - https://github.com/arcjet/arcjet-js/blob/main/protocol/proto/decide/v1alpha1/decide_pb.d.ts
+    # No standalone validation is added: Arcjet's public DecideService endpoint
+    # accepts multiple mutated ajkey_ values and returns CONCLUSION_ALLOW, so it
+    # is not reliable for distinguishing valid from invalid site keys.

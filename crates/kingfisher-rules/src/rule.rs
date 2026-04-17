@@ -6,17 +6,17 @@
 
 use std::{
     borrow::Cow, cmp::Ordering, collections::BTreeMap, fmt, hash::Hash, path::Path, str::FromStr,
+    sync::LazyLock,
 };
 
 use anyhow::{anyhow, Context, Result};
-use lazy_static::lazy_static;
 use liquid::{
     model::{KString, Value},
     object, ParserBuilder,
 };
 use regex::Regex;
 use schemars::{
-    gen::SchemaGenerator,
+    r#gen::SchemaGenerator,
     schema::{Schema, SchemaObject},
     JsonSchema,
 };
@@ -649,16 +649,17 @@ pub struct RuleSyntax {
     pub tls_mode: Option<TlsMode>,
 }
 
-lazy_static! {
-    /// Regex pattern used to remove vectorscan-style comments from rule patterns.
-    pub static ref RULE_COMMENTS_PATTERN: Regex = Regex::new(
-        r"(?m)(\(\?#[^)]*\))|(\s\#[\sa-zA-Z]*$)"
-    ).expect("comment-stripping regex should compile");
-    static ref PATTERN_REQUIREMENTS_TEMPLATE_PARSER: liquid::Parser =
-        liquid_filters::register_all(ParserBuilder::with_stdlib())
-            .build()
-            .expect("pattern requirement template parser should compile");
-}
+/// Regex pattern used to remove vectorscan-style comments from rule patterns.
+pub static RULE_COMMENTS_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)(\(\?#[^)]*\))|(\s\#[\sa-zA-Z]*$)")
+        .expect("comment-stripping regex should compile")
+});
+
+static PATTERN_REQUIREMENTS_TEMPLATE_PARSER: LazyLock<liquid::Parser> = LazyLock::new(|| {
+    liquid_filters::register_all(ParserBuilder::with_stdlib())
+        .build()
+        .expect("pattern requirement template parser should compile")
+});
 
 impl RuleSyntax {
     /// Maximum allowed regex size.

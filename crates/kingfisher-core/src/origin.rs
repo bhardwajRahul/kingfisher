@@ -8,11 +8,10 @@
 
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use rustc_hash::FxHashSet;
 use schemars::JsonSchema;
 use serde::{ser::SerializeSeq, Deserialize, Serialize};
@@ -21,7 +20,7 @@ use smallvec::SmallVec;
 use crate::git_commit_metadata::CommitMetadata;
 
 // Cache for git remote URLs to avoid repeated lookups
-static URL_CACHE: Lazy<DashMap<PathBuf, Arc<str>>> = Lazy::new(DashMap::default);
+static URL_CACHE: LazyLock<DashMap<PathBuf, Arc<str>>> = LazyLock::new(DashMap::default);
 
 fn compute_url(repo_path: &Path) -> anyhow::Result<String> {
     let repo = gix::open(repo_path)?;
@@ -35,12 +34,10 @@ fn compute_url(repo_path: &Path) -> anyhow::Result<String> {
         Ok(String::from_utf8_lossy(url_bytes.as_bytes()).into_owned())
     } else if url_bytes.starts_with(b"git@") {
         let url_str = String::from_utf8_lossy(url_bytes.as_bytes());
-        if let Some(stripped) = url_str.strip_prefix("git@") {
-            if let Some((domain, path)) = stripped.split_once(':') {
-                Ok(format!("https://{}/{}", domain, path))
-            } else {
-                Err(anyhow::anyhow!("Invalid SSH URL format"))
-            }
+        if let Some(stripped) = url_str.strip_prefix("git@")
+            && let Some((domain, path)) = stripped.split_once(':')
+        {
+            Ok(format!("https://{}/{}", domain, path))
         } else {
             Err(anyhow::anyhow!("Invalid SSH URL format"))
         }
@@ -68,7 +65,7 @@ pub fn get_repo_url(repo_path: &Path) -> anyhow::Result<Arc<str>> {
 /// The provenance of a scanned blob.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case", tag = "kind")]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum Origin {
     /// Content from a file on disk.
     File(FileOrigin),
@@ -219,8 +216,8 @@ impl JsonSchema for OriginSet {
         "OriginSet".into()
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let s = <Vec<Origin>>::json_schema(gen);
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        let s = <Vec<Origin>>::json_schema(r#gen);
         let mut o = s.into_object();
         o.array().min_items = Some(1);
         let md = o.metadata();
@@ -279,7 +276,7 @@ impl OriginSet {
     }
 
     /// Returns the number of origins in the set.
-    #[allow(clippy::len_without_is_empty)]
+    #[expect(clippy::len_without_is_empty)]
     #[inline]
     pub fn len(&self) -> usize {
         1 + self.more_provenance.len()

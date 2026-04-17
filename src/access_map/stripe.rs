@@ -311,7 +311,7 @@ fn classify_key_prefix(token: &str) -> KeyType {
 }
 
 enum ScopeRisk {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Admin,
     Risky,
     Read,

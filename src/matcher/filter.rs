@@ -161,7 +161,7 @@ fn check_uri_validation(rule: &Rule, matching_input_bytes: &[u8]) -> bool {
 // filter_match — main entry point
 // -------------------------------------------------------------------------------------------------
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn filter_match<'b>(
     blob: &'b Blob,
     rule: Arc<Rule>,

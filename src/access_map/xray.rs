@@ -18,7 +18,7 @@ struct XrayRepo {
     name: Option<String>,
     #[serde(rename = "type")]
     repo_type: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "pkg_type")]
     package_type: Option<String>,
 }
@@ -28,7 +28,7 @@ struct XrayPolicy {
     name: Option<String>,
     #[serde(rename = "type")]
     policy_type: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     author: Option<String>,
 }
 

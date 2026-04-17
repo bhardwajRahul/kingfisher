@@ -191,7 +191,8 @@ async fn test_scan_slack_messages() -> Result<()> {
         .mount(&server)
         .await;
 
-    env::set_var("KF_SLACK_TOKEN", "xoxp-test");
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { env::set_var("KF_SLACK_TOKEN", "xoxp-test") };
 
     let temp_dir = TempDir::new()?;
     let clone_dir = temp_dir.path().to_path_buf();

@@ -2,13 +2,10 @@ rules:
   - name: Browser Use API Key
     id: kingfisher.browseruse.1
     pattern: |
-      (?xi)
-      \b
-      (?:browser[-_\s]?use|BROWSER_USE_API_KEY)
-      (?:.|[\n\r]){0,48}?
+      (?x)
       \b
       (
-        bu_[A-Za-z0-9_-]{32}(?:[A-Za-z0-9_-]{16}){0,4}
+        bu_[A-Za-z0-9_-]{42,46}
       )
       \b
     pattern_requirements:
@@ -18,8 +15,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'BROWSER_USE_API_KEY="bu_w82Kp7LzR4QnV6tYp9CmX3aSb5DgHjK1"'
-      - 'browser-use apiKey: "bu_P7rT2mK9vL4qN8sX6cA3dF5gH1jZ0QaB"'
+      - 'BROWSER_USE_API_KEY="bu_7U8x7aOi0uXig8bf3ubvJLqb7TWf_pskUMN5XTPfUCg"'
+      - 'browser-use apiKey: "bu_oMANI1IOblFfFeBillhzHIuOG9MmVO7qAnSE4_eRBWk"'
     references:
       - https://docs.browser-use.com/cloud/quickstart
       - https://docs.browser-use.com/llms-full.txt

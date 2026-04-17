@@ -44,7 +44,7 @@ struct TerraformOrgsResponse {
 
 #[derive(Deserialize)]
 struct TerraformOrgData {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
@@ -55,7 +55,7 @@ struct TerraformOrgData {
 struct TerraformOrgAttributes {
     #[serde(default)]
     name: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     email: Option<String>,
     #[serde(default)]
@@ -86,7 +86,7 @@ struct TerraformWorkspacesResponse {
 
 #[derive(Deserialize)]
 struct TerraformWorkspaceData {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]

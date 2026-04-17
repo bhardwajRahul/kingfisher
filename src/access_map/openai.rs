@@ -27,7 +27,7 @@ struct OpenAiMe {
     #[serde(default)]
     email: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     role: Option<String>,
     #[serde(default)]
     orgs: Option<OpenAiOrgsData>,

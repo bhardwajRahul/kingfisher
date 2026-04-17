@@ -36,14 +36,14 @@ struct FastlyService {
     name: Option<String>,
     #[serde(rename = "type", default)]
     service_type: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     customer_id: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct FastlyCustomer {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]

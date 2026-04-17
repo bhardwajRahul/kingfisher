@@ -26,7 +26,6 @@ thiserror.workspace = true
 
 # Regex
 regex.workspace = true
-lazy_static = "1.5"
 
 # Hashing
 xxhash-rust.workspace = true

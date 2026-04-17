@@ -3,7 +3,11 @@
 //! This module provides functionality to validate AWS access keys by making
 //! an STS GetCallerIdentity call.
 
-use std::{collections::HashSet, sync::RwLock, time::Duration};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, OnceLock, RwLock},
+    time::Duration,
+};
 
 use anyhow::{anyhow, Result};
 use aws_config::{retry::RetryConfig, BehaviorVersion, SdkConfig};
@@ -35,7 +39,6 @@ use http::{
     header::{HeaderValue, USER_AGENT},
     StatusCode,
 };
-use once_cell::sync::{Lazy, OnceCell};
 use rand::{rng, RngExt};
 use regex::Regex;
 use tokio::{
@@ -45,7 +48,7 @@ use tokio::{
 
 use super::GLOBAL_USER_AGENT;
 
-static AWS_VALIDATION_SEMAPHORE: OnceCell<Semaphore> = OnceCell::new();
+static AWS_VALIDATION_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
 
 /// Built-in list of known canary/honeypot AWS account IDs that should be skipped.
 const BUILTIN_SKIP_ACCOUNT_IDS: &[&str] = &[
@@ -60,7 +63,7 @@ const BUILTIN_SKIP_ACCOUNT_IDS: &[&str] = &[
     "992382622183",
 ];
 
-static AWS_SKIP_ACCOUNT_IDS: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| {
+static AWS_SKIP_ACCOUNT_IDS: LazyLock<RwLock<HashSet<String>>> = LazyLock::new(|| {
     let mut set = HashSet::new();
     set.extend(BUILTIN_SKIP_ACCOUNT_IDS.iter().map(|id| id.to_string()));
     RwLock::new(set)
@@ -97,7 +100,7 @@ fn extract_account_id(input: &str) -> Option<String> {
         return Some(trimmed.to_string());
     }
 
-    static ACCOUNT_ID_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d{12})").expect("valid regex"));
+    static ACCOUNT_ID_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\d{12})").expect("valid regex"));
     ACCOUNT_ID_RE.captures(trimmed).and_then(|caps| caps.get(1)).map(|m| m.as_str().to_string())
 }
 

@@ -28,7 +28,7 @@ struct SearchResult {
 struct HitsContainer {
     hits: Option<Vec<Hit>>,
     more_results_available: Option<bool>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     total: Option<u32>,
 }
 

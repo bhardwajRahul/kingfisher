@@ -27,10 +27,10 @@ struct SquareMerchant {
     business_name: Option<String>,
     #[serde(default)]
     country: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     currency: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     status: Option<String>,
 }
@@ -43,7 +43,7 @@ struct SquareLocationsResponse {
 
 #[derive(Deserialize)]
 struct SquareLocation {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
@@ -297,7 +297,7 @@ fn classify_key_type(token: &str) -> KeyClassification {
 }
 
 enum ScopeRisk {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Admin,
     Risky,
     Read,

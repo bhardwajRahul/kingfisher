@@ -1,7 +1,10 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{
+    str::FromStr,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
 
 use anyhow::{anyhow, Result};
-use once_cell::sync::OnceCell;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
@@ -19,7 +22,7 @@ use tracing::debug;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
-static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
+static INIT_PROVIDER: OnceLock<()> = OnceLock::new();
 fn ensure_crypto_provider() {
     INIT_PROVIDER.get_or_init(|| {
         let _ = CryptoProvider::install_default(ring::default_provider());

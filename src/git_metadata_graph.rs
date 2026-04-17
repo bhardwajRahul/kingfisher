@@ -421,7 +421,7 @@ fn render_symbol_path(symbols: &BStringTable, path: &[Symbol]) -> BString {
     BString::from(buf)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn visit_tree(
     repo: &gix::Repository,
     symbols: &mut BStringTable,

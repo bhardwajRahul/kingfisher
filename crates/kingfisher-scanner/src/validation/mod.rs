@@ -74,7 +74,7 @@ pub use http_validation::{
 pub use raw::{required_vars as raw_required_vars, validate_raw, RawValidationOutcome};
 
 #[cfg(feature = "validation-http")]
-#[allow(deprecated)]
+#[expect(deprecated)]
 pub use http_validation::check_url_resolvable_safe;
 
 #[cfg(feature = "validation-aws")]
@@ -84,9 +84,8 @@ pub use aws::{
     validate_aws_credentials, validate_aws_credentials_input,
 };
 
-use once_cell::sync::OnceCell;
 use std::{
-    sync::Arc,
+    sync::{Arc, LazyLock, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -94,11 +93,10 @@ use crossbeam_skiplist::SkipMap;
 
 /// User agent string used for HTTP validation requests.
 #[cfg(feature = "validation-http")]
-pub static GLOBAL_USER_AGENT: once_cell::sync::Lazy<String> =
-    once_cell::sync::Lazy::new(build_user_agent);
+pub static GLOBAL_USER_AGENT: LazyLock<String> = LazyLock::new(build_user_agent);
 
 #[cfg(feature = "validation-http")]
-static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
+static USER_AGENT_SUFFIX: OnceLock<String> = OnceLock::new();
 
 #[cfg(feature = "validation-http")]
 const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \

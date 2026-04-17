@@ -82,9 +82,8 @@ fn build_jwt(
 
     let nonce: [u8; 16] = rand::random();
 
-    if let Ok(secret_key) =
-        SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))
-    {
+    match SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))
+    { Ok(secret_key) => {
         let signing_key = SigningKey::from(secret_key);
         let header = serde_json::json!({
             "typ": "JWT",
@@ -109,7 +108,7 @@ fn build_jwt(
         let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
 
         return Ok(format!("{signing_input}.{sig_b64}"));
-    } else {
+    } _ => {
         let key_bytes = base64::engine::general_purpose::STANDARD
             .decode(pem.as_bytes())
             .map_err(|e| anyhow!("invalid base64 key: {e}"))?;
@@ -148,5 +147,5 @@ fn build_jwt(
         let sig: ed25519_dalek::Signature = signing_key.sign(signing_input.as_bytes());
         let sig_b64 = URL_SAFE_NO_PAD.encode(sig.to_bytes());
         return Ok(format!("{signing_input}.{sig_b64}"));
-    }
+    }}
 }

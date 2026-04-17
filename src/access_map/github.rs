@@ -33,7 +33,7 @@ const USER_LEVEL_PERMISSIONS: &[&str] = &[
 #[derive(Deserialize)]
 struct GitHubUser {
     login: String,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: u64,
     #[serde(default)]
     name: Option<String>,
@@ -92,7 +92,7 @@ struct GitHubInstallation {
     #[serde(default)]
     permissions: BTreeMap<String, String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     repository_selection: Option<String>,
     #[serde(default)]
     account: Option<GitHubInstallationAccount>,

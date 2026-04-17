@@ -17,7 +17,7 @@ use super::{
 
 #[derive(Debug, Deserialize)]
 struct AlgoliaKeyInfo {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     value: String,
     #[serde(default)]

@@ -512,7 +512,7 @@ fn effective_max_validation_body_len(args: &scan::ScanArgs) -> usize {
 }
 
 /// Runs the validation phase on matches in the datastore.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn run_validation_phase(
     datastore: &Arc<Mutex<FindingsStore>>,
     validation_deps: &Option<ValidationDeps>,
@@ -545,7 +545,7 @@ async fn run_validation_phase(
 // Sequential scan path
 // =================================================================================================
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn run_sequential_scan(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,
@@ -640,7 +640,7 @@ async fn run_sequential_scan(
 // Parallel scan path
 // =================================================================================================
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn run_parallel_scan(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,
@@ -883,11 +883,11 @@ async fn run_parallel_scan(
         aggregate_summary,
     );
 
-    if let Some(collector) = access_map_collector.take() {
+    match access_map_collector.take() { Some(collector) => {
         finalize_access_map(datastore, collector, args).await?;
-    } else {
+    } _ => {
         maybe_hint_access_map(datastore, args);
-    }
+    }}
     Ok(())
 }
 

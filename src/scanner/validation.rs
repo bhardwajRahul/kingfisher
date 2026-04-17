@@ -397,7 +397,7 @@ impl AccessMapCollector {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn run_secret_validation(
     datastore: Arc<Mutex<FindingsStore>>,
     parser: &Parser,

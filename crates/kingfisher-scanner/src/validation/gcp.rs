@@ -1,9 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{Duration as ChronoDuration, Utc};
-use once_cell::sync::OnceCell;
 use pem::parse;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{Client, Proxy};
@@ -14,7 +13,7 @@ use tracing::debug;
 
 use super::GLOBAL_USER_AGENT;
 
-static GLOBAL_VALIDATOR: OnceCell<GcpValidator> = OnceCell::new();
+static GLOBAL_VALIDATOR: OnceLock<GcpValidator> = OnceLock::new();
 
 pub struct GcpValidator {
     semaphore: Arc<Semaphore>,
@@ -39,7 +38,11 @@ pub struct GcpRevocationOutcome {
 
 impl GcpValidator {
     pub fn global() -> Result<&'static Self> {
-        GLOBAL_VALIDATOR.get_or_try_init(Self::new)
+        if let Some(v) = GLOBAL_VALIDATOR.get() {
+            return Ok(v);
+        }
+        let v = Self::new()?;
+        Ok(GLOBAL_VALIDATOR.get_or_init(|| v))
     }
 
     /// Retrieve a reference to the underlying HTTP client.

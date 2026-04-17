@@ -42,7 +42,7 @@ struct ZendeskGroupsResponse {
 
 #[derive(Deserialize)]
 struct ZendeskGroup {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<u64>,
     name: Option<String>,
 }

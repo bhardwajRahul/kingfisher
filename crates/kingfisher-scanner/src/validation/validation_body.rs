@@ -2,7 +2,7 @@
 
 #![allow(dead_code)] // Public API for serde attributes in downstream crates
 
-use schemars::{gen::SchemaGenerator, schema::Schema, JsonSchema};
+use schemars::{r#gen::SchemaGenerator, schema::Schema, JsonSchema};
 use serde::{Deserialize, Deserializer, Serializer};
 use std::borrow::Cow;
 
@@ -51,8 +51,8 @@ where
 }
 
 /// Generate a JSON schema for ValidationResponseBody.
-pub fn schema(gen: &mut SchemaGenerator) -> Schema {
-    String::json_schema(gen)
+pub fn schema(r#gen: &mut SchemaGenerator) -> Schema {
+    String::json_schema(r#gen)
 }
 
 #[cfg(test)]

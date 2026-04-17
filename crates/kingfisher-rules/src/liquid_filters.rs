@@ -26,7 +26,7 @@ macro_rules! static_filter {
     // ── original, zero-arg variant ────────────────────────────────
     (
         $(#[$outer:meta])*
-        $name:ident, $display:literal, $body:expr
+        $name:ident, $display:literal, $body:expr_2021
     ) => {
         $(#[$outer])*
         #[derive(Debug, Clone, FilterReflection, ParseFilter, Default)]
@@ -54,7 +54,7 @@ macro_rules! static_filter {
     $(#[$outer:meta])*
     $name:ident { $( $(#[$f_meta:meta])* $field:ident : $ty:ty ),+ $(,)? },
     $display:literal,
-    $body:expr
+    $body:expr_2021
 ) => {
     $(#[$outer])*
     #[derive(Debug, Clone, Default, FilterReflection, ParseFilter)]   // ← added Default

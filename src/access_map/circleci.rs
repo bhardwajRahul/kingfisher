@@ -47,7 +47,7 @@ struct CircleCiPipeline {
     #[serde(default)]
     project_slug: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     created_at: Option<String>,
 }
 

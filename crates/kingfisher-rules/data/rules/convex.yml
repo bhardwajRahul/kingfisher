@@ -5,12 +5,19 @@ rules:
       (?x)
       \b
       (
-        (?:prod|dev|preview):[a-z]+-[a-z]+-\d+\|eyJ[A-Za-z0-9_.-]{50,500}
+        (?:
+          (?:prod|dev):[a-z]+-[a-z]+-\d+
+          |
+          (?:preview|project):[a-z0-9-]+:[a-z0-9-]+
+        )
+        \|eyJ[A-Za-z0-9._=-]{20,500}
       )
       (?:\b|$)
     min_entropy: 3.5
     confidence: medium
     examples:
       - 'CONVEX_DEPLOY_KEY=prod:qualified-jaguar-123|eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIwMThmNmY5NThmNTI3NjkwYjE1M2NkNDMiLCJpYXQiOjE3MjQ3NzA4MTJ9.bQkJz3sXt'
+      - 'CONVEX_DEPLOY_KEY=preview:my-team:my-project|eyJ2ZXIiOiIxIiwiYWxnIjoiSFMyNTYifQ.eyJpc3MiOiJjb252ZXgifQ.dGVzdA=='
+      - 'CONVEX_DEPLOY_KEY=project:my-team:my-project|eyJ2ZXIiOiIxIiwiYWxnIjoiSFMyNTYifQ.eyJpc3MiOiJjb252ZXgifQ.dGVzdA=='
     references:
-      - https://docs.convex.dev/production/hosting/deploy-key
+      - https://docs.convex.dev/cli/deploy-key-types

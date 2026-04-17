@@ -26,7 +26,7 @@ struct TokenResponse {
     scope: String,
     #[serde(default)]
     expires_in: i64,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     nonce: String,
 }

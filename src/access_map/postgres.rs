@@ -297,7 +297,7 @@ impl RoleAttributes {
 #[derive(Debug)]
 struct DatabasePrivilege {
     name: String,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     owner: String,
     privileges: Vec<String>,
 }

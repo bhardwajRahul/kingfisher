@@ -338,12 +338,11 @@ fn parse_collection<T: DeserializeOwned>(value: Value) -> Vec<T> {
 fn extract_first_string(value: Option<&Value>, paths: &[&str]) -> Option<String> {
     let value = value?;
     for path in paths {
-        if let Some(v) = value_at_path(value, path) {
-            if let Some(s) = v.as_str() {
-                if !s.is_empty() {
-                    return Some(s.to_string());
-                }
-            }
+        if let Some(v) = value_at_path(value, path)
+            && let Some(s) = v.as_str()
+            && !s.is_empty()
+        {
+            return Some(s.to_string());
         }
     }
     None
