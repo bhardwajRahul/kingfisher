@@ -2,15 +2,13 @@ rules:
   - name: ClickUp Personal API Token
     id: kingfisher.clickup.1
     pattern: |
-      (?xi)
+      (?x)
       \b
-      clickup
+      (?i:clickup)
       (?:.|[\n\r]){0,32}?
-      (?:API[_-]?KEY|SECRET|TOKEN|KEY)
-      (?:.|[\n\r]){0,16}?
       \b
       (
-        pk_[0-9]{7,9}_[0-9A-Z]{32}
+        pk_\d{8,9}_[0-9A-Z]{32}
       )
       \b
     pattern_requirements:
@@ -19,8 +17,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'CLICKUP_API_TOKEN=pk_4753994_EXP7MPOJ7XQM5UJDV2M45MPF0YHH5YHO'
-      - 'clickup_token: "pk_12345678_A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6"'
+      - 'CLICKUP_API_TOKEN=pk_204249739_138RCYNYCVO0GRJ8INODHFRMXN0QSV75'
+      - 'clickup_token: "pk_204249739_GSJCPRLQEX43KH4WN8093RZ9DW3CJGM4"'
     references:
       - https://clickup.com/api/
     validation:
