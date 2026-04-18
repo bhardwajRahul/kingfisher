@@ -4,9 +4,8 @@ rules:
     pattern: |
       (?x)                 
       (
-        github_pat_
-        (?P<body>[0-9][A-Za-z0-9]{21}_[A-Za-z0-9]{43})
-        (?P<checksum>[A-Za-z0-9]{8})
+        (?P<body>github_pat_[0-9][A-Za-z0-9]{21}_[A-Za-z0-9]{43})
+        (?P<checksum>[A-Za-z2-7]{8})
         [A-Za-z0-9]{8}
       )
       \b
@@ -17,7 +16,7 @@ rules:
         actual:
           template: "{{ checksum }}"
           requires_capture: checksum
-        expected: "{{ body | crc32 | base62: 8 }}"
+        expected: "{{ body | sha256_b32: 8 }}"
         skip_if_missing: true
     min_entropy: 3.5
     examples:
@@ -58,9 +57,9 @@ rules:
   - name: GitHub Personal Access Token
     id: kingfisher.github.2
     pattern: |
-      (?xi)
+      (?x)
       (
-        ghp_(?P<body>[A-Z0-9]{30})(?P<checksum>[A-Z0-9]{6})
+        ghp_(?P<body>[A-Za-z0-9]{30})(?P<checksum>[A-Za-z0-9]{6})
       )
     pattern_requirements:
       min_digits: 2
@@ -114,9 +113,9 @@ rules:
   - name: GitHub OAuth Access Token
     id: kingfisher.github.3
     pattern: |
-      (?xi)
+      (?x)
       (
-        gho_(?P<body>[A-Z0-9]{30})(?P<checksum>[A-Z0-9]{6})
+        gho_(?P<body>[A-Za-z0-9]{30})(?P<checksum>[A-Za-z0-9]{6})
       )
     pattern_requirements:
       min_digits: 2
@@ -149,18 +148,40 @@ rules:
               words:
                 - '"login"'
                 - '"id"'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/credentials/revoke
+          headers:
+            Accept: application/vnd.github+json
+            X-GitHub-Api-Version: 2022-11-28
+            Content-Type: application/json
+          body: '{"credentials":["{{ TOKEN }}"]}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [202]
   - name: GitHub App User-to-Server Token
     id: kingfisher.github.4
     pattern: |
-      (?xi)
+      (?x)
       (
-        ghu_(?P<body>[A-Z0-9]{30})(?P<checksum>[A-Z0-9]{6})
+        ghu_(?P<body>[A-Za-z0-9]{30})(?P<checksum>[A-Za-z0-9]{6})
       )
+    pattern_requirements:
+      checksum:
+        actual:
+          template: "{{ checksum }}"
+          requires_capture: checksum
+        expected: "{{ body | crc32 | base62: 6 }}"
+        skip_if_missing: true
     examples:
-      - '            "token": "ghu_16C7e42F292c69C2E7C10c838347Ae178B4a",'
+      - '            "token": "ghu_TIOHHEVefAwRonSMALCFfWMYK0un1R1dj2rn",'
       - |
         Example usage:
-        git clone http://ghu_RguXIkihJjwHAP6eXEYxaPNvywurTr5IOAbg@github.com/username/repo.git
+        git clone http://ghu_imqBAXUtRirzzcJPwAiqImhkzsvzYZ1eDtPf@github.com/username/repo.git
     references:
       - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
     validation:
@@ -179,15 +200,27 @@ rules:
               words:
                 - '"login"'
                 - '"id"'
-    # Revocation not supported: ghu_ tokens require the GitHub App's client_id
-    # and client_secret (DELETE /applications/{client_id}/token with Basic auth).
-    # Users can revoke via GitHub Settings > Applications > Authorized GitHub Apps.
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/credentials/revoke
+          headers:
+            Accept: application/vnd.github+json
+            X-GitHub-Api-Version: 2022-11-28
+            Content-Type: application/json
+          body: '{"credentials":["{{ TOKEN }}"]}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [202]
   - name: GitHub App Server-to-Server Token
     id: kingfisher.github.5
     pattern: |
-      (?xi)
+      (?x)
       (
-        ghs_(?P<body>[A-Z0-9]{30})(?P<checksum>[A-Z0-9]{6})
+        ghs_(?P<body>[A-Za-z0-9]{30})(?P<checksum>[A-Za-z0-9]{6})
       )
     examples:
       - '            "token": "ghs_16C7e42F292c69C2E7C10c838347Ae178B4a",'
@@ -228,12 +261,19 @@ rules:
   - name: GitHub Refresh Token
     id: kingfisher.github.6
     pattern: |
-      (?xi)
+      (?x)
       (
-        ghr_(?P<body>[A-Z0-9]{30})(?P<checksum>[A-Z0-9]{6})
+        ghr_(?P<body>[A-Za-z0-9]{70})(?P<checksum>[A-Za-z0-9]{6})
       )
+    pattern_requirements:
+      checksum:
+        actual:
+          template: "{{ checksum }}"
+          requires_capture: checksum
+        expected: "{{ body | crc32 | base62: 6 }}"
+        skip_if_missing: true
     examples:
-      - '    "refresh_token": "ghr_1B4a2e77838347a7E420ce178F2E7c6912E169246c3CE1ccbF66C46812d16D5B1A9Dc86A1498",'
+      - '    "refresh_token": "ghr_xgrrGzSbbGRL34Wp39JU9nxtN27Pr1v1He8FjE7x7wbExGGs7nfJszJDAmZuoKasxZ0KxJ1HSzgc",'
     references:
       - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
     validation:
@@ -252,6 +292,21 @@ rules:
               words:
                 - '"login"'
                 - '"id"'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/credentials/revoke
+          headers:
+            Accept: application/vnd.github+json
+            X-GitHub-Api-Version: 2022-11-28
+            Content-Type: application/json
+          body: '{"credentials":["{{ TOKEN }}"]}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [202]
 
   - name: GitHub Client ID
     id: kingfisher.github.7

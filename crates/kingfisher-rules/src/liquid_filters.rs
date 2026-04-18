@@ -540,6 +540,56 @@ static_filter!(
     }
 );
 
+// {{ value | sha256_b32 }} -- base32-encoded SHA-256 digest, optional length
+#[derive(Debug, FilterParameters)]
+struct Sha256B32Args {
+    #[parameter(description = "Exact output length: truncates if longer, pads with '=' if shorter", arg_type = "integer")]
+    len: Option<Expression>,
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "sha256_b32",
+    description = "SHA-256 digest encoded as Base32 (RFC 4648), optionally truncating or padding with '=' to an exact length.",
+    parameters(Sha256B32Args),
+    parsed(Sha256B32)
+)]
+pub struct Sha256B32Filter;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "sha256_b32"]
+struct Sha256B32 {
+    #[parameters]
+    args: Sha256B32Args,
+}
+
+impl Filter for Sha256B32 {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let args = self.args.evaluate(runtime)?;
+        let mut h = Sha256::new();
+        h.update(input.to_kstr().as_bytes());
+        let mut encoded = base32::encode(
+            base32::Alphabet::Rfc4648 { padding: true },
+            &h.finalize()[..],
+        );
+        if let Some(len) = args.len.and_then(|value| {
+            let scalar = Value::scalar(value);
+            value_to_usize(&scalar)
+        }) {
+            match encoded.len().cmp(&len) {
+                std::cmp::Ordering::Greater => encoded.truncate(len),
+                std::cmp::Ordering::Less => {
+                    for _ in 0..(len - encoded.len()) {
+                        encoded.push('=');
+                    }
+                }
+                std::cmp::Ordering::Equal => {}
+            }
+        }
+        Ok(Value::scalar(encoded))
+    }
+}
+
 static_filter!(
     /// Compute the CRC32 of the input and return it as a decimal number.
     Crc32Filter,
@@ -1013,6 +1063,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(Replace::default())
         .filter(B64UrlEncFilter::default())
         .filter(Sha256Filter::default())
+        .filter(Sha256B32Filter::default())
         .filter(UrlEncodeFilter::default())
         .filter(JsonEscapeFilter::default())
         .filter(UnixTimestampFilter::default())
@@ -1081,6 +1132,18 @@ mod tests {
     fn sha256_filter() {
         let expect = format!("{:x}", Sha256::digest(b"hello"));
         assert_eq!(render(r#"{{ "hello" | sha256 }}"#), expect);
+    }
+
+    #[test]
+    fn sha256_b32_filter() {
+        let expect = "FTZE3OS7WCRQ4JXIHMVMLOPCTYNRMHS4D6TUEXTTAQZWFE4LTASA====";
+        assert_eq!(render(r#"{{ "hello" | sha256_b32 }}"#), expect);
+        // truncate
+        assert_eq!(render(r#"{{ "hello" | sha256_b32: 4 }}"#), &expect[..4]);
+        // pad
+        let padded = render(r#"{{ "hello" | sha256_b32: 60 }}"#);
+        assert!(padded.ends_with("===="));
+        assert_eq!(padded.len(), 60);
     }
 
     #[test]
