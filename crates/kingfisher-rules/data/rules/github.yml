@@ -2,15 +2,23 @@ rules:
   - name: GitHub Personal Access Token - fine-grained permissions
     id: kingfisher.github.1
     pattern: |
-      (?xi)                 
+      (?x)                 
       (
         github_pat_
-        [A-Z0-9_+]{82,84}
+        (?P<body>[0-9][A-Za-z0-9]{21}_[A-Za-z0-9]{43})
+        (?P<checksum>[A-Za-z0-9]{8})
+        [A-Za-z0-9]{8}
       )
       \b
     pattern_requirements:
       min_digits: 2
       min_lowercase: 2
+      checksum:
+        actual:
+          template: "{{ checksum }}"
+          requires_capture: checksum
+        expected: "{{ body | crc32 | base62: 8 }}"
+        skip_if_missing: true
     min_entropy: 3.5
     examples:
       - "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"
