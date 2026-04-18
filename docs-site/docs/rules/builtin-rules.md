@@ -1,11 +1,13 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 923 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 934 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **923 detection rules** across **579 providers**
+Kingfisher ships with **934 detection rules** across **579 providers**
+(813 detectors + 121 dependent rules).
+Of these, **605** include live validation and **53** support direct revocation.
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -157,6 +159,22 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Aikido</td>
 <td>Aikido CI Token</td>
 <td><code>kingfisher.aikido.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Aikido</td>
+<td>Aikido Client ID</td>
+<td><code>kingfisher.aikido.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Aikido</td>
+<td>Aikido Client Secret</td>
+<td><code>kingfisher.aikido.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -1182,6 +1200,14 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Canva Connect API Client Secret</td>
 <td><code>kingfisher.canva.1</code></td>
 <td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Canva</td>
+<td>Canva Connect API Client ID</td>
+<td><code>kingfisher.canva.2</code></td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -1435,7 +1461,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 </tr>
 <tr>
 <td>Cockroachlabs</td>
-<td>CockroachDB Cloud API Key</td>
+<td>CockroachDB Cloud Service Account API Key</td>
 <td><code>kingfisher.cockroachlabs.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
@@ -1522,6 +1548,14 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td></td>
 </tr>
 <tr>
+<td>Composio</td>
+<td>Composio Consumer API Key</td>
+<td><code>kingfisher.composio.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Configcat</td>
 <td>ConfigCat SDK Key</td>
 <td><code>kingfisher.configcat.1</code></td>
@@ -1599,6 +1633,14 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td><code>kingfisher.convex.1</code></td>
 <td>Medium</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>Convex</td>
+<td>Convex Management Access Token</td>
+<td><code>kingfisher.convex.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -2173,7 +2215,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Duo</td>
 <td>Duo Security Integration Key</td>
 <td><code>kingfisher.duo.1</code></td>
-<td>Low</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -4322,6 +4364,22 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td></td>
 </tr>
 <tr>
+<td>Miro</td>
+<td>Miro Client Secret</td>
+<td><code>kingfisher.miro.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Miro</td>
+<td>Miro Client ID</td>
+<td><code>kingfisher.miro.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Mistral</td>
 <td>Mistral AI API Key</td>
 <td><code>kingfisher.mistral.1</code></td>
@@ -4335,6 +4393,30 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td><code>kingfisher.mixpanel.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Mixpanel</td>
+<td>Mixpanel Service Account Secret</td>
+<td><code>kingfisher.mixpanel.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Mixpanel</td>
+<td>Mixpanel API Key or Secret</td>
+<td><code>kingfisher.mixpanel.3</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Mixpanel</td>
+<td>Mixpanel Service Account Username</td>
+<td><code>kingfisher.mixpanel.4</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -5011,7 +5093,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 </tr>
 <tr>
 <td>Pinata</td>
-<td>Pinata API Key</td>
+<td>Pinata API Key ID</td>
 <td><code>kingfisher.pinata.1</code></td>
 <td>Medium</td>
 <td></td>
@@ -5021,6 +5103,14 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Pinata</td>
 <td>Pinata API Secret</td>
 <td><code>kingfisher.pinata.2</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Pinata</td>
+<td>Pinata JWT</td>
+<td><code>kingfisher.pinata.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -5438,7 +5528,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Ramp Client Secret</td>
 <td><code>kingfisher.ramp.2</code></td>
 <td>Medium</td>
-<td></td>
+<td>Yes</td>
 <td></td>
 </tr>
 <tr>
@@ -5645,7 +5735,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Rootly</td>
 <td>Rootly API Key</td>
 <td><code>kingfisher.rootly.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6477,7 +6567,7 @@ Kingfisher ships with **923 detection rules** across **579 providers**
 <td>Telnyx</td>
 <td>Telnyx API V2 Key</td>
 <td><code>kingfisher.telnyx.1</code></td>
-<td>High</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
