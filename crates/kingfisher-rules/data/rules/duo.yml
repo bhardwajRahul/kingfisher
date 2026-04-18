@@ -18,7 +18,7 @@ rules:
       min_digits: 2
       min_uppercase: 8
     min_entropy: 3.0
-    confidence: low
+    confidence: medium
     visible: false
     examples:
       - "duo\nintegration_key=AMTRZFKBPWH3QNGLVWCY"
