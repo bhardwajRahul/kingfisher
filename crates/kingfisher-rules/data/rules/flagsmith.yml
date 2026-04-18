@@ -1,35 +1,38 @@
 rules:
-  - name: Flagsmith Server-Side Environment Key
+
+  - name: Flagsmith Organisation API Key
     id: kingfisher.flagsmith.1
     pattern: |
-      (?x)
+      (?xi)
       \b
       (?i:flagsmith)
       [^\n\r]{0,16}?
       \b
       (
-        ser\.[A-Za-z0-9]{24,48}
+        [A-Za-z0-9]{8}\.[A-Za-z0-9]{16}[A-Za-z0-9]{16}
       )
       \b
     pattern_requirements:
-      min_digits: 1
-      min_uppercase: 1
-      min_lowercase: 1
-    min_entropy: 3.0
+      min_digits: 4
+      min_uppercase: 4
+      min_lowercase: 4
+    min_entropy: 3.5
     confidence: medium
     examples:
-      - 'FLAGSMITH_SERVER_SIDE_ENVIRONMENT_KEY=ser.xK8m2LpQr5nW0vYz3cJ7aB4dE6fG8h'
-      - 'X-Environment-Key: ser.a1b2C3d4E5f6G7h8I9j0K1l2'
+      - 'FLAGSMITH_ORGANISATION_API_KEY=dVoSZFo3.3c5qN55mA1XdLZnTO2moz5Ud1Qwo18Ie'
+      - 'flagsmith terraform master_api_key = 7SoNiIyO.L6eehZzlmE32iuEPZjdkXskw711I3FLz'
+      - 'flagsmith api token: zfR3T3VI.GLEC5p3cggDGTDhOwTdNwuYxxqmSMuoA'
     references:
-      - https://docs.flagsmith.com/clients/server-side
+      - https://docs.flagsmith.com/integrating-with-flagsmith/flagsmith-api-overview/admin-api/authentication
+      - https://docs.flagsmith.com/third-party-integrations/ci-cd/terraform#terraform-api-key
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://edge.api.flagsmith.com/api/v1/flags/
+          url: https://api.flagsmith.com/api/v1/projects/
           headers:
-            X-Environment-Key: "{{ TOKEN }}"
+            Authorization: "Api-Key {{ TOKEN }}"
             Accept: application/json
           response_matcher:
             - report_response: true
