@@ -1,6 +1,43 @@
 rules:
-  - name: Flagsmith Environment Key
+  - name: Flagsmith Server-Side Environment Key
     id: kingfisher.flagsmith.1
+    pattern: |
+      (?x)
+      \b
+      (?i:flagsmith)
+      [^\n\r]{0,16}?
+      \b
+      (
+        ser\.[A-Za-z0-9]{24,48}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 1
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'FLAGSMITH_SERVER_SIDE_ENVIRONMENT_KEY=ser.xK8m2LpQr5nW0vYz3cJ7aB4dE6fG8h'
+      - 'X-Environment-Key: ser.a1b2C3d4E5f6G7h8I9j0K1l2'
+    references:
+      - https://docs.flagsmith.com/clients/server-side
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://edge.api.flagsmith.com/api/v1/flags/
+          headers:
+            X-Environment-Key: "{{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+  - name: Flagsmith Environment Key
+    id: kingfisher.flagsmith.2
     pattern: |
       (?xi)
       \b
