@@ -3,9 +3,13 @@ rules:
     id: kingfisher.courier.1
     pattern: |
       (?x)
+      (?i:courier)
+      (?:.|[\n\r]){0,32}?
+      (?:SECRET|PRIVATE|API|KEY|TOKEN)
+      (?:.|[\n\r]){0,16}?
       \b
       (
-        (?:pk|dk)_(?:prod|test)_[A-Za-z0-9]{24,44}
+        (?:pk|dk)_(?:prod|test)_[A-Za-z0-9]{24}
       )
       \b
     pattern_requirements:

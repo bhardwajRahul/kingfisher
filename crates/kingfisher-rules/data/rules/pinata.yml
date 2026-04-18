@@ -74,6 +74,9 @@ rules:
     id: kingfisher.pinata.3
     pattern: |
       (?x)
+      (?i:pinata)
+      (?:.|[\n\r]){0,32}?
+      \b
       (
         (?:ey|ewogIC)[A-Za-z0-9_-]{12,512}
         \.
