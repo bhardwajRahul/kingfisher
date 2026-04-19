@@ -124,4 +124,9 @@ pub enum AccessMapProvider {
     /// JFrog Xray
     #[clap(alias = "jfrog-xray")]
     Xray,
+    /// monday.com
+    #[clap(alias = "monday.com")]
+    Monday,
+    /// Asana
+    Asana,
 }

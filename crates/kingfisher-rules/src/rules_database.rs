@@ -214,7 +214,11 @@ impl RulesDatabase {
     fn build_self_identifying_flags(rules: &[Arc<Rule>]) -> Vec<bool> {
         rules
             .iter()
-            .map(|rule| has_self_identifying_shape(&format_regex_pattern(&rule.syntax().pattern).to_lowercase()))
+            .map(|rule| {
+                has_self_identifying_shape(
+                    &format_regex_pattern(&rule.syntax().pattern).to_lowercase(),
+                )
+            })
             .collect()
     }
 }
@@ -307,4 +311,3 @@ mod test_regex_cleaning {
         println!("{}", data);
     }
 }
-

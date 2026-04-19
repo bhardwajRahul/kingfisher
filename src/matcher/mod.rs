@@ -1166,7 +1166,11 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert_eq!(found.len(), 1, "raw regex matches should remain findings without classifier gating");
+        assert_eq!(
+            found.len(),
+            1,
+            "raw regex matches should remain findings without classifier gating"
+        );
         Ok(())
     }
 
@@ -1204,7 +1208,11 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert_eq!(found.len(), 1, "strict contextual rules should still be reported without classifier gating");
+        assert_eq!(
+            found.len(),
+            1,
+            "strict contextual rules should still be reported without classifier gating"
+        );
         Ok(())
     }
 
@@ -1405,9 +1413,7 @@ line2
         let mut matcher =
             Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
 
-        let body = format!(
-            "<html><body><!-- auth0 secret {token} --></body></html>"
-        );
+        let body = format!("<html><body><!-- auth0 secret {token} --></body></html>");
         let blob = Blob::from_bytes(body.into_bytes());
         let origin = OriginSet::from(Origin::from_file(PathBuf::from("page.html")));
 

@@ -450,17 +450,17 @@ The viewer can import Gitleaks JSON and TruffleHog JSON/JSONL in addition to nat
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
 
-### Supported Access Map Providers (39)
+### Supported Access Map Providers (42)
 
 | Cloud & Infra | DevOps & CI/CD | SaaS & APIs | Data & Messaging |
 |:---|:---|:---|:---|
 | AWS | GitHub | Airtable | MongoDB |
 | GCP | GitLab | Algolia | MySQL |
 | Azure Storage | Azure DevOps | Auth0 | PostgreSQL |
-| DigitalOcean | Bitbucket | HubSpot | SendGrid |
-| IBM Cloud | Buildkite | Salesforce | Sendinblue / Brevo |
-| Terraform Cloud | CircleCI | Shopify | Slack |
-| | Harness | Zendesk | Microsoft Teams |
+| Alibaba Cloud | Bitbucket | HubSpot | SendGrid |
+| DigitalOcean | Buildkite | Salesforce | Sendinblue / Brevo |
+| IBM Cloud | CircleCI | Shopify | Slack |
+| Terraform Cloud | Harness | Zendesk | Microsoft Teams |
 | | JFrog Artifactory | Stripe | |
 | | JFrog Xray | Square | |
 | | Jira | PayPal | |
@@ -471,6 +471,8 @@ The viewer can import Gitleaks JSON and TruffleHog JSON/JSONL in addition to nat
 | | | Hugging Face | |
 | | | Weights & Biases | |
 | | | Gitea | |
+| | | monday.com | |
+| | | Asana | |
 
 ## Direct Secret Validation & Revocation
 

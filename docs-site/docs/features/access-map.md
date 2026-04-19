@@ -482,8 +482,64 @@ kingfisher access-map microsoftteams ./teams.webhook --json-out teams.access-map
 - Access map severity is Medium for active webhooks (write-only to one channel) and Low for inactive/removed webhooks.
 - The probe request does not post any visible message; Teams responds with HTTP 400 "Text is required" for valid endpoints.
 
+### monday.com (`monday`)
+
+- **Credential**: a single monday.com API token (read from a file for `kingfisher access-map monday <FILE>`).
+- **Token types supported**: personal or account-level API tokens accepted by the monday.com GraphQL API with the `Authorization: <TOKEN>` header (monday.com's native scheme; the JWT-style token is sent verbatim, without the `Bearer` prefix).
+
+Kingfisher performs read-only enumeration against `https://api.monday.com/v2`:
+
+- `me { id, name, email, is_admin, is_guest, is_view_only, created_at, last_activity, account { id, name, slug, plan { tier } }, teams { name } }` for caller identity, role, and account metadata
+- `workspaces(limit: 100) { id, name, kind, state }` for workspace-level resource exposure
+- `boards(limit: 50) { id, name, board_kind, state }` for board-level resource exposure
+
+Severity is Critical for account administrators, High for standard members with broad workspace/board visibility (>5 workspaces or >20 boards), Medium for standard members with any workspace/board access, and Low for guest/viewer tokens or empty accounts.
+
+#### Standalone example (monday.com)
+
+```bash
+printf '%s' 'eyJhbGciOi...' > ./monday.token
+kingfisher access-map monday ./monday.token --json-out monday.access-map.json
+```
+
+#### Notes (monday.com)
+
+- Access map currently uses `https://api.monday.com/v2` (GraphQL v2) as the API base.
+- monday.com API tokens do not carry granular scopes; permissions follow the underlying user's role (admin/member/viewer/guest).
+- `provider_metadata.version` carries the monday.com plan tier when exposed by the account.
+- Recorded during `scan --access-map` for validated `kingfisher.monday.1` findings.
+
+### Asana (`asana`)
+
+- **Credential**: a single Asana access token (read from a file for `kingfisher access-map asana <FILE>`).
+- **Token types supported**: tokens accepted by Asana's REST API with `Authorization: Bearer <TOKEN>`:
+  - Legacy OAuth / personal access tokens (`0/...`)
+  - Personal Access Tokens V1 (`1/<user_gid>:<secret>`)
+  - Personal Access Tokens V2 (`2/<app_gid>/<user_gid>:<secret>`)
+
+Kingfisher performs read-only enumeration against `https://app.asana.com/api/1.0`:
+
+- `GET /users/me?opt_fields=gid,name,email,resource_type,workspaces.gid,workspaces.name,workspaces.is_organization,workspaces.resource_type` for caller identity and accessible workspaces/organizations
+- `GET /projects?workspace=<gid>&limit=50&opt_fields=gid,name,privacy_setting,archived` for per-workspace project exposure
+- `GET /users/me/teams?organization=<gid>&opt_fields=gid,name` for team memberships in each organization workspace
+
+Severity is High when the token reaches an organization workspace with more than 20 visible projects, Medium when it reaches an organization workspace or has broad project visibility (>5 projects), and Low for single-workspace or empty tokens.
+
+#### Standalone example (Asana)
+
+```bash
+printf '%s' '2/12345.../abcdef...' > ./asana.token
+kingfisher access-map asana ./asana.token --json-out asana.access-map.json
+```
+
+#### Notes (Asana)
+
+- Asana access tokens do not expose granular scopes. Access follows the underlying user's membership in each workspace, organization, and team.
+- `token_details.token_type` is classified from the token prefix (`personal_access_token_v2`, `personal_access_token_v1`, `oauth_or_legacy_pat`, or generic `asana_token`).
+- Recorded during `scan --access-map` for validated `kingfisher.asana.3`, `kingfisher.asana.4`, and `kingfisher.asana.5` findings only. `kingfisher.asana.1` is a client ID and `kingfisher.asana.2` is a client secret (requiring the client ID for an OAuth exchange), so neither is used on its own to enumerate user-level resources.
+
 ## Notes on access-map generation during `scan --access-map`
 
 - Access-map entries are only recorded for **validated** findings.
 - Some providers require extra context that Kingfisher infers from the finding context or validation response (for example, Azure DevOps organization name).
-- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, Weights & Biases, and Microsoft Teams credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.
+- Validated Hugging Face, Gitea, Bitbucket, Buildkite, Harness, OpenAI, Anthropic, Salesforce, Weights & Biases, Microsoft Teams, monday.com, and Asana credentials discovered during scans with `--access-map` are automatically collected and mapped, matching the existing behavior for other platforms.

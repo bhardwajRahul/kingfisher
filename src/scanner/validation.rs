@@ -392,6 +392,20 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_monday(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("monday|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Monday { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_asana(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("asana|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Asana { token: token.to_string(), fingerprint });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -1431,6 +1445,26 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                     collector.record_zendesk(&token, &subdomain, fp.clone());
                 }
             }
+            if om.rule.id().starts_with("kingfisher.monday.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_monday(value, fp.clone());
+                    }
+                }
+            }
+            // Only Asana rules whose TOKEN capture is a standalone access/PAT:
+            // .3 (legacy 0/...), .4 (V1 1/...), .5 (V2 2/...). Rule .1 is a client ID
+            // and .2 is a client secret that cannot be used alone to enumerate resources.
+            if matches!(
+                om.rule.id(),
+                "kingfisher.asana.3" | "kingfisher.asana.4" | "kingfisher.asana.5"
+            ) {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_asana(value, fp.clone());
+                    }
+                }
+            }
         }
     }
 }
@@ -1494,6 +1528,31 @@ mod tests {
         assert!(!is_counted_validation_status(StatusCode::PRECONDITION_REQUIRED));
         assert!(is_counted_validation_status(StatusCode::OK));
         assert!(is_counted_validation_status(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn access_map_collector_dedupes_monday_and_asana_tokens() {
+        let collector = AccessMapCollector::default();
+        collector.record_monday("monday-token-1", "fp-1".into());
+        collector.record_monday("monday-token-1", "fp-2".into());
+        collector.record_asana("2/asana-token-1", "fp-3".into());
+        collector.record_asana("2/asana-token-1", "fp-4".into());
+
+        let mut requests = collector.into_requests();
+        requests.sort_by_key(|r| match r {
+            AccessMapRequest::Monday { .. } => 0,
+            AccessMapRequest::Asana { .. } => 1,
+            _ => 2,
+        });
+        assert_eq!(requests.len(), 2);
+        match &requests[0] {
+            AccessMapRequest::Monday { token, .. } => assert_eq!(token, "monday-token-1"),
+            other => panic!("unexpected request: {other:?}"),
+        }
+        match &requests[1] {
+            AccessMapRequest::Asana { token, .. } => assert_eq!(token, "2/asana-token-1"),
+            other => panic!("unexpected request: {other:?}"),
+        }
     }
 
     #[test]
