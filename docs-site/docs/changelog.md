@@ -8,6 +8,7 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 All notable changes to this project will be documented in this file.
 
 ## [v1.96.0]
+- Added archive extraction for three Korean formats: HWPX (Hancom OWPML ZIP container), HWP (Hancom 5.x OLE2/CFBF binary — streams decoded via raw DEFLATE / zlib fallbacks), and EGG (ALZip; registered for enumeration and scanned as raw bytes since no open-source extractor exists).
 - Added live HTTP validation for 18 rules across 15 providers: Val Town, Polar, hCaptcha, Thunderstore, Elastic Cloud (2 rules), LlamaCloud, Gemfury (2 rules), Vonage, ThingsBoard, Zapier, Facebook Access Token, GitLab Session Cookie, PostHog Feature Flags, Unkey API Key, and Hop.io (2 rules).
 - Added revocation support for 7 rules across 6 providers: Discord webhooks (single-step DELETE), DigitalOcean PATs (self-revoke via OAuth), and multi-step HttpMultiStep revocation for LaunchDarkly, Resend, Linode, and Netlify (2 rules). Built-in revocation coverage is now 34 provider families with 53 revocation-enabled rules.
 - Expanded Alibaba Cloud coverage with STS temporary credential detection for STS access key IDs, STS security tokens, and STS access key secrets. Built-in rule coverage is now 923 rules total.

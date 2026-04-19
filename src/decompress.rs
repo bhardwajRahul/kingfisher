@@ -7,7 +7,8 @@ use std::{
 use anyhow::Result;
 use asar::AsarReader;
 use bzip2_rs::DecoderReader;
-use flate2::read::{GzDecoder, ZlibDecoder};
+use cfb::CompoundFile;
+use flate2::read::{DeflateDecoder, GzDecoder, ZlibDecoder};
 use lzma_rs::xz_decompress;
 use memmap2::Mmap;
 use tar::Archive;
@@ -19,7 +20,7 @@ use zip::ZipArchive;
 pub const ZIP_BASED_FORMATS: &[&str] = &[
     "zip", "zipx", "jar", "war", "ear", "aar", "jmod", "jhm", "jnlp", "nupkg", "vsix", "xap",
     "docx", "xlsx", "pptx", "odt", "ods", "odp", "odg", "odf", "epub", "gadget", "kmz", "widget",
-    "xpi", "sketch", "pages", "key", "numbers",
+    "xpi", "sketch", "pages", "key", "numbers", "hwpx",
 ];
 
 /// Break `<name>.<outer>.<inner>` into `(Some(outer), Some(inner))`.
@@ -160,6 +161,61 @@ fn handle_zip_archive_streaming(
     Ok(CompressedContent::ArchiveFiles(entries_on_disk))
 }
 
+/// Extract streams from an HWP (Hancom Word Processor) file.
+///
+/// HWP 5.x uses the Microsoft Compound File Binary (OLE2/CFBF) container.
+/// Body streams (e.g. `BodyText/Section*`) are typically raw DEFLATE
+/// without a zlib header, others may be zlib-framed, and metadata
+/// streams are plaintext UTF-16/ASCII. We try DEFLATE then zlib, and
+/// fall back to the raw bytes so the scanner always sees content.
+fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<CompressedContent> {
+    let file = safe_open_for_read(path)?;
+    let mut cf = CompoundFile::open(file)?;
+    let stream_paths: Vec<PathBuf> =
+        cf.walk().filter(|e| e.is_stream()).map(|e| e.path().to_path_buf()).collect();
+
+    let mut out = Vec::with_capacity(stream_paths.len());
+    for sp in stream_paths {
+        let mut raw = Vec::new();
+        match cf.open_stream(&sp) {
+            Ok(mut s) => {
+                if let Err(e) = s.read_to_end(&mut raw) {
+                    tracing::debug!("failed to read hwp stream {}: {}", sp.display(), e);
+                    continue;
+                }
+            }
+            Err(e) => {
+                tracing::debug!("failed to open hwp stream {}: {}", sp.display(), e);
+                continue;
+            }
+        }
+
+        let decoded = {
+            let mut buf = Vec::new();
+            if !raw.is_empty()
+                && DeflateDecoder::new(&raw[..]).read_to_end(&mut buf).is_ok()
+                && !buf.is_empty()
+            {
+                buf
+            } else {
+                buf.clear();
+                if !raw.is_empty()
+                    && ZlibDecoder::new(&raw[..]).read_to_end(&mut buf).is_ok()
+                    && !buf.is_empty()
+                {
+                    buf
+                } else {
+                    raw
+                }
+            }
+        };
+
+        let logical = format!("{}!{}", archive_path.display(), sp.display());
+        out.push((logical, decoded));
+    }
+    Ok(CompressedContent::Archive(out))
+}
+
 fn handle_asar_archive_in_memory(buffer: &[u8], archive_path: &Path) -> Result<CompressedContent> {
     match AsarReader::new(buffer, None) {
         Ok(reader) => {
@@ -218,6 +274,17 @@ fn decompress_once(path: &Path, base_dir: Option<&Path>) -> Result<CompressedCon
             "asar" => {
                 let mmap = unsafe { Mmap::map(&file)? };
                 return handle_asar_archive_in_memory(&mmap, path);
+            }
+            "hwp" => {
+                return handle_hwp_archive_in_memory(path, path);
+            }
+            "egg" => {
+                // No open-source EGG (ALZip) extractor exists. Return the
+                // raw bytes so plaintext content inside the container is
+                // still scanned.
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)?;
+                return Ok(CompressedContent::Raw(buffer));
             }
             "tar" => {
                 if let Some(base) = base_dir {
@@ -580,6 +647,122 @@ mod tests {
                 assert!(found, "secret.txt not extracted from nested archive");
             }
             other => panic!("expected ArchiveFiles after untar inner, got {:?}", other),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_decompress_hwpx_archive() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let hwpx_path = dir.path().join("document.hwpx");
+        let github_pat = "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"; // this is not a real secret
+
+        {
+            let file = File::create(&hwpx_path)?;
+            let mut zip = ZipWriter::new(file);
+            let options = SimpleFileOptions::default()
+                .compression_method(CompressionMethod::Deflated)
+                .unix_permissions(0o644);
+
+            zip.start_file("Contents/section0.xml", options)?;
+            zip.write_all(
+                format!("<?xml version=\"1.0\"?><doc>token={github_pat}</doc>").as_bytes(),
+            )?;
+            zip.finish()?;
+        }
+
+        let tmp = tempdir()?;
+        let content = decompress_once(&hwpx_path, Some(tmp.path()))?;
+        if let CompressedContent::ArchiveFiles(files) = content {
+            let mut found = false;
+            for (logical, path) in files {
+                if logical.ends_with("!Contents/section0.xml") {
+                    let txt = std::fs::read_to_string(&path)?;
+                    assert!(txt.contains(github_pat));
+                    found = true;
+                }
+            }
+            assert!(found, "did not find Contents/section0.xml in hwpx ArchiveFiles");
+        } else {
+            panic!("expected ArchiveFiles for hwpx archive, got {:?}", content);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_decompress_hwp_archive() -> anyhow::Result<()> {
+        use cfb::CompoundFile;
+        use flate2::{Compression, write::ZlibEncoder};
+
+        let dir = tempdir()?;
+        let hwp_path = dir.path().join("document.hwp");
+        let github_pat = "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"; // this is not a real secret
+
+        // Build a minimal CFB with two streams: one plaintext, one zlib-framed.
+        {
+            let file = File::create(&hwp_path)?;
+            let mut cf = CompoundFile::create(file)?;
+            cf.create_storage("/BodyText")?;
+
+            let mut s_plain = cf.create_stream("/DocInfo")?;
+            s_plain.write_all(format!("metadata token={github_pat}").as_bytes())?;
+            drop(s_plain);
+
+            let mut zencoder = ZlibEncoder::new(Vec::new(), Compression::default());
+            zencoder.write_all(format!("body token={github_pat}").as_bytes())?;
+            let zbytes = zencoder.finish()?;
+            let mut s_body = cf.create_stream("/BodyText/Section0")?;
+            s_body.write_all(&zbytes)?;
+            drop(s_body);
+
+            cf.flush()?;
+        }
+
+        let content = decompress_once(&hwp_path, None)?;
+        if let CompressedContent::Archive(entries) = content {
+            let mut saw_plain = false;
+            let mut saw_body = false;
+            for (logical, bytes) in &entries {
+                let as_str = String::from_utf8_lossy(bytes);
+                if logical.contains("DocInfo") && as_str.contains(github_pat) {
+                    saw_plain = true;
+                }
+                if logical.contains("Section0") && as_str.contains(github_pat) {
+                    saw_body = true;
+                }
+            }
+            assert!(saw_plain, "plaintext DocInfo stream missing or not decoded");
+            assert!(saw_body, "zlib-framed BodyText/Section0 stream missing or not decoded");
+        } else {
+            panic!("expected Archive for hwp, got {:?}", content);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_decompress_egg_raw() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let egg_path = dir.path().join("archive.egg");
+        let github_pat = "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"; // this is not a real secret
+
+        {
+            let mut f = File::create(&egg_path)?;
+            f.write_all(format!("EGG-pretend-header\ntoken={github_pat}\n").as_bytes())?;
+        }
+
+        let content = decompress_once(&egg_path, None)?;
+        match content {
+            CompressedContent::Raw(bytes) => {
+                let as_str = String::from_utf8_lossy(&bytes);
+                assert!(
+                    as_str.contains(github_pat),
+                    "raw egg bytes did not contain the embedded pat"
+                );
+            }
+            other => panic!("expected Raw for egg, got {:?}", other),
         }
 
         Ok(())

@@ -27,7 +27,7 @@ use crate::{
     parser::Language,
     rule_profiling::{ConcurrentRuleProfiler, RuleStats},
     rules::rule::Rule,
-    rules_database::{RuleDetectionProfileKind, RuleMatchProfile, RulesDatabase},
+    rules_database::RulesDatabase,
     scanner_pool::ScannerPool,
     validation_body::ValidationResponseBody,
 };
@@ -403,7 +403,8 @@ impl<'a> Matcher<'a> {
                 }
             }
         }
-        maybe_apply_context_verification(
+
+        maybe_apply_markup_context_gate(
             self.rules_db,
             blob,
             lang_hint,
@@ -411,6 +412,7 @@ impl<'a> Matcher<'a> {
             &mut matches,
             &match_rule_indices,
         );
+
         // Finalize
         if !no_dedup && !matches.is_empty() {
             let blob_id = blob.id();
@@ -436,7 +438,22 @@ impl<'a> Matcher<'a> {
     }
 }
 
-fn maybe_apply_context_verification<'a>(
+/// Apply parser-based context verification only for HTML and CSS blobs.
+///
+/// HTML and CSS are the one regime where regex can't easily express
+/// "this capture is in a real value position" — attribute values, CSS
+/// property values, and nested script/style content need structural
+/// understanding. For every other language (and for blobs without a
+/// language hint, e.g. logs, binaries), this function is a no-op.
+///
+/// Self-identifying rules (matched by literal shape — `GHP_`, `AIzaSy`,
+/// `xox[pbarose]`, PEM envelopes, Slack webhook URLs, etc.) bypass the
+/// gate even in HTML/CSS so plain-prose leaks are still caught.
+///
+/// The gate is subtractive only when the parser actually runs and rejects
+/// a match. If the parser is unavailable (too-large blob, parser error),
+/// all matches are kept — never silently dropped.
+fn maybe_apply_markup_context_gate<'a>(
     rules_db: &RulesDatabase,
     blob: &'a Blob,
     lang_hint: Option<&str>,
@@ -447,8 +464,17 @@ fn maybe_apply_context_verification<'a>(
     if matches.is_empty() {
         return;
     }
+    if !should_attempt_context_verification(blob_len) {
+        return;
+    }
+    let Some(hint) = lang_hint else {
+        return;
+    };
+    let language = match Language::from_hint(hint) {
+        Some(lang @ (Language::Html | Language::Css)) => lang,
+        _ => return,
+    };
 
-    let profiles = rules_db.rule_match_profiles();
     let candidate_indices: Vec<usize> = matches
         .iter()
         .enumerate()
@@ -456,10 +482,10 @@ fn maybe_apply_context_verification<'a>(
             if m.is_base64 {
                 return false;
             }
-            let Some(rule_idx) = match_rule_indices.get(*idx) else {
-                return false;
-            };
-            profiles[*rule_idx].kind == RuleDetectionProfileKind::ContextDependent
+            match match_rule_indices.get(*idx) {
+                Some(rule_idx) => !rules_db.is_rule_self_identifying(*rule_idx),
+                None => false,
+            }
         })
         .map(|(idx, _)| idx)
         .collect();
@@ -467,25 +493,6 @@ fn maybe_apply_context_verification<'a>(
     if candidate_indices.is_empty() {
         return;
     }
-
-    let mut keep = vec![true; matches.len()];
-    let mandatory_candidate_indices: Vec<usize> = candidate_indices
-        .iter()
-        .copied()
-        .filter(|idx| {
-            let Some(rule_idx) = match_rule_indices.get(*idx) else {
-                return false;
-            };
-            should_require_context_verification(&profiles[*rule_idx])
-        })
-        .collect();
-    let Some(language) = load_context_verifier_language(lang_hint, blob_len) else {
-        for idx in mandatory_candidate_indices {
-            keep[idx] = false;
-        }
-        filter_kept_matches(matches, &keep);
-        return;
-    };
 
     let mut remaining = candidate_indices.clone();
     let verification = parser::stream_context_candidates(blob.bytes(), &language, |text| {
@@ -501,24 +508,17 @@ fn maybe_apply_context_verification<'a>(
     });
 
     if let Err(e) = verification {
-        debug!("context verification unavailable: {e}");
-        remaining = mandatory_candidate_indices;
+        debug!("HTML/CSS context verification unavailable: {e}");
+        return;
     }
 
+    if remaining.is_empty() {
+        return;
+    }
+
+    let mut keep = vec![true; matches.len()];
     for idx in remaining {
         keep[idx] = false;
-    }
-
-    filter_kept_matches(matches, &keep);
-}
-
-fn should_require_context_verification(profile: &RuleMatchProfile) -> bool {
-    profile.reason_codes.contains(&"strict_contextual_shape")
-}
-
-fn filter_kept_matches<'a>(matches: &mut Vec<BlobMatch<'a>>, keep: &[bool]) {
-    if keep.iter().all(|k| *k) {
-        return;
     }
     let mut filtered = Vec::with_capacity(matches.len());
     for (idx, item) in std::mem::take(matches).into_iter().enumerate() {
@@ -527,14 +527,6 @@ fn filter_kept_matches<'a>(matches: &mut Vec<BlobMatch<'a>>, keep: &[bool]) {
         }
     }
     *matches = filtered;
-}
-
-fn load_context_verifier_language(lang_hint: Option<&str>, blob_len: usize) -> Option<Language> {
-    if !should_attempt_context_verification(blob_len) {
-        return None;
-    }
-    let lang = lang_hint?;
-    Language::from_hint(lang)
 }
 
 fn verify_match_in_context_text(
@@ -1174,15 +1166,12 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert!(
-            found.is_empty(),
-            "comment-only contextual hits should be suppressed when parser-based verification cannot confirm assignment context"
-        );
+        assert_eq!(found.len(), 1, "raw regex matches should remain findings without classifier gating");
         Ok(())
     }
 
     #[test]
-    fn strict_context_rule_suppresses_raw_when_context_verification_is_unavailable() -> Result<()> {
+    fn strict_context_rule_survives_without_classifier_gating() -> Result<()> {
         let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
         let rule = Rule::new(RuleSyntax {
             id: "kingfisher.auth0.2".into(),
@@ -1215,10 +1204,7 @@ line2
             ScanResult::New(matches) => matches,
             _ => panic!("unexpected scan result"),
         };
-        assert!(
-            found.is_empty(),
-            "strict contextual rules should be suppressed when parser-based verification cannot run"
-        );
+        assert_eq!(found.len(), 1, "strict contextual rules should still be reported without classifier gating");
         Ok(())
     }
 
@@ -1259,7 +1245,7 @@ line2
         assert_eq!(
             found.len(),
             1,
-            "assignment-style contextual rules should still scan raw text when parser context is unavailable"
+            "assignment-style contextual rules should still scan raw text without classifier gating"
         );
         Ok(())
     }
@@ -1306,7 +1292,7 @@ line2
         assert_eq!(
             found.len(),
             1,
-            "depends_on assignment-style rules should still scan raw text when parser context is unavailable"
+            "depends_on assignment-style rules should still scan raw text without classifier gating"
         );
         Ok(())
     }
@@ -1386,7 +1372,173 @@ line2
         assert_eq!(
             found.len(),
             1,
-            "self-identifying token families should not require parser context"
+            "self-identifying token families should still be reported without classifier gating"
+        );
+        Ok(())
+    }
+
+    fn generic_auth0_rule() -> Rule {
+        Rule::new(RuleSyntax {
+            id: "kingfisher.auth0.2".into(),
+            name: "auth0 secret".into(),
+            pattern: "(?xi)\\bauth0(?:.|[\\n\\r]){0,16}?(?:secret|token)(?:.|[\\n\\r]){0,64}?\\b([a-z0-9_-]{64,})\\b".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        })
+    }
+
+    #[test]
+    fn html_gate_drops_generic_contextual_match_outside_value_position() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rules_db = RulesDatabase::from_rules(vec![generic_auth0_rule()])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let body = format!(
+            "<html><body><!-- auth0 secret {token} --></body></html>"
+        );
+        let blob = Blob::from_bytes(body.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("page.html")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("html".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert!(
+            found.is_empty(),
+            "HTML gate should drop generic contextual hits that sit outside any value position"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn html_gate_keeps_generic_contextual_match_inside_script_assignment() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rules_db = RulesDatabase::from_rules(vec![generic_auth0_rule()])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let body = format!(
+            "<html><body><script>const auth0_client_secret = \"{token}\";</script></body></html>"
+        );
+        let blob = Blob::from_bytes(body.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("app.html")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("html".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "HTML gate should keep generic contextual hits that appear inside a script assignment"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn html_gate_does_not_affect_self_identifying_rule_in_prose() -> Result<()> {
+        let rule = Rule::new(RuleSyntax {
+            id: "kingfisher.google.7".into(),
+            name: "google api key".into(),
+            pattern: "(?xi)\\b(AIzaSy[A-Za-z0-9_-]{33})".into(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None::<Validation>,
+            revocation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: None,
+            tls_mode: None,
+        });
+        let rules_db = RulesDatabase::from_rules(vec![rule])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let body = "<html><body><p>Key: AIzaSyBUPHAjZl3n8Eza66ka6B78iVyPteC5MgM</p></body></html>"
+            .to_string();
+        let blob = Blob::from_bytes(body.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("docs.html")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("html".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "self-identifying rules must bypass the HTML gate so prose leaks still fire"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn html_gate_does_not_trigger_for_other_languages() -> Result<()> {
+        let token = "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234";
+        let rules_db = RulesDatabase::from_rules(vec![generic_auth0_rule()])?;
+        let seen = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vectorscan_db().clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, &[], false, true)?;
+
+        let body = format!("# auth0 secret {token}");
+        let blob = Blob::from_bytes(body.into_bytes());
+        let origin = OriginSet::from(Origin::from_file(PathBuf::from("notes.py")));
+
+        let found = match matcher.scan_blob(
+            &blob,
+            &origin,
+            Some("python".to_string()),
+            false,
+            false,
+            false,
+        )? {
+            ScanResult::New(matches) => matches,
+            _ => panic!("unexpected scan result"),
+        };
+        assert_eq!(
+            found.len(),
+            1,
+            "non-HTML/CSS blobs must bypass the gate even when parser hint is available"
         );
         Ok(())
     }

@@ -13,7 +13,6 @@ rules:
       min_uppercase: 4
     min_entropy: 3.0
     confidence: medium
-    categories: [api, key]
     examples:
       - 'AWS_ACCESS_KEY_ID=LSIAQAAAAAAVNCBMPN59'
       - 'aws_access_key=LKIAQAAAAAAVNCBMPN59'

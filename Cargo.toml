@@ -171,6 +171,7 @@ zip = { version = "8.5.0", default-features = false, features = ["deflate", "def
 tar = "0.4.44"
 lzma-rs = "0.3.0"
 asar = "0.3.0"
+cfb = "0.14"
 rusqlite = { version = "0.39", features = ["bundled"] }
 blake3 = "1.8.2"
 memchr = "2.7"

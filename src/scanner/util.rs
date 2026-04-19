@@ -25,7 +25,9 @@ pub fn is_compressed_file(path: &Path) -> bool {
             || ext_lower == "tar"
             || ext_lower == "zlib"
             || ext_lower == "asar"
-            || ZIP_BASED_FORMATS.iter().any(|z| *z == ext)
+            || ext_lower == "hwp"
+            || ext_lower == "egg"
+            || ZIP_BASED_FORMATS.iter().any(|z| *z == ext_lower)
     } else {
         false
     }

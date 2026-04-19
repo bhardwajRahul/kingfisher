@@ -56,7 +56,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
 - **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 39 providers (see table below).
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
-- **Compressed Files**: Supports extracting and scanning compressed files for secrets
+- **Compressed Files**: Supports extracting and scanning compressed files for secrets, including `tar.gz`/`bz2`/`xz`, ZIP-family containers (`zip`, `jar`, `docx`, `xlsx`, `pptx`, `odt`, `epub`, `hwpx`, and more), `asar`, HWP (Hancom OLE2/CFBF binary with DEFLATE/zlib stream decoding), and EGG (ALZip; raw-byte scanning)
 - **SQLite Database Scanning**: Automatically extracts and scans SQLite database contents for secrets stored in table rows
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
