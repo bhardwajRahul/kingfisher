@@ -6,8 +6,6 @@ rules:
       \b
       ghost
       (?:.|[\n\r]){0,32}?
-      (?:ADMIN|SECRET|TOKEN|KEY)
-      (?:.|[\n\r]){0,16}?
       \b
       (
         [0-9a-f]{24}:[0-9a-f]{64}
