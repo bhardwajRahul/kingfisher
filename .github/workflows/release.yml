@@ -21,7 +21,7 @@ env:
   VCPKG_DOWNLOADS: C:\vcpkg\downloads
   VCPKG_FEATURE_FLAGS: binarycaching
   VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-  RUST_TOOLCHAIN: "1.94"
+  RUST_TOOLCHAIN: "1.94.1"
 
 jobs:
   # ──────────────── Linux (via Makefile) ────────────────

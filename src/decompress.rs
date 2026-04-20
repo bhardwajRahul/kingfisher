@@ -227,15 +227,13 @@ fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<Comp
         let decoded = if raw.is_empty() {
             raw
         } else {
-            let deflate = try_decode(Box::new(
-                DeflateDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES),
-            ));
+            let deflate =
+                try_decode(Box::new(DeflateDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES)));
             if let Some(buf) = deflate {
                 buf
             } else {
-                let zlib = try_decode(Box::new(
-                    ZlibDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES),
-                ));
+                let zlib =
+                    try_decode(Box::new(ZlibDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES)));
                 zlib.unwrap_or(raw)
             }
         };

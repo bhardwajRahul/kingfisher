@@ -12,6 +12,12 @@ cd "$SRC/kingfisher"
 # compatibility shims so Boost 1.71 still compiles in C++17 mode.
 export CXXFLAGS="${CXXFLAGS:-} -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION"
 
+# ClusterFuzzLite's base Rust image can lag behind our MSRV, so install an
+# explicit nightly that satisfies the workspace's rust-version before building.
+rustup toolchain install "${RUST_FUZZ_TOOLCHAIN}" --profile minimal
+export RUSTUP_TOOLCHAIN="${RUST_FUZZ_TOOLCHAIN}"
+rustc --version
+
 # Build all fuzz targets in release mode with debug assertions
 cargo fuzz build -O --debug-assertions
 

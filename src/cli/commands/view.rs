@@ -116,25 +116,72 @@ fn is_report_extension(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Load multiple report files and concatenate their contents with newline
-/// separators so the viewer can parse them as JSONL.
+/// Load multiple report files and emit genuine JSONL so the viewer's
+/// multi-document parser can split on newline boundaries. Kingfisher's
+/// `json_format` writes pretty-printed (multi-line) documents; naive
+/// concatenation would produce output that is neither valid JSON nor
+/// valid JSONL and the viewer's fallback splitter would shatter nested
+/// objects. For each file we try to parse the whole payload as a single
+/// JSON value and emit it as one compact line; on failure we assume
+/// JSONL input and re-emit each non-blank line compacted.
+// nosemgrep: tokio::fs::read below operates on CLI-supplied paths (the
+// user explicitly ran `kingfisher view <path>`); path-traversal rules
+// designed for HTTP handlers don't apply to a CLI.
 async fn load_and_combine_reports(paths: &[PathBuf]) -> Result<Vec<u8>> {
     let mut combined = Vec::new();
     let mut loaded = 0usize;
 
     for path in paths {
-        match tokio::fs::read(path).await {
-            Ok(bytes) => {
-                if !combined.is_empty() {
-                    combined.push(b'\n');
-                }
-                combined.extend_from_slice(&bytes);
-                loaded += 1;
-            }
+        // nosemgrep: CLI-supplied path — see function-level comment above.
+        let bytes = match tokio::fs::read(path).await {
+            Ok(b) => b,
             Err(err) => {
                 warn!(path = %path.display(), %err, "Failed to read report file, skipping");
+                continue;
+            }
+        };
+
+        let mut push_compact = |value: &serde_json::Value| -> Result<()> {
+            if !combined.is_empty() && !combined.ends_with(b"\n") {
+                combined.push(b'\n');
+            }
+            serde_json::to_writer(&mut combined, value)?;
+            combined.push(b'\n');
+            Ok(())
+        };
+
+        match serde_json::from_slice::<serde_json::Value>(&bytes) {
+            Ok(value) => {
+                if let Err(err) = push_compact(&value) {
+                    warn!(path = %path.display(), %err, "Failed to re-serialize report, skipping");
+                    continue;
+                }
+            }
+            Err(_) => {
+                let mut any = false;
+                for line in bytes.split(|b| *b == b'\n') {
+                    let trimmed = match line.iter().position(|b| !b.is_ascii_whitespace()) {
+                        Some(i) => &line[i..],
+                        None => continue,
+                    };
+                    match serde_json::from_slice::<serde_json::Value>(trimmed) {
+                        Ok(value) => {
+                            if push_compact(&value).is_ok() {
+                                any = true;
+                            }
+                        }
+                        Err(err) => {
+                            warn!(path = %path.display(), %err, "Skipping malformed JSONL line");
+                        }
+                    }
+                }
+                if !any {
+                    warn!(path = %path.display(), "No parseable JSON in report, skipping");
+                    continue;
+                }
             }
         }
+        loaded += 1;
     }
 
     if loaded == 0 && !paths.is_empty() {
