@@ -543,14 +543,17 @@ static_filter!(
 // {{ value | sha256_b32 }} -- base32-encoded SHA-256 digest, optional length
 #[derive(Debug, FilterParameters)]
 struct Sha256B32Args {
-    #[parameter(description = "Exact output length: truncates if longer, pads with '=' if shorter", arg_type = "integer")]
+    #[parameter(
+        description = "Exact output length: truncates the Base32 text if longer, pads with '=' if shorter (output may not be valid RFC 4648 Base32)",
+        arg_type = "integer"
+    )]
     len: Option<Expression>,
 }
 
 #[derive(Clone, ParseFilter, FilterReflection, Default)]
 #[filter(
     name = "sha256_b32",
-    description = "SHA-256 digest encoded as Base32 (RFC 4648), optionally truncating or padding with '=' to an exact length.",
+    description = "SHA-256 digest encoded as RFC 4648 Base32 by default; with `len`, returns a Base32-alphabet checksum substring of the requested length (truncated or '='-padded), which may not be valid RFC 4648 Base32.",
     parameters(Sha256B32Args),
     parsed(Sha256B32)
 )]
@@ -568,10 +571,8 @@ impl Filter for Sha256B32 {
         let args = self.args.evaluate(runtime)?;
         let mut h = Sha256::new();
         h.update(input.to_kstr().as_bytes());
-        let mut encoded = base32::encode(
-            base32::Alphabet::Rfc4648 { padding: true },
-            &h.finalize()[..],
-        );
+        let mut encoded =
+            base32::encode(base32::Alphabet::Rfc4648 { padding: true }, &h.finalize()[..]);
         if let Some(len) = args.len.and_then(|value| {
             let scalar = Value::scalar(value);
             value_to_usize(&scalar)
