@@ -36,3 +36,8 @@ rules:
             - type: StatusMatch
               status: [200]
             - type: JsonValid
+            - type: WordMatch
+              words:
+                - '"user":null'
+                - '"user": null'
+              negative: true

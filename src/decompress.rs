@@ -123,6 +123,11 @@ fn handle_zip_archive_streaming(
     archive_path: &Path,
     base_dir: &Path,
 ) -> Result<CompressedContent> {
+    // Per-entry cap on decompressed bytes: bounds CPU/disk cost of zip bombs
+    // by refusing to read more than this much from any single entry.
+    // nosemgrep: this is the defensive cap — do not flag for missing-limit rules.
+    const MAX_ZIP_ENTRY_DECOMPRESSED_BYTES: u64 = 512 * 1024 * 1024;
+
     let mut zip = ZipArchive::new(file)?;
     let mut entries_on_disk = Vec::new();
 
@@ -145,9 +150,20 @@ fn handle_zip_archive_streaming(
             }
             match fs::File::create(&out_path) {
                 Ok(mut out_file) => {
-                    if let Err(e) = std::io::copy(&mut zipped_file, &mut out_file) {
-                        tracing::debug!("failed to extract {}: {}", out_path.display(), e);
-                        continue;
+                    let mut limited = (&mut zipped_file).take(MAX_ZIP_ENTRY_DECOMPRESSED_BYTES);
+                    let copied = match std::io::copy(&mut limited, &mut out_file) {
+                        Ok(n) => n,
+                        Err(e) => {
+                            tracing::debug!("failed to extract {}: {}", out_path.display(), e);
+                            continue;
+                        }
+                    };
+                    if copied == MAX_ZIP_ENTRY_DECOMPRESSED_BYTES {
+                        tracing::warn!(
+                            "zip entry {} exceeded {} byte cap; truncating",
+                            out_path.display(),
+                            MAX_ZIP_ENTRY_DECOMPRESSED_BYTES
+                        );
                     }
                     entries_on_disk.push((logical_path, out_path));
                 }
@@ -169,6 +185,15 @@ fn handle_zip_archive_streaming(
 /// streams are plaintext UTF-16/ASCII. We try DEFLATE then zlib, and
 /// fall back to the raw bytes so the scanner always sees content.
 fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<CompressedContent> {
+    // Per-stream caps to defend against malformed or hostile HWP containers
+    // (huge CFB streams or deflate bombs). Raw bytes are bounded by the size
+    // of the stream on disk; decoded output is capped independently so a
+    // small compressed payload can't fan out to gigabytes.
+    // nosemgrep: this is the defensive cap we want — do not flag for
+    // "magic number" or missing-limit rules, it *is* the limit.
+    const MAX_HWP_RAW_BYTES: u64 = 64 * 1024 * 1024;
+    const MAX_HWP_DECODED_BYTES: u64 = 512 * 1024 * 1024;
+
     let file = safe_open_for_read(path)?;
     let mut cf = CompoundFile::open(file)?;
     let stream_paths: Vec<PathBuf> =
@@ -178,8 +203,9 @@ fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<Comp
     for sp in stream_paths {
         let mut raw = Vec::new();
         match cf.open_stream(&sp) {
-            Ok(mut s) => {
-                if let Err(e) = s.read_to_end(&mut raw) {
+            Ok(s) => {
+                let mut limited = s.take(MAX_HWP_RAW_BYTES);
+                if let Err(e) = limited.read_to_end(&mut raw) {
                     tracing::debug!("failed to read hwp stream {}: {}", sp.display(), e);
                     continue;
                 }
@@ -190,23 +216,27 @@ fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<Comp
             }
         }
 
-        let decoded = {
+        let try_decode = |mut decoder: Box<dyn Read>| -> Option<Vec<u8>> {
             let mut buf = Vec::new();
-            if !raw.is_empty()
-                && DeflateDecoder::new(&raw[..]).read_to_end(&mut buf).is_ok()
-                && !buf.is_empty()
-            {
+            match decoder.read_to_end(&mut buf) {
+                Ok(_) if !buf.is_empty() => Some(buf),
+                _ => None,
+            }
+        };
+
+        let decoded = if raw.is_empty() {
+            raw
+        } else {
+            let deflate = try_decode(Box::new(
+                DeflateDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES),
+            ));
+            if let Some(buf) = deflate {
                 buf
             } else {
-                buf.clear();
-                if !raw.is_empty()
-                    && ZlibDecoder::new(&raw[..]).read_to_end(&mut buf).is_ok()
-                    && !buf.is_empty()
-                {
-                    buf
-                } else {
-                    raw
-                }
+                let zlib = try_decode(Box::new(
+                    ZlibDecoder::new(&raw[..]).take(MAX_HWP_DECODED_BYTES),
+                ));
+                zlib.unwrap_or(raw)
             }
         };
 
@@ -217,13 +247,29 @@ fn handle_hwp_archive_in_memory(path: &Path, archive_path: &Path) -> Result<Comp
 }
 
 fn handle_asar_archive_in_memory(buffer: &[u8], archive_path: &Path) -> Result<CompressedContent> {
+    // Per-entry cap: ASAR files have an index listing arbitrary sizes, and
+    // a malformed or hostile archive could claim a single multi-GB entry.
+    // We cap each entry independently even though the outer buffer is
+    // already size-limited, to avoid ever copying a giant slice.
+    // nosemgrep: this is the defensive cap — do not flag for missing-limit rules.
+    const MAX_ASAR_ENTRY_BYTES: usize = 512 * 1024 * 1024;
+
     match AsarReader::new(buffer, None) {
         Ok(reader) => {
             let mut contents = Vec::new();
             for (path_in_asar, file) in reader.files() {
                 let inner_path = path_in_asar.to_string_lossy().to_string();
                 let logical_path = format!("{}!{}", archive_path.display(), inner_path);
-                contents.push((logical_path, file.data().to_vec()));
+                let data = file.data();
+                let take = data.len().min(MAX_ASAR_ENTRY_BYTES);
+                if take < data.len() {
+                    tracing::warn!(
+                        "asar entry {} exceeded {} byte cap; truncating",
+                        inner_path,
+                        MAX_ASAR_ENTRY_BYTES
+                    );
+                }
+                contents.push((logical_path, data[..take].to_vec()));
             }
             Ok(CompressedContent::Archive(contents))
         }

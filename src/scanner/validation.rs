@@ -805,7 +805,7 @@ pub async fn run_secret_validation(
             };
             for match_arc in slice.iter_mut() {
                 if let Some((success, body, status, dep_caps)) =
-                    dep_updates.remove(&match_arc.2.finding_fingerprint)
+                    dep_updates.get(&match_arc.2.finding_fingerprint).map(|v| v.clone())
                 {
                     let (_, _, existing) = Arc::make_mut(match_arc);
                     existing.validation_success = success;
