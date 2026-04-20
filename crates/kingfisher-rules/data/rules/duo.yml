@@ -21,8 +21,8 @@ rules:
     confidence: medium
     visible: false
     examples:
-      - "duo\nintegration_key=AMTRZFKBPWH3QNGLVWCY"
-      - "duo\nikey = 'BNUSGLLCQXI4RNHMWXDZ'"
+      - "duo\nintegration_key=AMTRZFKBPWH3QNGL7WCY"
+      - "duo\nikey = 'BNUSGLLCQXI4RNHMWX2Z'"
     references:
       - https://duo.com/docs/authapi
 

@@ -65,7 +65,7 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - sk-ant-admin03-4mB9zY2Qx8LmN7pR5sT1uV6wX0aBcDeFgHiJkLmNoPqRsTuVwXyZ1234
+      - sk-ant-admin03-4mB9zY2Qx8LmN7pR5sT1uV6wX0aBcDeFgHiJkLmNoPqRsTuVwXyZ1234AbC5dEf6GhI7jKl8MnO9pQr0StU1vWxYzABCDEFGHIJKL
       - sk-ant-admin01-MSLxH1vwJBWWIwDTzFro0xQrkN1dWoHo-6E9qdBHiJDCx5076IoxCH_L-sritH-zkJw2tx6igyKCh5AFgKJYYw-NjbNkAAA
     references:
       - https://docs.anthropic.com/en/api/administration-api

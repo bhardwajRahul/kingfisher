@@ -89,7 +89,7 @@ rules:
     confidence: medium
     examples:
       - 'PINATA_JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDc5MTQxNjAsImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjAxN2JiMzkyZGNmZTFmY2ZlMDA5Iiwic2NvcGVkS2V5U2VjcmV0IjoiYzljNzY2MzQ3MGZmZTZhMTFkMmU5ZWY2MDdiYTMyOTU0ZTRlYTNkYTdkN2U2NjI2NTBkMGViYThiY2MyODAxZiJ9.abcdefghijklmnopqrstuvwxyzABCDEF'
-      - 'API Secret: c9c7663470ffe6a11d2e9ef607ba32954e4ea3da7d7e662650d0eba8bcc2801f JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDc5MTQxNjAsImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjAxN2JiMzkyZGNmZTFmY2ZlMDA5Iiwic2NvcGVkS2V5U2VjcmV0IjoiYzljNzY2MzQ3MGZmZTZhMTFkMmU5ZWY2MDdiYTMyOTU0ZTRlYTNkYTdkN2U2NjI2NTBkMGViYThiY2MyODAxZiJ9.abcdefghijklmnopqrstuvwxyzABCDEF'
+      - 'pinata JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDc5MTQxNjAsImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjAxN2JiMzkyZGNmZTFmY2ZlMDA5Iiwic2NvcGVkS2V5U2VjcmV0IjoiYzljNzY2MzQ3MGZmZTZhMTFkMmU5ZWY2MDdiYTMyOTU0ZTRlYTNkYTdkN2U2NjI2NTBkMGViYThiY2MyODAxZiJ9.abcdefghijklmnopqrstuvwxyzABCDEF'
     references:
       - https://docs.pinata.cloud/account-management/api-keys
       - https://docs.pinata.cloud/api-reference/endpoint/ipfs/test-authentication
