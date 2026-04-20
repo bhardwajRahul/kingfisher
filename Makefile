@@ -34,7 +34,7 @@ ifeq ($(OS),darwin)
   export HOMEBREW_NO_AUTO_UPDATE=1
 endif
 
-  # detect host architecture and map to our target suffixes
+# Detect host architecture and map to our target suffixes.
 UNAME_M := $(shell uname -m)
 ifeq ($(UNAME_M),x86_64)
   ARCH := x64
@@ -51,38 +51,49 @@ endif
 ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
 
-.PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows-arm64 windows-test-x64 windows-test-arm64 windows-test windows \
-        linux darwin all list-archives check-docker check-rust clean tests audit-deps fuzz \
-        docs-build docs-serve docs-clean
+.PHONY: \
+        default help create-dockerignore setup-zig \
+        ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 linux linux-all \
+        darwin-arm64 darwin-x64 darwin-dev darwin darwin-all \
+        require-windows-host windows-x64 windows-arm64 windows-test-x64 windows-test-arm64 windows-test windows \
+        all list-archives check-docker check-rust clean tests audit-deps fuzz \
+        dockerfile docs-build docs-serve docs-clean notices
 
 default: help
 
 help:
 	@echo "Available targets:"
+	@echo "  linux              Build Linux archive for current host arch via Docker"
+	@echo "  linux-x64          Build Linux x64 archive via Docker"
+	@echo "  linux-arm64        Build Linux arm64 archive via Docker"
+	@echo "  linux-all          Build Linux x64 and arm64 archives via Docker"
+	@echo "  ubuntu-x64         Build Linux x64 archive with Zig on Ubuntu"
+	@echo "  ubuntu-arm64       Build Linux arm64 archive with Zig on Ubuntu"
+	@echo "  darwin             Build macOS archive for current host arch"
+	@echo "  darwin-x64         Build macOS x64 archive"
+	@echo "  darwin-arm64       Build macOS arm64 archive"
+	@echo "  darwin-all         Build macOS x64 and arm64 archives"
+	@echo "  darwin-dev         Build a macOS arm64 dev binary"
+	@echo "  windows-x64        Build Windows x64 archive from MSYS2"
+	@echo "  windows-arm64      Build Windows arm64 archive from MSYS2"
+	@echo "  windows            Build Windows x64 and arm64 archives"
+	@echo "  windows-test       Test Windows x64 and arm64 targets from MSYS2"
+	@echo "  all                Build Linux and macOS multi-arch archives"
+	@echo "  list-archives      Print built tgz/zip archives"
 	@echo "  create-dockerignore"
-	@echo "  linux-x64"
-	@echo "  linux-arm64"
-	@echo "  linux"
-	@echo "  darwin-arm64"
-	@echo "  darwin-x64"
-	@echo "  darwin"
-	@echo "  windows-x64"
-	@echo "  windows-arm64"
-	@echo "  windows"
-	@echo "  all"
-	@echo "  list-archives"
-	@echo "  tests"
-	@echo "  audit-deps        Run cargo-audit to report vulnerable dependencies"
-	@echo "  fuzz              Run fuzz targets (FUZZ_SECONDS=N to control duration, default 60s)"
+	@echo "  dockerfile         Build Docker images"
+	@echo "  tests              Run cargo-nextest when available, otherwise cargo test"
+	@echo "  audit-deps         Run cargo-audit to report vulnerable dependencies"
+	@echo "  fuzz               Run fuzz targets (FUZZ_SECONDS=N to control duration, default 60s)"
+	@echo "  docs-build         Build the documentation site"
+	@echo "  docs-serve         Serve the documentation site locally"
+	@echo "  notices            Generate third-party notices"
+	@echo "  clean              Remove build artifacts"
 
 create-dockerignore:
-	@echo "target/" > .dockerignore
-	@echo ".git/" >> .dockerignore
-	@echo ".vscode/" >> .dockerignore
-	@echo "bin/" >> .dockerignore
+	@printf '%s\n' target/ .git/ .vscode/ bin/ > .dockerignore
 
 
-.PHONY: setup-zig
 setup-zig:
 	@install_manual_zig() { \
 	  arch=$$(uname -m); \
@@ -147,11 +158,11 @@ setup-zig:
 ubuntu-x64: setup-zig   # ensures Zig & cargo-zigbuild exist
 	@echo "Checking Rust toolchain…"
 	@$(MAKE) check-rust || { \
-            echo "🦀  Installing Rust 1.92.0 …"; \
+            echo "🦀  Installing Rust 1.94.1 …"; \
 	    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
 	    . $$HOME/.cargo/env; \
-            rustup toolchain install 1.92.0; \
-            rustup default 1.92.0; \
+            rustup toolchain install 1.94.1; \
+            rustup default 1.94.1; \
 	}
 
 	@echo "📦  Installing build dependencies (musl, cmake, etc.)…"
@@ -187,11 +198,11 @@ ubuntu-x64: setup-zig   # ensures Zig & cargo-zigbuild exist
 ubuntu-arm64: setup-zig   # ensures Zig & cargo-zigbuild exist
 	@echo "Checking Rust toolchain…"
 	@$(MAKE) check-rust || { \
-            echo "🦀  Installing Rust 1.92.0 …"; \
+            echo "🦀  Installing Rust 1.94.1 …"; \
 	    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
 	    . $$HOME/.cargo/env; \
-            rustup toolchain install 1.92.0; \
-            rustup default 1.92.0; \
+            rustup toolchain install 1.94.1; \
+            rustup default 1.94.1; \
 	}
 
 	@echo "📦  Installing build dependencies (musl, cmake, etc.)…"
@@ -271,13 +282,15 @@ darwin-x64:
 		fi
 	$(MAKE) list-archives
 
-# Windows x64 build path for MSYS2/MinGW (GNU toolchain + vectorscan from source)
-windows-x64:
+require-windows-host:
 ifeq ($(IS_WINDOWS_HOST),1)
 	@echo "Detected Windows host."
 else
 	$(error "This target can only run on Windows.")
 endif
+
+# Windows x64 build path for MSYS2/MinGW (GNU toolchain + vectorscan from source)
+windows-x64: require-windows-host
 	@bash -eu -o pipefail -c '\
 	  command -v pacman >/dev/null 2>&1 || { \
 	    echo "MSYS2 pacman not found. Run this target from an MSYS2 MinGW64 shell."; \
@@ -408,12 +421,7 @@ endif
 	'
 
 # Windows ARM64 build path for MSYS2/clangarm64 (GNU/LLVM MinGW)
-windows-arm64:
-ifeq ($(IS_WINDOWS_HOST),1)
-	@echo "Detected Windows host."
-else
-	$(error "This target can only run on Windows.")
-endif
+windows-arm64: require-windows-host
 	@bash -eu -o pipefail -c '\
 	  command -v pacman >/dev/null 2>&1 || { \
 	    echo "MSYS2 pacman not found. Run this target from an MSYS2 shell."; \
@@ -536,12 +544,7 @@ endif
 	  echo "Built archive: target/release/$(PROJECT_NAME)-windows-arm64.zip"; \
 	'
 
-windows-test-x64:
-ifeq ($(IS_WINDOWS_HOST),1)
-	@echo "Detected Windows host."
-else
-	$(error "This target can only run on Windows.")
-endif
+windows-test-x64: require-windows-host
 	@bash -eu -o pipefail -c '\
 	  case "$${MSYSTEM:-}" in \
 	    MINGW64) toolchain_root=/mingw64; target_triple=x86_64-pc-windows-gnu ;; \
@@ -573,12 +576,7 @@ endif
 	  cargo test --release --workspace --all-targets --target "$$target_triple"; \
 	'
 
-windows-test-arm64:
-ifeq ($(IS_WINDOWS_HOST),1)
-	@echo "Detected Windows host."
-else
-	$(error "This target can only run on Windows.")
-endif
+windows-test-arm64: require-windows-host
 	@bash -eu -o pipefail -c '\
 	  case "$${MSYSTEM:-}" in \
 	    CLANGARM64) toolchain_root=/clangarm64; target_triple=aarch64-pc-windows-gnullvm ;; \
@@ -609,7 +607,7 @@ windows-test: windows-test-x64 windows-test-arm64
 linux-x64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/amd64 --rm \
-          -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
+          -v "$$(pwd):/src" -w /src rust:1.94-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -638,7 +636,7 @@ linux-x64: check-docker create-dockerignore
 linux-arm64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/arm64 --rm \
-          -v "$$(pwd):/src" -w /src rust:1.92-alpine sh -eu -c '\
+          -v "$$(pwd):/src" -w /src rust:1.94-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -708,7 +706,7 @@ darwin-all: darwin-arm64 darwin-x64
 	@echo -e "\ndarwin Checksums:"
 	@cat target/release/CHECKSUMS-darwin.txt
 
-all: linux darwin
+all: linux-all darwin-all
 	@echo "# All builds:" > target/release/CHECKSUMS.txt
 	@echo -e "\n# Linux builds:" >> target/release/CHECKSUMS.txt
 	@cat target/release/CHECKSUMS-linux.txt >> target/release/CHECKSUMS.txt
@@ -729,7 +727,7 @@ dockerfile:
 list-archives:
 	@echo -e "\n=== Built archives ==="
 	@found=0; \
-	for f in target/release/*.tgz; do \
+	for f in target/release/*.tgz target/release/*.zip; do \
 	  if [ -e "$$f" ]; then \
 	    found=1; \
 	    realpath "$$f"; \
@@ -751,7 +749,7 @@ check-rust:
 	  echo "Rust not found."; \
 	  exit 1; \
 	fi; \
-        required=1.92.0; \
+        required=1.94.1; \
 	if [ $$(printf '%s\n' "$$required" "$$version" | sort -V | head -n1) != "$$required" ]; then \
 	  echo "Rust version $$version is older than required $$required."; \
 	  exit 1; \

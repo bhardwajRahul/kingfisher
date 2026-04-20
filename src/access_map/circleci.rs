@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const CIRCLECI_API: &str = "https://circleci.com";
@@ -47,7 +47,7 @@ struct CircleCiPipeline {
     #[serde(default)]
     project_slug: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     created_at: Option<String>,
 }
 

@@ -6,7 +6,7 @@
 
 use std::hash::{Hash, Hasher};
 
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use kingfisher_core::OffsetSpan;
 use rustc_hash::{FxHashMap, FxHasher};
 use xxhash_rust::xxh3::xxh3_64;

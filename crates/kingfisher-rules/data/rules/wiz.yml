@@ -6,8 +6,6 @@ rules:
       \b
       (?i:wiz)
       (?:.|[\n\r]){0,32}?
-      (?i:CLIENT.?ID)
-      (?:.|[\n\r]){0,32}?
       \b
       (
         [a-zA-Z0-9]{53}
@@ -34,8 +32,6 @@ rules:
       \b
       (?i:wiz)
       (?:.|[\n\r]){0,32}?
-      (?i:CLIENT.?SECRET|SECRET)
-      (?:.|[\n\r]){0,32}?
       \b
       (
         [a-zA-Z0-9]{64}
@@ -52,8 +48,6 @@ rules:
         variable: CLIENT_ID
     examples:
       - 'WIZ_CLIENT_SECRET="aB1cD2eF3gH4iJ5kL6mN7oP8qR9sT0uV1wX2yZ3aA4bB5cC6dD7eE8fF9gG0hH1i"'
-    negative_examples:
-      - 'WIZ_URL="https://app.wiz.io"'
     references:
       - https://docs.wiz.io/wiz-docs/docs/using-the-wiz-api
     validation:

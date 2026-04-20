@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use tracing::warn;
@@ -7,8 +7,8 @@ use tracing::warn;
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const HUGGINGFACE_API: &str = "https://huggingface.co/api";
@@ -453,11 +453,7 @@ fn derive_severity(
         }
     }
 
-    if has_private_assets {
-        Severity::Medium
-    } else {
-        Severity::Low
-    }
+    if has_private_assets { Severity::Medium } else { Severity::Low }
 }
 
 fn severity_to_str(severity: Severity) -> &'static str {

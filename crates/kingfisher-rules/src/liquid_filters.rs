@@ -1,6 +1,6 @@
 //! Collection of small Liquid filters that make HTTP validations & API-signing templates easy
 
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use crc32fast::Hasher;
 use hmac::{Hmac, Mac};
 use liquid_core::{
@@ -8,13 +8,13 @@ use liquid_core::{
     FromFilterParameters, ParseFilter, Result, Runtime, Value, ValueView,
 };
 
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use rand::{distr::Alphanumeric, RngExt};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use rand::{RngExt, distr::Alphanumeric};
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384};
 use time::{
-    format_description::well_known::{Iso8601, Rfc2822},
     OffsetDateTime,
+    format_description::well_known::{Iso8601, Rfc2822},
 };
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ macro_rules! static_filter {
     // ── original, zero-arg variant ────────────────────────────────
     (
         $(#[$outer:meta])*
-        $name:ident, $display:literal, $body:expr
+        $name:ident, $display:literal, $body:expr_2021
     ) => {
         $(#[$outer])*
         #[derive(Debug, Clone, FilterReflection, ParseFilter, Default)]
@@ -54,7 +54,7 @@ macro_rules! static_filter {
     $(#[$outer:meta])*
     $name:ident { $( $(#[$f_meta:meta])* $field:ident : $ty:ty ),+ $(,)? },
     $display:literal,
-    $body:expr
+    $body:expr_2021
 ) => {
     $(#[$outer])*
     #[derive(Debug, Clone, Default, FilterReflection, ParseFilter)]   // ← added Default
@@ -951,6 +951,36 @@ static_filter!(
     }
 );
 
+// {{ value | b64url_dec }} – URL-safe base64 decode (with or without padding)
+#[derive(Debug, Clone, Default, FilterReflection, ParseFilter)]
+#[filter(
+    name = "b64url_dec",
+    description = "Decodes a URL-safe Base64 string (with or without padding)",
+    parsed(B64UrlDecFilter)
+)]
+pub struct B64UrlDecFilter;
+
+impl std::fmt::Display for B64UrlDecFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "b64url_dec")
+    }
+}
+
+impl Filter for B64UrlDecFilter {
+    fn evaluate(
+        &self,
+        input: &dyn ValueView,
+        _runtime: &dyn Runtime,
+    ) -> Result<Value, LiquidError> {
+        let input_str = input.to_kstr();
+        general_purpose::URL_SAFE_NO_PAD
+            .decode(input_str.as_bytes())
+            .or_else(|_| general_purpose::URL_SAFE.decode(input_str.as_bytes()))
+            .map(|bytes| Value::scalar(String::from_utf8_lossy(&bytes).to_string()))
+            .map_err(|e| LiquidError::with_msg(format!("b64url_dec: {e}")))
+    }
+}
+
 // {{ algo | jwt_header }} – e.g. “HS256” -- Base64URL-encoded header
 static_filter!(
     /// Generate a minimal JWT header for the given alg.
@@ -1063,6 +1093,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         // zero-arg helpers
         .filter(Replace::default())
         .filter(B64UrlEncFilter::default())
+        .filter(B64UrlDecFilter::default())
         .filter(Sha256Filter::default())
         .filter(Sha256B32Filter::default())
         .filter(UrlEncodeFilter::default())
@@ -1096,10 +1127,10 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     use hmac::{Hmac, Mac};
-    use liquid::{object, ParserBuilder};
-    use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+    use liquid::{ParserBuilder, object};
+    use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
     use regex::Regex;
     use sha1::Sha1;
     use sha2::{Digest, Sha256, Sha384};
@@ -1210,6 +1241,15 @@ mod tests {
             render(r#"{{ "++??" | b64url_enc }}"#),
             general_purpose::URL_SAFE_NO_PAD.encode("++??")
         );
+    }
+
+    #[test]
+    fn b64url_dec_filter() {
+        let encoded = general_purpose::URL_SAFE_NO_PAD.encode("++??");
+        assert_eq!(render(&format!("{{{{ \"{encoded}\" | b64url_dec }}}}")), "++??");
+        // Also works with padding
+        let padded = general_purpose::URL_SAFE.encode("hello");
+        assert_eq!(render(&format!("{{{{ \"{padded}\" | b64url_dec }}}}")), "hello");
     }
 
     #[test]

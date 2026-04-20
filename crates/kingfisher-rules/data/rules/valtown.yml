@@ -17,3 +17,19 @@ rules:
       - 'VALTOWN_TOKEN=vtwn_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
     references:
       - https://docs.val.town/api/authentication/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.val.town/v1/me
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"id"'

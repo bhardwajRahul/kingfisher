@@ -268,7 +268,7 @@ flowchart TD
 
 ### Loading Builtin Rules
 
-Kingfisher currently ships with 825 built-in rules for common secret types:
+Kingfisher currently ships with 934 built-in rules for common secret types:
 
 ```rust
 use kingfisher_rules::{get_builtin_rules, Confidence};
@@ -389,7 +389,7 @@ let template = parser.parse("{{ secret | sha256 }}")?;
 
 Available filters:
 
-- **Encoding**: `b64enc`, `b64dec`, `b64url_enc`, `url_encode`, `json_escape`
+- **Encoding**: `b64enc`, `b64dec`, `b64url_enc`, `b64url_dec`, `url_encode`, `json_escape`
 - **Hashing**: `sha256`, `crc32`, `crc32_dec`, `crc32_hex`, `crc32_le_b64`
 - **HMAC**: `hmac_sha256`, `hmac_sha384`, `hmac_sha1`, `hmac_sha256_b64key`
 - **Encoding**: `base62`, `base36`

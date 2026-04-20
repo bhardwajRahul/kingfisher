@@ -34,6 +34,7 @@ rules:
       content:
         request:
           method: GET
+          response_is_html: true
           url: '{{ TOKEN }}'
           response_matcher:
             - report_response: false

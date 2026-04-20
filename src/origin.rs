@@ -3,5 +3,5 @@
 //! This module re-exports types from [`kingfisher_core::origin`].
 
 pub use kingfisher_core::origin::{
-    get_repo_url, CommitOrigin, ExtendedOrigin, FileOrigin, GitRepoOrigin, Origin, OriginSet,
+    CommitOrigin, ExtendedOrigin, FileOrigin, GitRepoOrigin, Origin, OriginSet, get_repo_url,
 };

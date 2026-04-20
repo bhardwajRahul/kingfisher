@@ -27,7 +27,7 @@ In the scanning phase (in the Matcher’s implementation), Kingfisher does the f
 - **Candidate Selection:** Findings from rules classified as context-dependent become parser-verification candidates.
 - **Language Detection:** If a language string is provided (for example from metadata or extension), the code maps it to a supported parser backend.
 - **Parsing and Querying:** The parser streams normalized snippets such as `key = value` without materializing a full syntax tree.
-- **Verification Decision:** Candidate findings are kept only if parser-extracted context verifies the matched secret.
+- **Verification Decision:** Strict contextual candidates are kept only if parser-extracted context verifies the matched secret. More explicit assignment-style rules can still survive on raw regex evidence when parser verification is unavailable.
 
 ## Supported Languages
 
@@ -45,10 +45,10 @@ Context verification is skipped in certain cases:
 - **No Language Identified:** If the file isn’t recognized as belonging to one of the supported languages or no language hint is provided, the context verifier isn’t even constructed.
 - **Non-source Files:** Binary files or files that aren’t expected to contain code (or aren’t extracted from archives) bypass parser-based context verification.
 - **Large Blobs:** Files larger than 2 MiB skip context verification to avoid spending time on generated or minified content.
-- **Verification Errors:** If extraction fails, context-dependent matches are suppressed instead of falling back to raw regex hits.
+- **Verification Errors:** If extraction fails, rules whose match profile strictly requires parser confirmation are suppressed. Assignment-style contextual rules can still fall back to their raw regex hit.
 
 ## Summary
 
-Parser-based context verification is conditional and complementary. It is called only when the scanned file is a supported source or config file, and its role is to reduce noisy context-dependent findings by checking them against extracted code/config structure.
+Parser-based context verification is conditional and complementary. It is called only when the scanned file is a supported source or config file, and its role is to reduce noisy strict-context findings by checking them against extracted code/config structure without unnecessarily dropping clear assignment-style secrets from raw text inputs.
 
 This layered approach helps improve the accuracy of secret detection while maintaining high performance.

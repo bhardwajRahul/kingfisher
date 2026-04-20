@@ -12,6 +12,10 @@
     "snippet": "17df97169af3785f2c0b2a73dhba1c46f33928de"
   },
   {
+    "rule_id": "kingfisher.github.8",
+    "snippet": "88df97769ab3185f2c0b2a73fdae1b27d89409ca"
+  },
+  {
     "rule_id": "kingfisher.google.7",
     "snippet": "AIzaSyBUPHAjZl3n8Eza66ka6B78iVyPteC5MgM"
   },
@@ -146,5 +150,9 @@
   {
     "rule_id": "kingfisher.stripe.2",
     "snippet": "sk_live_bu9JFVJtII3FINL1rOKcNpveXD4hSMtSDx7opOWDEFGHIJKLMNOPQRST"
+  },
+  {
+    "rule_id": "kingfisher.twilio.2",
+    "snippet": "SK5d1d319A6Acf7EC9BDeDb8CCe4D76B"
   }
 ]

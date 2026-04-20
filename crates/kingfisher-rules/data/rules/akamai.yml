@@ -14,7 +14,7 @@ rules:
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.0
-    confidence: high
+    confidence: medium
     visible: false
     examples:
       - "client-token=akab-sXedJBTOf0dHl27vVOd"

@@ -20,7 +20,7 @@ rules:
     pattern_requirements:
       min_digits: 8
     min_entropy: 3.5
-    confidence: high
+    confidence: medium
     examples:
       - "new PouchDB(\"https://4f621480-c3c9-41c6-bb2e-38fd4cce291f-bluemix:9a1b75eae487515172acc27e1203bd19d094f359bebb0f20ff69bb173cee3d4a@4f621480-c3c9-41c6-bb2e-38fd4cce291f-bluemix.cloudantnosqldb.appdomain.cloud/mydb\")"
       - "CLOUDANT_URL=https://a1b2c3d4-e5f6-7890-abcd-ef1234567890-bluemix:abc123def456789012345678901234567890123456789012345678901234abcd@a1b2c3d4-e5f6-7890-abcd-ef1234567890-bluemix.cloudantnosqldb.appdomain.cloud"

@@ -7,178 +7,257 @@
   <style>
     :root {
       color-scheme: dark;
-      --brand: #0e7c56;
-      --brand-dark: #0c6d4d;
-      --brand-soft: #10241c;
-      --bg: #060b16;
-      --surface: #0d1424;
-      --surface-muted: #111a2b;
-      --surface-strong: #0f192c;
-      --text-main: #f3f4f6;
-      --text-muted: #c7d2e2;
-      --border: #1f2a3f;
-      --border-strong: #2c3a55;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+      --brand: #00ed64;
+      --brand-dark: #13aa52;
+      --brand-soft: rgba(0, 237, 100, 0.12);
+      --brand-soft-strong: rgba(0, 237, 100, 0.18);
+      --bg: #08110e;
+      --surface: #0f1716;
+      --surface-muted: #121d1b;
+      --surface-strong: #15211f;
+      --text-main: #f5fbf7;
+      --text-muted: #a8bbb1;
+      --border: #1f332c;
+      --border-strong: #315244;
+      --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.14);
+      --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 28px 72px rgba(0, 0, 0, 0.28);
       --critical: #fca5a5;
       --success: #34d399;
-      --radius: 8px;
-      --hover: #1f2937;
-      --table-header: #0f172a;
-      --code-bg: #0d1526;
-      --code-border: #1f2937;
-      --code-border-strong: rgba(56, 189, 248, 0.4);
+      --radius: 16px;
+      --hover: #182522;
+      --table-header: #12201d;
+      --code-bg: #0d1617;
+      --code-border: #223733;
+      --code-border-strong: rgba(0, 237, 100, 0.24);
       --code-text: #e2e8f0;
-      --code-accent: rgba(56, 189, 248, 0.08);
-      --link-strong: #a5f3fc;
-      --link-strong-hover: #e0f2fe;
-      --link-underline: rgba(255, 255, 255, 0.35);
+      --code-accent: rgba(0, 237, 100, 0.07);
+      --link-strong: #8fffd0;
+      --link-strong-hover: #d9fff0;
+      --link-underline: rgba(143, 255, 208, 0.32);
     }
 
     :root[data-theme="light"] {
       color-scheme: light;
-      --brand: #0e7c56;
-      --brand-dark: #07402c;
-      --brand-soft: #e6f4ed;
-      --bg: #f3f4f6;
+      --brand: #13aa52;
+      --brand-dark: #0f7f3d;
+      --brand-soft: rgba(19, 170, 82, 0.1);
+      --brand-soft-strong: rgba(19, 170, 82, 0.16);
+      --bg: #eef4f0;
       --surface: #ffffff;
-      --surface-strong: #f4f6fb;
-      --surface-muted: #f9fafb;
-      --text-main: #111827;
-      --text-muted: #6b7280;
-      --border: #e5e7eb;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --surface-strong: #f5f9f7;
+      --surface-muted: #f8fbf9;
+      --text-main: #15211d;
+      --text-muted: #5f746a;
+      --border: #dbe7df;
+      --border-strong: #bfd5c7;
+      --shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 14px 34px rgba(15, 23, 42, 0.1);
+      --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.12);
       --critical: #dc2626;
       --success: #059669;
-      --hover: #e5e7eb;
-      --table-header: #f9fafb;
-      --code-bg: #f8fafc;
-      --code-border: #e5e7eb;
-      --code-border-strong: rgba(14, 124, 86, 0.2);
+      --hover: #edf5f0;
+      --table-header: #f5f9f7;
+      --code-bg: #f7fbf9;
+      --code-border: #dbe7df;
+      --code-border-strong: rgba(19, 170, 82, 0.18);
       --code-text: #0f172a;
-      --code-accent: rgba(14, 124, 86, 0.08);
-      --link-strong: #1d4ed8;
-      --link-strong-hover: #1e3a8a;
-      --link-underline: rgba(30, 64, 175, 0.35);
+      --code-accent: rgba(19, 170, 82, 0.08);
+      --link-strong: #0f7f3d;
+      --link-strong-hover: #0b5d2d;
+      --link-underline: rgba(15, 127, 61, 0.28);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(0, 237, 100, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 30%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
       color: var(--text-main);
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
     }
 
     /* Header */
     .hero {
-      background: var(--brand);
-      color: #ffffff;
-      padding: 0 24px;
-      height: 60px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--surface);
+      color: var(--text-main);
+      padding: 10px 24px;
+      min-height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: var(--shadow-md);
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
       position: sticky;
       top: 0;
       z-index: 50;
+      backdrop-filter: blur(10px);
     }
 
     .hero__brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      min-width: 0;
     }
 
     .hero__icon {
-      width: 32px;
-      height: 32px;
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      border-radius: 6px;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(180deg, rgba(19, 170, 82, 0.95), rgba(15, 127, 61, 0.95));
+      color: #ffffff;
+      border-radius: 12px;
       display: grid;
       place-items: center;
-      font-weight: 600;
+      border: 1px solid rgba(19, 170, 82, 0.25);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 18px rgba(15, 23, 42, 0.12);
+      font-weight: 700;
       font-size: 18px;
     }
 
     .hero__title {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 20px;
+      font-weight: 700;
       letter-spacing: -0.02em;
     }
 
     .hero__subtitle {
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.8);
-      margin-left: 10px;
-      padding-left: 10px;
-      border-left: 1px solid rgba(255, 255, 255, 0.25);
+      color: var(--text-muted);
+      margin-left: 12px;
+      padding-left: 12px;
+      border-left: 1px solid var(--border);
     }
 
     .layout {
       display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: 18px;
+      grid-template-columns: 124px 1fr;
+      gap: 20px;
       align-items: start;
     }
 
     .sidebar {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
-      padding: 14px;
+      background: linear-gradient(180deg, #0b1832 0%, #0e2143 100%);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      padding: 14px 10px;
       position: sticky;
-      top: 82px;
+      top: 84px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .sidebar-section-label {
+      display: none;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
     }
 
     .nav-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      width: 100%;
+      align-items: center;
     }
 
     .nav-button {
       width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: var(--surface-muted);
-      color: var(--text-main);
+      text-align: center;
+      padding: 10px 6px 9px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.84);
       font-weight: 600;
       cursor: pointer;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
-      transition: border 0.15s ease, background 0.15s ease, transform 0.1s ease;
+      gap: 8px;
+      box-shadow: none;
+      transition: border 0.15s ease, background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
     }
 
     .nav-button:hover {
-      background: var(--hover);
-      border-color: var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
     }
 
     .nav-button.active {
-      background: var(--brand-soft);
-      border-color: var(--brand);
-      color: var(--brand-dark);
-      box-shadow: var(--shadow-sm);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(143, 255, 208, 0.28);
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    :root[data-theme="light"] .nav-button.active {
+      color: #ffffff;
     }
 
     .nav-icon {
-      font-size: 16px;
-      opacity: 0.9;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      opacity: 0.95;
+    }
+
+    .nav-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-button__content {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 0;
+      align-items: center;
+      width: 100%;
+    }
+
+    .nav-button__title {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: inherit;
+      line-height: 1.2;
+      text-align: center;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+
+    .nav-button__sub {
+      display: none;
     }
 
     .view {
@@ -190,7 +269,108 @@
     .view-stack {
       display: flex;
       flex-direction: column;
+      gap: 20px;
+    }
+
+    .workspace-topbar {
+      display: grid;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(420px, 1fr);
       gap: 18px;
+      align-items: start;
+    }
+
+    .workspace-overview,
+    .workspace-actions {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .workspace-overview {
+      padding: 18px 20px;
+    }
+
+    .workspace-overview__eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .workspace-overview__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 6px;
+    }
+
+    .workspace-overview__title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+    }
+
+    .workspace-overview__meta {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 680px;
+      word-break: break-word;
+    }
+
+    .workspace-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .workspace-overview__stats {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .workspace-overview__stat {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+    }
+
+    .workspace-overview__value {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text-main);
+    }
+
+    .workspace-overview__label {
+      margin-top: 3px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .workspace-actions {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
     @media (max-width: 1100px) {
@@ -200,21 +380,43 @@
       .sidebar {
         position: relative;
         top: auto;
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 16px;
+      }
+      .sidebar-nav,
+      .nav-group {
+        flex-direction: row;
+        width: max-content;
+      }
+      .nav-button {
+        min-width: 112px;
+        max-width: 112px;
+      }
+      .workspace-topbar {
+        grid-template-columns: 1fr;
+      }
+      .workspace-actions {
+        grid-template-columns: 1fr;
       }
     }
 
     .info-banner {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.08), transparent), var(--surface);
       border-bottom: 1px solid var(--border);
       color: var(--text-muted);
       text-align: center;
-      padding: 10px 16px;
+      padding: 11px 16px;
       font-size: 13px;
+      letter-spacing: 0.01em;
     }
 
     .page {
       max-width: 1600px;
-      margin: 24px auto;
+      margin: 20px auto 32px;
       padding: 0 24px;
       display: flex;
       flex-direction: column;
@@ -222,58 +424,176 @@
     }
 
     .panel {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 40%), var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-md);
       overflow: hidden;
     }
 
     .panel__header {
-      padding: 16px 20px;
+      padding: 18px 22px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: var(--surface-strong);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), var(--surface-strong);
     }
 
-    .panel__title h3 { margin: 0; font-size: 16px; font-weight: 600; }
-    .panel__title p { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); }
+    .panel__title h3 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .panel__title p { margin: 5px 0 0; font-size: 13px; color: var(--text-muted); }
 
     /* Upload */
+    .upload-shell {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
     .upload-area {
-      padding: 32px;
+      padding: 44px 30px 36px;
       text-align: center;
-      background: var(--surface-muted);
+      background:
+        radial-gradient(circle at top center, rgba(0, 237, 100, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+        var(--surface-muted);
       cursor: pointer;
       transition: all 0.2s ease;
-      border-bottom: 1px solid var(--border);
+      border: 1px dashed var(--border-strong);
       border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .upload-area:hover,
     .upload-area.active {
-      background: var(--brand-soft);
+      background:
+        radial-gradient(circle at top center, rgba(0, 237, 100, 0.18), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
+        var(--surface-muted);
       border-color: var(--brand);
+      transform: translateY(-1px);
     }
-    .upload-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.8; }
-    .upload-text { font-size: 16px; font-weight: 500; }
-    .upload-sub { color: var(--text-muted); margin-top: 4px; }
+    .upload-icon {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 16px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.18), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(0, 237, 100, 0.22);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+      opacity: 1;
+    }
+    .upload-text {
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .upload-sub {
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .upload-action-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .upload-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      box-shadow: 0 14px 28px rgba(0, 237, 100, 0.18);
+    }
+    .upload-action-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .upload-help-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      text-align: left;
+    }
+    .upload-help-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 15px 13px;
+      box-shadow: var(--shadow-sm);
+      min-height: 0;
+    }
+    .upload-help-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--brand-dark);
+      margin-bottom: 6px;
+    }
+    .upload-help-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+    .upload-help-text strong {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .upload-help-grid {
+        grid-template-columns: 1fr;
+      }
+    }
 
     /* Metrics */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      padding: 20px;
-      gap: 16px;
+      padding: 22px;
+      gap: 18px;
     }
 
     .metric {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 42%), var(--surface-muted);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px 18px;
+      padding: 18px 18px 20px;
       box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+      min-height: 112px;
+    }
+
+    .metric::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .metric__label {
@@ -284,16 +604,24 @@
       letter-spacing: 0.04em;
     }
     .metric__value {
-      font-size: 26px;
+      font-size: 34px;
       font-weight: 700;
-      margin-top: 6px;
+      margin-top: 10px;
+      letter-spacing: -0.04em;
+    }
+    .metric.critical::before { background: #fb7185; }
+    .metric.success::before { background: var(--brand); }
+    .metric:not(.critical):not(.success)::before { background: rgba(0, 237, 100, 0.38); }
+    .metric.critical .metric__label,
+    .metric.success .metric__label {
+      color: var(--text-main);
     }
     .metric.critical .metric__value { color: var(--critical); }
     .metric.success .metric__value { color: var(--success); }
 
     /* Access Map */
     .am-container {
-      padding: 16px 20px;
+      padding: 18px 22px 22px;
       background: var(--surface);
     }
 
@@ -302,19 +630,21 @@
       gap: 10px;
       align-items: center;
       flex-wrap: wrap;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 16px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface-muted);
     }
 
     .am-toolbar input {
       flex: 1;
       min-width: 200px;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 10px 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 13px;
-      background: var(--surface-muted);
+      background: var(--surface);
       color: var(--text-main);
     }
 
@@ -327,12 +657,13 @@
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
-      padding: 12px 16px;
-      background: var(--surface-muted);
+      padding: 14px 16px;
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.06), transparent), var(--surface-muted);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       margin-bottom: 16px;
       font-size: 13px;
+      box-shadow: var(--shadow-sm);
     }
 
     .am-stat {
@@ -352,10 +683,10 @@
     }
 
     .am-empty-hint {
-      padding: 12px 16px;
-      background: var(--surface-muted);
+      padding: 14px 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface-muted);
       border: 1px dashed var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       color: var(--text-muted);
       margin: 12px 20px 0;
     }
@@ -370,17 +701,20 @@
     .id-card {
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 44%), var(--surface);
       overflow: hidden;
-      transition: border-color 0.15s;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s, transform 0.12s ease, box-shadow 0.15s ease;
     }
 
     .id-card:hover {
       border-color: var(--border-strong);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .id-card__header {
-      padding: 14px 16px;
+      padding: 16px 18px;
       display: flex;
       align-items: flex-start;
       gap: 12px;
@@ -389,19 +723,19 @@
     }
 
     .id-card__header:hover {
-      background: var(--surface-muted);
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .id-card__avatar {
       width: 36px;
       height: 36px;
-      border-radius: 8px;
+      border-radius: 12px;
       display: grid;
       place-items: center;
       font-size: 18px;
       flex-shrink: 0;
-      background: var(--surface-muted);
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.16), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(0, 237, 100, 0.16);
     }
 
     .id-card__info {
@@ -451,8 +785,8 @@
     .id-card__body {
       display: none;
       border-top: 1px solid var(--border);
-      padding: 16px;
-      background: var(--surface-muted);
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent), var(--surface-muted);
     }
 
     .id-card__body.open {
@@ -489,11 +823,12 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      padding: 8px 10px;
+      padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 10px;
       background: var(--surface);
       font-size: 12px;
+      box-shadow: var(--shadow-sm);
     }
 
     .resource-chip__name {
@@ -532,13 +867,14 @@
     }
 
     .id-card__footer {
-      padding: 8px 16px;
+      padding: 10px 16px;
       border-top: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 11px;
       color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .id-card__footer code {
@@ -560,10 +896,11 @@
     }
 
     .badge {
-      padding: 2px 8px;
+      padding: 4px 9px;
       border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
       border: 1px solid transparent;
     }
 
@@ -605,15 +942,22 @@
     }
 
     .chart-card {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 18px;
       box-shadow: var(--shadow-sm);
       display: flex;
       gap: 12px;
       align-items: center;
       min-height: 220px;
+      transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
     }
 
     .chart-legend {
@@ -639,31 +983,152 @@
       flex-shrink: 0;
     }
 
-    #status-chart {
-      background: var(--surface-muted);
+    #status-chart,
+    #source-chart,
+    canvas[id^="source-detector-chart-"] {
+      background: radial-gradient(circle at center, rgba(0, 237, 100, 0.05), transparent 58%), var(--surface-muted);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 14px;
       box-shadow: var(--shadow-sm);
     }
 
+    .dashboard-breakdown {
+      padding: 0 20px 20px;
+    }
+    .breakdown-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .breakdown-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), var(--surface-strong);
+    }
+    .breakdown-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .breakdown-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .breakdown-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .breakdown-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-main);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .breakdown-table th,
+    .breakdown-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .breakdown-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      background: var(--table-header);
+    }
+    .breakdown-sort-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      font-weight: inherit;
+      cursor: pointer;
+    }
+    .breakdown-sort-indicator {
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 10px;
+      text-align: center;
+    }
+    .breakdown-table tr:last-child td {
+      border-bottom: 0;
+    }
+    .breakdown-name {
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+    .breakdown-count {
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+    .breakdown-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
     /* Findings table */
-    .table-container { width: 100%; overflow-x: auto; }
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent), var(--surface);
+    }
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .table th {
       text-align: left;
-      padding: 12px 16px;
+      padding: 13px 16px;
       background: var(--table-header);
       border-bottom: 1px solid var(--border);
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
     .table td {
-      padding: 12px 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
     }
     .table tr:last-child td { border-bottom: none; }
-    .table tr:hover td { background: var(--surface-muted); cursor: pointer; }
+    .table tr:hover td {
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.06), transparent), var(--surface-muted);
+      cursor: pointer;
+    }
 
     .sortable {
       cursor: pointer;
@@ -872,13 +1337,14 @@
 
     /* Search & pagination */
     .search-input {
-      padding: 8px 12px;
+      padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 10px;
       width: 220px;
       font-size: 13px;
       background: var(--surface);
       color: var(--text-main);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
 
     .rows-label {
@@ -887,12 +1353,13 @@
     }
 
     .rows-select {
-      padding: 6px 10px;
-      border-radius: 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--surface);
       font-size: 13px;
       color: var(--text-main);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
 
     .pager {
@@ -904,8 +1371,8 @@
     }
 
     .pager-btn {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 999px;
       border: 1px solid var(--border);
       background: var(--surface);
@@ -914,6 +1381,13 @@
       cursor: pointer;
       padding: 0;
       color: var(--text-main);
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+    }
+
+    .pager-btn:hover:not(:disabled) {
+      background: var(--hover);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
     }
 
     .pager-btn:disabled {
@@ -923,18 +1397,21 @@
 
     /* Buttons & loader */
     .btn {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--surface);
       border: 1px solid var(--border);
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-weight: 500;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-weight: 600;
       cursor: pointer;
       color: var(--text-main);
-      transition: background 0.1s, border-color 0.1s;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.1s, border-color 0.1s, transform 0.1s ease, box-shadow 0.1s ease;
     }
     .btn:hover {
       background: var(--surface-muted);
-      border-color: var(--border);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .btn:disabled {
@@ -943,31 +1420,56 @@
     }
 
     #theme-toggle {
-      background: #f9fafb;
-      color: var(--brand);
-      border-color: rgba(255, 255, 255, 0.7);
+      background: var(--surface-muted);
+      color: var(--text-main);
+      border-color: var(--border);
       font-weight: 700;
       box-shadow: var(--shadow-sm);
     }
 
     #theme-toggle:hover {
-      background: #ffffff;
-      border-color: rgba(255, 255, 255, 0.9);
-      color: var(--brand-dark);
+      background: var(--hover);
+      border-color: var(--border-strong);
+      color: var(--text-main);
     }
 
     :root[data-theme="light"] #theme-toggle {
-      background: #0e7c56;
-      color: #ffffff;
-      border-color: #0c6d4d;
+      background: #ffffff;
+      color: var(--brand-dark);
+      border-color: var(--border-strong);
     }
 
     :root[data-theme="light"] #theme-toggle:hover {
-      background: #0c6d4d;
-      border-color: #0a5d40;
+      background: var(--surface-strong);
+      border-color: var(--brand-soft-strong);
+    }
+
+    #reset-btn {
+      background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+      border-color: transparent;
+      color: #04210f;
+      font-weight: 800;
+      box-shadow: 0 16px 30px rgba(0, 237, 100, 0.2);
+    }
+
+    #reset-btn:hover {
+      background: linear-gradient(180deg, #34f08a, var(--brand));
+      border-color: transparent;
+      color: #04210f;
     }
 
     .hidden { display: none !important; }
+
+    .btn:focus-visible,
+    .nav-button:focus-visible,
+    .search-input:focus-visible,
+    .rows-select:focus-visible,
+    .am-toolbar input:focus-visible,
+    .pager-btn:focus-visible {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(0, 237, 100, 0.18);
+    }
 
     /* Blast Radius (finding detail) */
     .blast-radius {
@@ -1138,12 +1640,13 @@
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
-      padding: 14px 20px;
-      background: var(--surface-muted);
+      padding: 16px 18px;
+      background: linear-gradient(180deg, rgba(0, 237, 100, 0.08), transparent), var(--surface-muted);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       font-size: 13px;
       color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
     }
 
     .scan-meta-item {
@@ -1161,10 +1664,22 @@
     .report-type-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      padding: 12px 0;
-      border-top: 1px solid var(--border);
-      margin-top: 8px;
+      gap: 8px;
+      padding: 12px 13px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent), var(--surface-muted);
+      margin-top: 0;
+      box-shadow: none;
+    }
+
+    .workspace-actions .report-type-group {
+      height: 100%;
+      justify-content: flex-start;
+    }
+
+    .report-type-group + .report-type-group {
+      margin-top: 0;
     }
 
     .report-type-group label {
@@ -1173,6 +1688,36 @@
       letter-spacing: 0.05em;
       color: var(--text-muted);
       font-weight: 600;
+    }
+
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-check {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      text-transform: none !important;
+      letter-spacing: normal !important;
+      color: var(--text-main) !important;
+      cursor: pointer;
+      font-weight: 500 !important;
+    }
+
+    .sidebar-help {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    #import-note,
+    #fd-import-note {
+      box-shadow: var(--shadow-sm);
+      border-radius: 14px !important;
     }
 
     .loading-overlay {
@@ -1234,33 +1779,54 @@
     <div class="hero__brand">
       <div class="hero__icon">K</div>
       <div style="display:flex; align-items:center;">
-        <span class="hero__title">Kingfisher Viewer</span>
+        <span class="hero__title">Kingfisher Report Viewer</span>
         <span class="hero__subtitle">Access Map &amp; Findings</span>
       </div>
     </div>
-    <div style="display:flex; gap:10px; align-items:center;">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
       <button class="btn" id="theme-toggle" type="button">Light Mode</button>
-      <button class="btn" id="reset-btn">Load New Report</button>
+      <button class="btn" id="reset-btn" type="button">Clear and Load New Report(s)</button>
     </div>
   </header>
 
-  <div class="info-banner">Client-Side Only. No data is uploaded anywhere.</div>
+  <div class="info-banner">Runs entirely in your browser. Reports stay local and are never uploaded.</div>
 
   <main class="page">
-    <section id="upload-section" class="panel" style="max-width: 640px; margin: 0 auto;">
+    <section id="upload-section" class="panel" style="max-width: 920px; margin: 0 auto;">
       <div class="panel__header">
         <div class="panel__title">
           <h3>Upload Report</h3>
-          <p>Analyze Kingfisher JSON / JSONL output (auto-loads if provided on the CLI)</p>
+          <p>Analyze Kingfisher JSON / JSONL output, plus Gitleaks and TruffleHog JSON reports</p>
         </div>
       </div>
-      <div style="padding:22px;">
+      <div class="upload-shell">
         <div class="upload-area" id="drop-zone">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">Drag &amp; drop a report here</div>
-          <div class="upload-sub">…or click to choose a file</div>
-            <div class="upload-sub">Your file stays in the browser—load JSON or JSONL reports locally.</div>
-          <input type="file" id="file-input" hidden accept=".json,.jsonl">
+          <div class="upload-text">Load one or more reports</div>
+          <div class="upload-sub">Drop files anywhere in this card, or click to choose them from disk.</div>
+          <div class="upload-action-row">
+            <span class="upload-primary">Choose Reports</span>
+            <span class="upload-action-hint">JSON and JSONL only</span>
+          </div>
+          <input type="file" id="file-input" hidden accept=".json,.jsonl" multiple>
+        </div>
+        <div class="upload-help-grid">
+          <div class="upload-help-card">
+            <div class="upload-help-label">Formats</div>
+            <div class="upload-help-text"><strong>Kingfisher</strong> JSON/JSONL, <strong>Gitleaks</strong> JSON, and <strong>TruffleHog</strong> JSON/JSONL.</div>
+          </div>
+          <div class="upload-help-card">
+            <div class="upload-help-label">Merge More</div>
+            <div class="upload-help-text">Choose multiple files at once, or drag in more report files after loading to merge them into the same view.</div>
+          </div>
+          <div class="upload-help-card">
+            <div class="upload-help-label">Deduplication</div>
+            <div class="upload-help-text"><strong>Kingfisher</strong> reports are already deduplicated. For imported <strong>Gitleaks</strong> and <strong>TruffleHog</strong> reports, the viewer attempts deduplication by finding fingerprint: native fingerprints when present, otherwise a synthetic fingerprint built from the tool, detector, and secret identity, with path/line/snippet fallback when needed.</div>
+          </div>
+          <div class="upload-help-card">
+            <div class="upload-help-label">Privacy</div>
+            <div class="upload-help-text">Everything stays in your browser. Files are not uploaded anywhere.</div>
+          </div>
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
       </div>
@@ -1269,53 +1835,118 @@
     <div id="dashboard" class="hidden">
       <div class="layout">
         <aside class="sidebar">
-          <div class="nav-group">
-            <button class="nav-button active" data-view-target="view-dashboard">
-              <span class="nav-icon">📊</span>
-              Dashboard
-            </button>
-            <button class="nav-button" data-view-target="view-access">
-              <span class="nav-icon">🕸️</span>
-              Access Map
-            </button>
-            <button class="nav-button" data-view-target="view-findings">
-              <span class="nav-icon">📄</span>
-              Findings
-            </button>
-          </div>
-          <div class="report-type-group">
-            <label>For Researchers</label>
-            <button class="btn" id="download-risk-report" type="button" style="width:100%;">Risk Report</button>
-            <label style="display:flex; align-items:center; gap:6px; font-size:12px; text-transform:none; letter-spacing:normal; color:var(--text-main); cursor:pointer; margin-top:2px;">
-              <input type="checkbox" id="risk-active-only"> Active credentials only
-            </label>
-            <div style="font-size:11px; color:var(--text-muted); line-height:1.4;">Findings + blast radius per credential. Suitable for bug bounty submissions.</div>
-          </div>
-          <div class="report-type-group">
-            <label>For Defenders</label>
-            <button class="btn" id="download-scan-report" type="button" style="width:100%;">Scan Report</button>
-            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
-              <select id="report-scope" class="rows-select">
-                <option value="all" selected>All findings</option>
-                <option value="filtered">Filtered findings</option>
-              </select>
+          <div class="sidebar-nav">
+            <div class="sidebar-section-label">Navigate</div>
+            <div class="nav-group">
+              <button class="nav-button active" data-view-target="view-dashboard" title="Dashboard">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 19h16"></path>
+                    <path d="M7 16V10"></path>
+                    <path d="M12 16V6"></path>
+                    <path d="M17 16v-4"></path>
+                  </svg>
+                </span>
+                <span class="nav-button__content">
+                  <span class="nav-button__title">Dashboard</span>
+                  <span class="nav-button__sub">Overview and report mix</span>
+                </span>
+              </button>
+              <button class="nav-button" data-view-target="view-access" title="Access Map">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="8"></circle>
+                    <path d="M4 12h16"></path>
+                    <path d="M12 4a12 12 0 0 1 0 16"></path>
+                    <path d="M12 4a12 12 0 0 0 0 16"></path>
+                  </svg>
+                </span>
+                <span class="nav-button__content">
+                  <span class="nav-button__title">Access Map</span>
+                  <span class="nav-button__sub">Identity reach and permissions</span>
+                </span>
+              </button>
+              <button class="nav-button" data-view-target="view-findings" title="Findings">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M8 3h6l4 4v14H8z"></path>
+                    <path d="M14 3v5h4"></path>
+                    <path d="M10 12h6"></path>
+                    <path d="M10 16h6"></path>
+                  </svg>
+                </span>
+                <span class="nav-button__content">
+                  <span class="nav-button__title">Findings</span>
+                  <span class="nav-button__sub">Browse detections and details</span>
+                </span>
+              </button>
             </div>
-            <label style="display:flex; align-items:center; gap:6px; font-size:12px; text-transform:none; letter-spacing:normal; color:var(--text-main); cursor:pointer;">
-              <input type="checkbox" id="scan-active-only"> Active credentials only
-            </label>
-            <div style="font-size:11px; color:var(--text-muted); line-height:1.4;">Scan summary for tickets and remediation tracking.</div>
-            <button class="btn" id="download-access-report" type="button" style="width:100%; margin-top:4px;" disabled>Access Map Report</button>
           </div>
         </aside>
 
         <div class="view-stack">
+          <section class="workspace-topbar">
+            <div class="workspace-overview">
+              <div class="workspace-overview__eyebrow">Report overview</div>
+              <div class="workspace-overview__header">
+                <div>
+                  <div class="workspace-overview__title" id="sidebar-summary-source">No report loaded</div>
+                  <div class="workspace-overview__meta" id="sidebar-summary-target">Load a report to explore findings and blast radius.</div>
+                </div>
+                <div class="workspace-pill">Access map: <span id="sidebar-summary-access">No</span></div>
+              </div>
+              <div class="workspace-overview__stats">
+                <div class="workspace-overview__stat">
+                  <div class="workspace-overview__value" id="sidebar-summary-total">0</div>
+                  <div class="workspace-overview__label">Findings</div>
+                </div>
+                <div class="workspace-overview__stat">
+                  <div class="workspace-overview__value" id="sidebar-summary-active">0</div>
+                  <div class="workspace-overview__label">Active</div>
+                </div>
+                <div class="workspace-overview__stat">
+                  <div class="workspace-overview__value" id="sidebar-summary-identities">0</div>
+                  <div class="workspace-overview__label">Identities</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="workspace-actions">
+              <div class="report-type-group">
+                <label>For Researchers</label>
+                <button class="btn" id="download-risk-report" type="button" style="width:100%;">Risk Report</button>
+                <label class="sidebar-check">
+                  <input type="checkbox" id="risk-active-only"> Active credentials only
+                </label>
+                <div class="sidebar-help">Findings + blast radius per credential. Suitable for bug bounty submissions.</div>
+              </div>
+              <div class="report-type-group">
+                <label>For Defenders</label>
+                <button class="btn" id="download-scan-report" type="button" style="width:100%;">Scan Report</button>
+                <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+                  <select id="report-scope" class="rows-select">
+                    <option value="all" selected>All findings</option>
+                    <option value="filtered">Filtered findings</option>
+                  </select>
+                </div>
+                <label class="sidebar-check">
+                  <input type="checkbox" id="scan-active-only"> Active credentials only
+                </label>
+                <div class="sidebar-help">Scan summary for tickets and remediation tracking.</div>
+                <button class="btn" id="download-access-report" type="button" style="width:100%; margin-top:4px;" disabled>Access Map Report</button>
+              </div>
+            </div>
+          </section>
+
           <section id="view-dashboard" class="view">
             <div id="scan-meta-section" class="scan-meta-bar hidden">
               <div class="scan-meta-item"><strong>Report Generated:</strong> <span id="meta-timestamp">—</span></div>
               <div class="scan-meta-item" id="meta-target-wrap" style="display:none;"><strong>Target:</strong> <span id="meta-target">—</span></div>
               <div class="scan-meta-item" id="meta-duration-wrap" style="display:none;"><strong>Duration:</strong> <span id="meta-duration">—</span></div>
+              <div class="scan-meta-item" id="meta-source-wrap" style="display:none;"><strong>Source:</strong> <span id="meta-source">—</span></div>
               <div class="scan-meta-item" id="meta-version-wrap" style="display:none;"><strong>Version:</strong> <span id="meta-version">—</span></div>
             </div>
+            <div id="import-note" class="hidden" style="margin-bottom:18px; padding:14px 16px; border-radius:10px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; font-size:13px; line-height:1.6;"></div>
             <section class="panel">
               <div class="metrics-grid">
                 <div class="metric">
@@ -1341,7 +1972,7 @@
               <div class="panel__header">
                 <div class="panel__title">
                   <h3>Finding Status Distribution</h3>
-                  <p>Active vs Inactive vs Not Attempted</p>
+                  <p>Validation state and report source mix</p>
                 </div>
               </div>
               <div class="chart-grid">
@@ -1350,6 +1981,55 @@
                   <div class="chart-legend" id="status-legend">
                     <!-- filled by JS -->
                   </div>
+                </div>
+                <div class="chart-card">
+                  <canvas id="source-chart" width="260" height="220"></canvas>
+                  <div class="chart-legend" id="source-legend">
+                    <!-- filled by JS -->
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Detector Families</h3>
+                  <p>Collapsed Kingfisher rule families plus imported detector names</p>
+                </div>
+              </div>
+              <div class="dashboard-breakdown" style="margin-bottom: 18px;">
+                <div class="breakdown-card">
+                  <div class="breakdown-header">
+                    <div>
+                      <div class="breakdown-title">Detector distribution by source</div>
+                      <div class="breakdown-sub">Top detector families for each loaded tool, grouped into a chart per source.</div>
+                    </div>
+                  </div>
+                  <div class="chart-grid" id="source-detector-charts">
+                    <!-- filled by JS -->
+                  </div>
+                </div>
+              </div>
+              <div class="dashboard-breakdown">
+                <div class="breakdown-card">
+                  <div class="breakdown-header">
+                    <div>
+                      <div class="breakdown-title">Most frequent findings</div>
+                      <div class="breakdown-sub">Use this to spot the noisiest rule families and imported detectors quickly.</div>
+                    </div>
+                    <div class="breakdown-controls">
+                      <div class="pager">
+                        <button id="detector-breakdown-prev" class="pager-btn" type="button">&lsaquo;</button>
+                        <span id="detector-breakdown-page-info">0 of 0</span>
+                        <button id="detector-breakdown-next" class="pager-btn" type="button">&rsaquo;</button>
+                      </div>
+                      <label class="breakdown-toggle" for="detector-breakdown-active-only">
+                        <input id="detector-breakdown-active-only" type="checkbox">
+                        <span>Active only</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div id="detector-breakdown"></div>
                 </div>
               </div>
             </section>
@@ -1392,11 +2072,18 @@
                   <button class="btn" id="download-json" type="button">Download JSON</button>
                   <button class="btn" id="download-csv" type="button">Export CSV</button>
                   <input type="text" id="search-input" class="search-input" placeholder="Search rule, path, snippet">
+                  <select id="source-filter" class="rows-select">
+                    <option value="all" selected>All sources</option>
+                    <option value="kingfisher">Kingfisher</option>
+                    <option value="gitleaks">Gitleaks</option>
+                    <option value="trufflehog">TruffleHog</option>
+                  </select>
                   <select id="validation-filter" class="rows-select">
                     <option value="all" selected>All validation states</option>
                     <option value="active">Active Credential</option>
                     <option value="inactive">Inactive Credential</option>
                     <option value="not_attempted">Not Attempted</option>
+                    <option value="canary">Canary Token (Skipped)</option>
                   </select>
                   <span class="rows-label">Rows</span>
                   <select id="rows-select" class="rows-select">
@@ -1465,6 +2152,10 @@
                     <div id="fd-validation-status"></div>
                   </div>
                   <div class="detail-field">
+                    <label>Report Source</label>
+                    <div id="fd-source"></div>
+                  </div>
+                  <div class="detail-field">
                     <label>Git Commit</label>
                     <div id="fd-commit"></div>
                   </div>
@@ -1486,6 +2177,8 @@
                   Match Snippet
                 </label>
                 <div class="snippet-box" id="fd-snippet"></div>
+
+                <div id="fd-import-note" class="hidden" style="margin:14px 0 0; padding:12px 14px; border-radius:8px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; font-size:12px; line-height:1.6;"></div>
 
                 <div id="fd-validation-box" class="hidden">
                   <label>Live Validation Response</label>
@@ -1550,10 +2243,15 @@
     let filteredAccessMapView = [];
     let currentFilter = "";
     let validationFilter = "all";
+    let sourceFilter = "all";
     let pageSize = 10;
     let currentPage = 1;
     let sortField = "rule";
     let sortDirection = "asc";
+    let detectorBreakdownSortField = "count";
+    let detectorBreakdownSortDirection = "desc";
+    let detectorBreakdownActiveOnly = false;
+    let detectorBreakdownPage = 1;
     let autoCollapsedAccessMap = false;
     let currentDetailFinding = null;
     let scanMetadata = {};
@@ -1570,8 +2268,14 @@
     const reportScopeSelect = document.getElementById("report-scope");
     const downloadAccessReportBtn = document.getElementById("download-access-report");
     const exportFindingRiskBtn = document.getElementById("fd-export-risk-report");
+    const sourceDetectorCharts = document.getElementById("source-detector-charts");
+    const detectorBreakdownActiveOnlyToggle = document.getElementById("detector-breakdown-active-only");
+    const detectorBreakdownPrev = document.getElementById("detector-breakdown-prev");
+    const detectorBreakdownNext = document.getElementById("detector-breakdown-next");
+    const detectorBreakdownPageInfo = document.getElementById("detector-breakdown-page-info");
 
     const searchInput = document.getElementById("search-input");
+    const sourceSelect = document.getElementById("source-filter");
     const validationSelect = document.getElementById("validation-filter");
     const rowsSelect = document.getElementById("rows-select");
     const pagePrev = document.getElementById("page-prev");
@@ -1591,6 +2295,9 @@
     const navButtons = document.querySelectorAll("[data-view-target]");
     const statusChartCanvas = document.getElementById("status-chart");
     const statusLegend = document.getElementById("status-legend");
+    const sourceChartCanvas = document.getElementById("source-chart");
+    const sourceLegend = document.getElementById("source-legend");
+    const detectorBreakdown = document.getElementById("detector-breakdown");
     const viewRegistry = {
       "view-dashboard": document.getElementById("view-dashboard"),
       "view-access": document.getElementById("view-access"),
@@ -1609,9 +2316,20 @@
 
     setTheme(localStorage.getItem(THEME_KEY));
 
-    dropZone.addEventListener("click", () => fileInput.click());
+    function hasLoadedReportData() {
+      return findings.length > 0 || accessMap.length > 0 || rawData !== null;
+    }
+
+    function openReplaceFilePicker() {
+      fileInput.value = "";
+      fileInput.click();
+    }
+
+    dropZone.addEventListener("click", () => openReplaceFilePicker());
     fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length) processFile(e.target.files[0]);
+      if (e.target.files.length) {
+        processFiles(Array.from(e.target.files), { append: false });
+      }
     });
     dropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -1624,7 +2342,9 @@
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dropZone.classList.remove("active");
-      if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) {
+        processFiles(Array.from(e.dataTransfer.files), { append: hasLoadedReportData() });
+      }
     });
 
     navButtons.forEach((btn) => {
@@ -1635,7 +2355,7 @@
 
     resetButton.addEventListener("click", () => {
       const confirmReset = confirm(
-        "Loading a new report will clear the currently loaded data (your file stays on disk). Continue?",
+        "Clearing and loading a new report will discard the currently loaded data from the viewer (your files stay on disk). Continue?",
       );
 
       if (confirmReset) {
@@ -1654,6 +2374,36 @@
       currentPage = 1;
       renderFindingsTable();
     });
+
+    sourceSelect.addEventListener("change", (e) => {
+      sourceFilter = e.target.value || "all";
+      currentPage = 1;
+      renderFindingsTable();
+    });
+
+    if (detectorBreakdownActiveOnlyToggle) {
+      detectorBreakdownActiveOnlyToggle.addEventListener("change", (e) => {
+        detectorBreakdownActiveOnly = Boolean(e.target.checked);
+        detectorBreakdownPage = 1;
+        renderDetectorBreakdown();
+      });
+    }
+
+    if (detectorBreakdownPrev) {
+      detectorBreakdownPrev.addEventListener("click", () => {
+        if (detectorBreakdownPage > 1) {
+          detectorBreakdownPage--;
+          renderDetectorBreakdown();
+        }
+      });
+    }
+
+    if (detectorBreakdownNext) {
+      detectorBreakdownNext.addEventListener("click", () => {
+        detectorBreakdownPage++;
+        renderDetectorBreakdown();
+      });
+    }
 
     rowsSelect.addEventListener("change", (e) => {
       pageSize = parseInt(e.target.value, 10) || 10;
@@ -1773,6 +2523,7 @@
       if (amToggle) amToggle.disabled = !hasAccess;
       if (downloadAccessReportBtn) downloadAccessReportBtn.disabled = !hasAccess;
       if (amEmptyNotice) {
+        amEmptyNotice.innerHTML = getAccessMapEmptyMessage();
         amEmptyNotice.classList.toggle("hidden", hasAccess);
       }
 
@@ -1859,25 +2610,482 @@
       return { findings, accessMap, mainReport, statsReport };
     }
 
-    function processFile(file) {
-      loaderText.textContent = 'Processing "' + file.name + '"…';
+    function firstNonEmpty() {
+      for (let i = 0; i < arguments.length; i++) {
+        const value = arguments[i];
+        if (value === undefined || value === null) continue;
+        if (typeof value === "string" && value.trim() === "") continue;
+        return value;
+      }
+      return "";
+    }
+
+    function toArray(value) {
+      if (Array.isArray(value)) return value;
+      if (value === undefined || value === null || value === "") return [];
+      return [value];
+    }
+
+    function toNumberOrNull(value) {
+      if (value === undefined || value === null || value === "") return null;
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function slugifyIdentifier(value, fallback = "unknown") {
+      const slug = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return slug || fallback;
+    }
+
+    function stableHash53(input) {
+      const text = String(input || "");
+      let h1 = 0xdeadbeef ^ text.length;
+      let h2 = 0x41c6ce57 ^ text.length;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return String(4294967296 * (2097151 & h2) + (h1 >>> 0));
+    }
+
+    function buildSyntheticFingerprint(sourceTool, parts) {
+      return stableHash53([sourceTool].concat(parts || []).map((part) => String(part || "")).join("\u241f"));
+    }
+
+    function findDeepValue(input, candidateKeys, depth = 0) {
+      if (depth > 6 || input === undefined || input === null) return undefined;
+      const keySet = new Set((candidateKeys || []).map((key) => String(key).toLowerCase()));
+
+      if (Array.isArray(input)) {
+        for (const item of input) {
+          const found = findDeepValue(item, candidateKeys, depth + 1);
+          if (found !== undefined && found !== null && found !== "") return found;
+        }
+        return undefined;
+      }
+
+      if (typeof input !== "object") return undefined;
+
+      for (const [key, value] of Object.entries(input)) {
+        if (keySet.has(String(key).toLowerCase()) && value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+
+      for (const value of Object.values(input)) {
+        const found = findDeepValue(value, candidateKeys, depth + 1);
+        if (found !== undefined && found !== null && found !== "") return found;
+      }
+
+      return undefined;
+    }
+
+    function isHttpUrl(value) {
+      return typeof value === "string" && /^https?:\/\//i.test(value);
+    }
+
+    function buildViewerImportMetadata(toolName, options = {}) {
+      return {
+        imported: Boolean(options.imported),
+        tools: Array.isArray(options.tools) && options.tools.length ? options.tools : [toolName],
+        access_map_supported: options.accessMapSupported !== false,
+        validate_command_supported: options.validateCommandSupported !== false,
+        revoke_command_supported: options.revokeCommandSupported !== false,
+        notes: Array.isArray(options.notes) ? options.notes.slice() : [],
+      };
+    }
+
+    function mergeViewerImportMetadata(baseMeta, incomingMeta) {
+      const base = baseMeta && typeof baseMeta === "object" ? baseMeta : buildViewerImportMetadata("Kingfisher", {});
+      const incoming = incomingMeta && typeof incomingMeta === "object" ? incomingMeta : buildViewerImportMetadata("Kingfisher", {});
+      const mergedTools = [...new Set(toArray(base.tools).concat(toArray(incoming.tools)).map((tool) => String(tool)).filter(Boolean))];
+      const mergedNotes = [...new Set(toArray(base.notes).concat(toArray(incoming.notes)).map((note) => String(note)).filter(Boolean))];
+      return {
+        imported: Boolean(base.imported || incoming.imported),
+        tools: mergedTools.length ? mergedTools : ["Kingfisher"],
+        access_map_supported: Boolean(base.access_map_supported && incoming.access_map_supported),
+        validate_command_supported: Boolean(base.validate_command_supported && incoming.validate_command_supported),
+        revoke_command_supported: Boolean(base.revoke_command_supported && incoming.revoke_command_supported),
+        notes: mergedNotes,
+      };
+    }
+
+    function detectReportFormat(payload) {
+      const stack = Array.isArray(payload) ? payload.slice() : [payload];
+      while (stack.length > 0) {
+        const item = stack.shift();
+        if (!item || typeof item !== "object") continue;
+
+        if (Array.isArray(item.results)) {
+          stack.unshift(...item.results);
+          continue;
+        }
+
+        if (Array.isArray(item.findings) || Array.isArray(item.access_map) || (item.rule && item.finding) || (item.provider && item.account)) {
+          return "kingfisher";
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(item, "DetectorName") ||
+          Object.prototype.hasOwnProperty.call(item, "Verified") ||
+          Object.prototype.hasOwnProperty.call(item, "Raw") ||
+          Object.prototype.hasOwnProperty.call(item, "RawV2") ||
+          Object.prototype.hasOwnProperty.call(item, "Redacted")
+        ) {
+          return "trufflehog";
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(item, "RuleID") ||
+          Object.prototype.hasOwnProperty.call(item, "File") ||
+          Object.prototype.hasOwnProperty.call(item, "StartLine") ||
+          Object.prototype.hasOwnProperty.call(item, "Secret") ||
+          Object.prototype.hasOwnProperty.call(item, "Match")
+        ) {
+          return "gitleaks";
+        }
+      }
+
+      return "kingfisher";
+    }
+
+    function unwrapImportedEntries(payload, format) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && typeof payload === "object") {
+        if (format === "trufflehog" && Array.isArray(payload.results)) return payload.results;
+        if (format === "gitleaks" && Array.isArray(payload.results)) return payload.results;
+      }
+      return payload ? [payload] : [];
+    }
+
+    function buildGitMetadata(commitId, email, fileUrl) {
+      const gitMetadata = {};
+      if (commitId || email) {
+        gitMetadata.commit = {};
+        if (commitId) gitMetadata.commit.id = String(commitId);
+        if (email) gitMetadata.commit.committer = { email: String(email) };
+      }
+      if (fileUrl) {
+        gitMetadata.file = { url: String(fileUrl) };
+      }
+      return Object.keys(gitMetadata).length ? gitMetadata : null;
+    }
+
+    function buildImportedSummary(toolName, normalizedFindings) {
+      const counts = calculateValidationCounts(normalizedFindings.map((entry) => ({
+        finding: entry.finding,
+      })));
+      return {
+        findings: normalizedFindings.length,
+        active_findings: counts.active || 0,
+        inactive_findings: counts.inactive || 0,
+        unknown_validation_findings: counts.unknown || 0,
+        access_map_identities: 0,
+        confidence_level: toolName === "Gitleaks" ? "imported" : "imported",
+        custom_rules_used: false,
+        successful_validations: counts.active || 0,
+        failed_validations: counts.inactive || 0,
+        skipped_validations: counts.not_attempted || 0,
+      };
+    }
+
+    function normalizeGitleaksFinding(item) {
+      if (!item || typeof item !== "object") return null;
+      const ruleId = String(firstNonEmpty(item.RuleID, item.ruleID, item.RuleId, item.Rule) || "imported.gitleaks.unknown");
+      const description = String(firstNonEmpty(item.Description, item.description, item.RuleID, item.Rule) || ruleId);
+      const path = String(firstNonEmpty(item.File, item.file, item.SymlinkFile, item.symlinkFile) || "");
+      const line = toNumberOrNull(firstNonEmpty(item.StartLine, item.startLine, item.lineNumber));
+      const columnStart = toNumberOrNull(firstNonEmpty(item.StartColumn, item.startColumn));
+      const columnEnd = toNumberOrNull(firstNonEmpty(item.EndColumn, item.endColumn));
+      const snippet = String(firstNonEmpty(item.Secret, item.secret, item.Match, item.match, item.line, description) || "");
+      const entropy = firstNonEmpty(item.Entropy, item.entropy, item.OffenderEntropy, item.offenderEntropy);
+      const secretIdentity = String(firstNonEmpty(item.Secret, item.secret, item.Match, item.match) || "");
+      const fingerprint = String(
+        firstNonEmpty(item.Fingerprint, item.fingerprint) ||
+        (secretIdentity
+          ? buildSyntheticFingerprint("gitleaks", [ruleId, secretIdentity])
+          : buildSyntheticFingerprint("gitleaks", [ruleId, path, line, columnStart, snippet]))
+      );
+      const gitMetadata = buildGitMetadata(
+        firstNonEmpty(item.Commit, item.commit),
+        firstNonEmpty(item.Email, item.email),
+        firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url)
+      );
+
+      return {
+        rule: {
+          id: "imported.gitleaks." + slugifyIdentifier(ruleId),
+          name: description,
+        },
+        finding: {
+          snippet,
+          fingerprint,
+          confidence: "medium",
+          entropy: entropy !== "" ? String(entropy) : "",
+          validation: {
+            status: "Not Attempted",
+            response: "",
+          },
+          language: "Imported",
+          line,
+          column_start: columnStart,
+          column_end: columnEnd,
+          path,
+          git_metadata: gitMetadata,
+          viewer_import: {
+            source_tool: "Gitleaks",
+            source_rule_id: ruleId,
+            source_rule_name: description,
+          },
+        },
+      };
+    }
+
+    function normalizeTruffleHogFinding(item) {
+      if (!item || typeof item !== "object") return null;
+      const detectorName = String(firstNonEmpty(item.DetectorName, item.detectorName, item.DetectorDescription, item.detectorDescription) || "Unknown Detector");
+      const detectorDescription = String(firstNonEmpty(item.DetectorDescription, item.detectorDescription, detectorName) || detectorName);
+      const sourceMetadata = item.SourceMetadata || item.sourceMetadata || {};
+      const path = String(firstNonEmpty(
+        findDeepValue(sourceMetadata, ["file", "path", "filename"]),
+        item.File,
+        item.file
+      ) || "");
+      const line = toNumberOrNull(firstNonEmpty(
+        findDeepValue(sourceMetadata, ["line", "line_number", "linenumber", "startline"]),
+        item.Line,
+        item.line
+      ));
+      const sourceUrl = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["url", "link", "htmlurl", "html_url", "rawurl", "raw_url"]),
+        item.Url,
+        item.url
+      );
+      const commitId = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["commit", "commitid", "hash", "sha"]),
+        item.Commit,
+        item.commit
+      );
+      const email = firstNonEmpty(
+        findDeepValue(sourceMetadata, ["email", "authoremail", "committeremail"]),
+        item.Email,
+        item.email
+      );
+      const snippet = String(firstNonEmpty(item.Redacted, item.redacted, item.RawV2, item.rawV2, item.Raw, item.raw, detectorDescription) || "");
+      const secretIdentity = String(firstNonEmpty(item.RawV2, item.rawV2, item.Raw, item.raw, item.Redacted, item.redacted) || "");
+      const fingerprint = String(
+        firstNonEmpty(item.Fingerprint, item.fingerprint) ||
+        (secretIdentity
+          ? buildSyntheticFingerprint("trufflehog", [detectorName, secretIdentity])
+          : buildSyntheticFingerprint("trufflehog", [detectorName, path, line, snippet]))
+      );
+      const verified = Boolean(item.Verified);
+      const verificationError = String(firstNonEmpty(item.VerificationError, item.verificationError) || "");
+      const gitMetadata = buildGitMetadata(commitId, email, isHttpUrl(sourceUrl) ? sourceUrl : "");
+
+      return {
+        rule: {
+          id: "imported.trufflehog." + slugifyIdentifier(detectorName),
+          name: detectorName,
+        },
+        finding: {
+          snippet,
+          fingerprint,
+          confidence: verified ? "high" : "medium",
+          entropy: "",
+          validation: {
+            status: verified ? "Active Credential" : "Not Attempted",
+            response: verificationError,
+          },
+          language: "Imported",
+          line,
+          column_start: null,
+          column_end: null,
+          path,
+          git_metadata: gitMetadata,
+          viewer_import: {
+            source_tool: "TruffleHog",
+            source_rule_id: detectorName,
+            source_rule_name: detectorName,
+            source_rule_description: detectorDescription,
+          },
+        },
+      };
+    }
+
+    function normalizeImportedPayload(payload, toolName) {
+      const format = toolName === "TruffleHog" ? "trufflehog" : "gitleaks";
+      const entries = unwrapImportedEntries(payload, format);
+      const normalizedFindings = entries
+        .map((item) => format === "trufflehog" ? normalizeTruffleHogFinding(item) : normalizeGitleaksFinding(item))
+        .filter(Boolean);
+      const firstEntry = entries.find((item) => item && typeof item === "object") || {};
+      const notes = toolName === "TruffleHog"
+        ? [
+            "Imported from TruffleHog JSON. Native Kingfisher reports are already deduplicated; for TruffleHog imports, the viewer attempts deduplication by finding fingerprint, preferring detector plus secret identity and falling back to path, line, and snippet when needed. Only findings TruffleHog marked verified are shown as active credentials; all other findings stay in Not Attempted.",
+            "Imported reports do not include Kingfisher access-map data, validate commands, or revoke commands. Re-scan with Kingfisher and --access-map for full enrichment.",
+          ]
+        : [
+            "Imported from Gitleaks JSON. Native Kingfisher reports are already deduplicated; for Gitleaks imports, the viewer attempts deduplication by finding fingerprint, preferring rule plus secret identity and falling back to path, line, column, and snippet when needed.",
+            "Re-scan with Kingfisher and --access-map to add validation context and blast-radius mapping.",
+          ];
+      const target = String(firstNonEmpty(
+        firstEntry.SourceName,
+        firstEntry.sourceName,
+        firstEntry.Repo,
+        firstEntry.repo,
+        firstEntry.Repository,
+        firstEntry.repository
+      ) || "");
+
+      return {
+        f: normalizedFindings,
+        am: [],
+        rd: {
+          findings: normalizedFindings,
+          access_map: [],
+          metadata: {
+            generated_at: new Date().toISOString(),
+            scan_timestamp: new Date().toISOString(),
+            target,
+            kingfisher_version: "",
+            summary: buildImportedSummary(toolName, normalizedFindings),
+            viewer_import: buildViewerImportMetadata(toolName, {
+              imported: true,
+              accessMapSupported: false,
+              validateCommandSupported: false,
+              revokeCommandSupported: false,
+              notes,
+            }),
+          },
+        },
+      };
+    }
+
+    function normalizeKingfisherPayload(payload) {
+      const collected = collectReportData(payload);
+      const rd = collected.mainReport || collected.statsReport
+        ? Object.assign({}, collected.mainReport || {}, collected.statsReport || {})
+        : {};
+      rd.metadata = Object.assign({}, rd.metadata || {});
+      rd.metadata.viewer_import = mergeViewerImportMetadata(
+        buildViewerImportMetadata("Kingfisher", {
+          imported: false,
+          accessMapSupported: true,
+          validateCommandSupported: true,
+          revokeCommandSupported: true,
+          notes: [],
+        }),
+        rd.metadata.viewer_import
+      );
+      return { f: collected.findings, am: collected.accessMap, rd };
+    }
+
+    function normalizeReportPayload(payload) {
+      const format = detectReportFormat(payload);
+      if (format === "trufflehog") {
+        return normalizeImportedPayload(payload, "TruffleHog");
+      }
+      if (format === "gitleaks") {
+        return normalizeImportedPayload(payload, "Gitleaks");
+      }
+      return normalizeKingfisherPayload(payload);
+    }
+
+    function mergeRawReportData(base, incoming) {
+      if (!base) return incoming || null;
+      if (!incoming) return base;
+
+      const merged = Object.assign({}, base, incoming);
+      merged.metadata = Object.assign({}, base.metadata || {}, incoming.metadata || {});
+      merged.metadata.viewer_import = mergeViewerImportMetadata(
+        base.metadata && base.metadata.viewer_import,
+        incoming.metadata && incoming.metadata.viewer_import
+      );
+
+      if (!merged.metadata.target) {
+        merged.metadata.target = firstNonEmpty(base.metadata && base.metadata.target, incoming.metadata && incoming.metadata.target) || "";
+      }
+      if (!merged.metadata.scan_timestamp) {
+        merged.metadata.scan_timestamp = firstNonEmpty(base.metadata && base.metadata.scan_timestamp, incoming.metadata && incoming.metadata.scan_timestamp) || new Date().toISOString();
+      }
+      if (!merged.metadata.generated_at) {
+        merged.metadata.generated_at = firstNonEmpty(base.metadata && base.metadata.generated_at, incoming.metadata && incoming.metadata.generated_at) || new Date().toISOString();
+      }
+
+      return merged;
+    }
+
+    function processFiles(files, { append = false } = {}) {
+      const validFiles = files.filter((f) => {
+        const name = f.name.toLowerCase();
+        return name.endsWith(".json") || name.endsWith(".jsonl");
+      });
+
+      if (validFiles.length === 0) {
+        errorMsg.textContent = "No JSON or JSONL files found in the selection.";
+        errorMsg.classList.remove("hidden");
+        return;
+      }
+
+      const label = validFiles.length === 1
+        ? (append ? 'Importing "' + validFiles[0].name + '"…' : 'Processing "' + validFiles[0].name + '"…')
+        : (append ? "Importing " + validFiles.length + " additional files…" : "Processing " + validFiles.length + " files…");
+      loaderText.textContent = label;
       loader.classList.remove("hidden");
       errorMsg.classList.add("hidden");
       errorMsg.textContent = "";
 
       setTimeout(() => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            parseAndRender(e.target.result);
-          } catch (err) {
-            console.error(err);
-            errorMsg.textContent = "Error parsing file: " + err.message;
-            errorMsg.classList.remove("hidden");
-            loader.classList.add("hidden");
-          }
-        };
-        reader.readAsText(file);
+        let completed = 0;
+        const texts = new Array(validFiles.length);
+
+        validFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            texts[idx] = e.target.result;
+            completed++;
+            if (completed === validFiles.length) {
+              try {
+                parseAndRenderMultiple(texts, { append });
+              } catch (err) {
+                console.error(err);
+                errorMsg.textContent = "Error parsing files: " + err.message;
+                errorMsg.classList.remove("hidden");
+                loader.classList.add("hidden");
+              }
+            }
+          };
+          reader.onerror = () => {
+            texts[idx] = null;
+            completed++;
+            if (completed === validFiles.length) {
+              const validTexts = texts.filter(Boolean);
+              if (validTexts.length === 0) {
+                errorMsg.textContent = "Failed to read any files.";
+                errorMsg.classList.remove("hidden");
+                loader.classList.add("hidden");
+              } else {
+                try {
+                  parseAndRenderMultiple(validTexts, { append });
+                } catch (err) {
+                  console.error(err);
+                  errorMsg.textContent = "Error parsing files: " + err.message;
+                  errorMsg.classList.remove("hidden");
+                  loader.classList.add("hidden");
+                }
+              }
+            }
+          };
+          reader.readAsText(file);
+        });
       }, 30);
     }
 
@@ -1915,15 +3123,20 @@
 
       currentFilter = "";
       validationFilter = "all";
+      sourceFilter = "all";
       pageSize = 10;
       currentPage = 1;
       sortField = "rule";
       sortDirection = "asc";
+      detectorBreakdownActiveOnly = false;
+      detectorBreakdownPage = 1;
 
       searchInput.value = "";
       validationSelect.value = "all";
+      sourceSelect.value = "all";
       rowsSelect.value = "10";
       treeSearch.value = "";
+      if (detectorBreakdownActiveOnlyToggle) detectorBreakdownActiveOnlyToggle.checked = false;
 
       setAccessMapCollapsed(true, { auto: true });
       if (amToggle) amToggle.disabled = true;
@@ -1937,6 +3150,11 @@
 
       const scanMetaSection = document.getElementById("scan-meta-section");
       if (scanMetaSection) scanMetaSection.classList.add("hidden");
+      const importNote = document.getElementById("import-note");
+      if (importNote) {
+        importNote.classList.add("hidden");
+        importNote.innerHTML = "";
+      }
       const blastSection = document.getElementById("fd-blast-radius");
       if (blastSection) blastSection.classList.add("hidden");
       const findingDetail = document.getElementById("finding-detail");
@@ -1955,8 +3173,32 @@
       fileInput.value = "";
 
       if (promptFilePicker) {
-        fileInput.click();
+        openReplaceFilePicker();
       }
+    }
+
+    function parseAndRenderMultiple(texts, { append = false } = {}) {
+      const t0 = performance.now();
+      const nextFindings = append ? findings.slice() : [];
+      const nextAccessMap = append ? accessMap.slice() : [];
+      let nextRawData = append ? rawData : null;
+
+      for (let i = 0; i < texts.length; i++) {
+        const text = texts[i];
+        if (!text) continue;
+        const { f, am, rd } = parseSingleText(text);
+        nextFindings.push(...f);
+        nextAccessMap.push(...am);
+        nextRawData = mergeRawReportData(nextRawData, rd);
+      }
+
+      // Deduplicate findings by fingerprint
+      findings = deduplicateFindings(nextFindings);
+      // Deduplicate access map entries by fingerprint
+      accessMap = deduplicateAccessMap(nextAccessMap);
+      rawData = nextRawData;
+
+      finalizeRender(t0);
     }
 
     function parseAndRender(text) {
@@ -1965,6 +3207,15 @@
       accessMap = [];
       rawData = null;
 
+      const { f, am, rd } = parseSingleText(text);
+      findings = deduplicateFindings(f);
+      accessMap = deduplicateAccessMap(am);
+      rawData = rd;
+
+      finalizeRender(t0);
+    }
+
+    function parseSingleText(text) {
       let parsed = parsePossiblyMultiJson(text);
 
       if (parsed === null) {
@@ -1981,27 +3232,44 @@
             console.warn("Skipping invalid JSON line", i);
           }
         }
-
-        const collected = collectReportData(entries);
-        findings = collected.findings;
-        accessMap = collected.accessMap;
-        if (collected.mainReport || collected.statsReport) {
-          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
-        }
-      } else {
-        const collected = collectReportData(parsed);
-        findings = collected.findings;
-        accessMap = collected.accessMap;
-        if (collected.mainReport || collected.statsReport || parsed) {
-          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
-        }
+        return normalizeReportPayload(entries);
       }
 
+      return normalizeReportPayload(parsed);
+    }
+
+    function deduplicateFindings(list) {
+      const seen = new Set();
+      const result = [];
+      for (const f of list) {
+        const fp = f.finding && f.finding.fingerprint ? f.finding.fingerprint : "";
+        if (fp && seen.has(fp)) continue;
+        if (fp) seen.add(fp);
+        result.push(f);
+      }
+      return result;
+    }
+
+    function deduplicateAccessMap(list) {
+      const seen = new Set();
+      const result = [];
+      for (const entry of list) {
+        const fp = entry.fingerprint || "";
+        if (fp && seen.has(fp)) continue;
+        if (fp) seen.add(fp);
+        result.push(entry);
+      }
+      return result;
+    }
+
+    function finalizeRender(t0) {
       currentPage = 1;
       currentFilter = "";
       validationFilter = "all";
+      sourceFilter = "all";
       searchInput.value = "";
       validationSelect.value = "all";
+      sourceSelect.value = "all";
 
       extractScanMetadata();
       setActiveView("view-dashboard");
@@ -2018,6 +3286,25 @@
       setTimeout(() => loader.classList.add("hidden"), 250);
     }
 
+    function formatViewerImportSource(viewerImport) {
+      const tools = toArray(viewerImport && viewerImport.tools).map((tool) => String(tool)).filter(Boolean);
+      if (tools.length === 0) return "";
+      return viewerImport && viewerImport.imported ? "Imported: " + tools.join(" + ") : tools.join(" + ");
+    }
+
+    function getAccessMapEmptyMessage() {
+      if (scanMetadata.imported) {
+        return "Imported reports do not include Kingfisher access-map data. Re-scan with <code>kingfisher scan --access-map</code> for blast-radius mapping.";
+      }
+      return "No Access Map entries in this report. Run a scan with <code>--access-map</code> to map credential blast radius.";
+    }
+
+    function getImportNoticeHtml(importNotes) {
+      const notes = toArray(importNotes).map((note) => String(note)).filter(Boolean);
+      if (!notes.length) return "";
+      return `<strong>Imported report limits:</strong> ${notes.map((note) => escapeHtml(note)).join(" ")}`;
+    }
+
     function extractScanMetadata() {
       scanMetadata = {};
       if (!rawData || typeof rawData !== "object") {
@@ -2028,6 +3315,9 @@
       // Try to extract metadata from the raw report data
       const data = rawData;
       const reportMeta = data.metadata && typeof data.metadata === "object" ? data.metadata : {};
+      const viewerImport = reportMeta.viewer_import && typeof reportMeta.viewer_import === "object"
+        ? reportMeta.viewer_import
+        : buildViewerImportMetadata("Kingfisher", {});
       scanMetadata.timestamp =
         reportMeta.scan_timestamp ||
         reportMeta.generated_at ||
@@ -2053,6 +3343,15 @@
       if (duration) {
         scanMetadata.duration = typeof duration === "number" ? (duration / 1000).toFixed(1) + "s" : String(duration);
       }
+
+      scanMetadata.reportSource = formatViewerImportSource(viewerImport);
+      scanMetadata.imported = Boolean(viewerImport.imported);
+      scanMetadata.importNotes = toArray(viewerImport.notes).map((note) => String(note)).filter(Boolean);
+      scanMetadata.capabilities = {
+        accessMapSupported: viewerImport.access_map_supported !== false,
+        validateCommandSupported: viewerImport.validate_command_supported !== false,
+        revokeCommandSupported: viewerImport.revoke_command_supported !== false,
+      };
 
       // Version
       scanMetadata.version =
@@ -2117,8 +3416,11 @@
       const target = document.getElementById("meta-target");
       const durationWrap = document.getElementById("meta-duration-wrap");
       const duration = document.getElementById("meta-duration");
+      const sourceWrap = document.getElementById("meta-source-wrap");
+      const source = document.getElementById("meta-source");
       const versionWrap = document.getElementById("meta-version-wrap");
       const version = document.getElementById("meta-version");
+      const importNote = document.getElementById("import-note");
 
       section.classList.remove("hidden");
       if (ts) ts.textContent = scanMetadata.timestamp || new Date().toLocaleString();
@@ -2137,12 +3439,56 @@
         durationWrap.style.display = "none";
       }
 
+      if (scanMetadata.reportSource) {
+        sourceWrap.style.display = "";
+        source.textContent = scanMetadata.reportSource;
+      } else {
+        sourceWrap.style.display = "none";
+      }
+
       if (scanMetadata.version) {
         versionWrap.style.display = "";
         version.textContent = scanMetadata.version;
       } else {
         versionWrap.style.display = "none";
       }
+
+      if (importNote) {
+        const importHtml = getImportNoticeHtml(scanMetadata.importNotes);
+        if (importHtml) {
+          importNote.classList.remove("hidden");
+          importNote.innerHTML = importHtml;
+        } else {
+          importNote.classList.add("hidden");
+          importNote.innerHTML = "";
+        }
+      }
+
+      updateSidebarSummary();
+    }
+
+    function updateSidebarSummary() {
+      const sourceEl = document.getElementById("sidebar-summary-source");
+      const targetEl = document.getElementById("sidebar-summary-target");
+      const totalEl = document.getElementById("sidebar-summary-total");
+      const activeEl = document.getElementById("sidebar-summary-active");
+      const identitiesEl = document.getElementById("sidebar-summary-identities");
+      const accessEl = document.getElementById("sidebar-summary-access");
+      if (!sourceEl || !targetEl || !totalEl || !activeEl || !identitiesEl || !accessEl) return;
+
+      const totalFindings = findings.length;
+      const validationCounts = calculateValidationCounts();
+      const totalIdentities = (accessMap || []).length;
+      const sourceText = scanMetadata.reportSource || (totalFindings ? "Kingfisher" : "No report loaded");
+      const targetText = scanMetadata.target ||
+        (totalFindings ? "Ready to inspect findings, validation state, and blast radius." : "Load a report to explore findings and blast radius.");
+
+      sourceEl.textContent = sourceText;
+      targetEl.textContent = targetText;
+      totalEl.textContent = totalFindings.toString();
+      activeEl.textContent = String(validationCounts.active || 0);
+      identitiesEl.textContent = totalIdentities.toString();
+      accessEl.textContent = totalIdentities > 0 ? "Yes" : "No";
     }
 
     function updateMetrics() {
@@ -2161,11 +3507,28 @@
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
       renderStatusChart(validationCounts);
+      renderSourceChart(calculateSourceCounts());
+      renderSourceDetectorCharts();
+      renderDetectorBreakdown();
+      updateSidebarSummary();
+    }
+
+    function getFindingSourceTool(finding) {
+      const importInfo = finding && finding.viewer_import && typeof finding.viewer_import === "object"
+        ? finding.viewer_import
+        : null;
+      const sourceTool = importInfo && importInfo.source_tool
+        ? String(importInfo.source_tool).trim().toLowerCase()
+        : "";
+      if (sourceTool === "gitleaks") return "gitleaks";
+      if (sourceTool === "trufflehog") return "trufflehog";
+      return "kingfisher";
     }
 
     function getFilteredSortedFindings() {
       const filterLower = currentFilter.toLowerCase();
       const validation = validationFilter;
+      const source = sourceFilter;
 
       let arr = findings.filter((f) => {
         const rule = f.rule || {};
@@ -2174,6 +3537,7 @@
         const path = (finding.path || "").toLowerCase();
         const snippet = (finding.snippet || "").toLowerCase();
         const fingerprint = (finding.fingerprint || "").toLowerCase();
+        const sourceTool = getFindingSourceTool(finding);
         const status = (finding.validation && finding.validation.status
           ? String(finding.validation.status)
           : "").toLowerCase();
@@ -2186,12 +3550,18 @@
 
         const normalizedStatus = normalizeValidationStatus(status);
 
+        if (source !== "all" && sourceTool !== source) {
+          return false;
+        }
+
         if (validation === "active") {
           return normalizedStatus === "active";
         } else if (validation === "inactive") {
           return normalizedStatus === "inactive";
         } else if (validation === "not_attempted") {
           return normalizedStatus === "not_attempted";
+        } else if (validation === "canary") {
+          return normalizedStatus === "canary";
         }
 
         return true;
@@ -2284,11 +3654,15 @@
         return "not_attempted";
       }
 
+      if (normalized === "canary token (skipped)" || normalized === "canary") {
+        return "canary";
+      }
+
       return "unknown";
     }
 
     function calculateValidationCounts(list = findings) {
-      const counts = { active: 0, inactive: 0, not_attempted: 0, unknown: 0 };
+      const counts = { active: 0, inactive: 0, not_attempted: 0, canary: 0, unknown: 0 };
       (list || []).forEach((f) => {
         const status =
           f.finding && f.finding.validation && f.finding.validation.status
@@ -2300,35 +3674,219 @@
       return counts;
     }
 
-    function renderStatusChart(counts) {
-      if (!statusChartCanvas) return;
-      const ctx = statusChartCanvas.getContext("2d");
+    function calculateSourceCounts(list = findings) {
+      const counts = { kingfisher: 0, gitleaks: 0, trufflehog: 0 };
+      (list || []).forEach((f) => {
+        const finding = f && f.finding ? f.finding : {};
+        const source = getFindingSourceTool(finding);
+        counts[source] = (counts[source] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function normalizeRuleFamilyId(ruleId) {
+      const normalized = String(ruleId || "").trim();
+      if (!normalized) return "";
+      return normalized.replace(/\.\d+$/, "").replace(/^kingfisher\./, "");
+    }
+
+    function getFindingDetectorLabel(entry) {
+      const rule = entry && entry.rule ? entry.rule : {};
+      const finding = entry && entry.finding ? entry.finding : {};
+      const source = getFindingSourceTool(finding);
+
+      if (source === "kingfisher") {
+        return normalizeRuleFamilyId(rule.id) || String(rule.name || rule.id || "Unknown");
+      }
+
+      const importInfo = finding.viewer_import && typeof finding.viewer_import === "object"
+        ? finding.viewer_import
+        : null;
+      return String(
+        (importInfo && (importInfo.source_rule_name || importInfo.source_rule_id)) ||
+        rule.name ||
+        rule.id ||
+        "Unknown"
+      );
+    }
+
+    function getDetectorBreakdownEntries(list = findings) {
+      const grouped = new Map();
+      const workingList = detectorBreakdownActiveOnly
+        ? (list || []).filter((entry) => {
+            const finding = entry && entry.finding ? entry.finding : {};
+            const normalizedStatus = normalizeValidationStatus(
+              finding.validation && finding.validation.status ? finding.validation.status : ""
+            );
+            return normalizedStatus === "active";
+          })
+        : (list || []);
+
+      workingList.forEach((entry) => {
+        const finding = entry && entry.finding ? entry.finding : {};
+        const source = getFindingSourceTool(finding);
+        const normalizedStatus = normalizeValidationStatus(
+          finding.validation && finding.validation.status ? finding.validation.status : ""
+        );
+        const label = getFindingDetectorLabel(entry);
+
+        const key = source + "::" + label;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            key,
+            source,
+            label,
+            count: 0,
+            active: 0,
+          });
+        }
+        const current = grouped.get(key);
+        current.count += 1;
+        if (normalizedStatus === "active") current.active += 1;
+      });
+
+      const entries = Array.from(grouped.values());
+      const dirFactor = detectorBreakdownSortDirection === "asc" ? 1 : -1;
+      entries.sort((a, b) => {
+        let va;
+        let vb;
+        switch (detectorBreakdownSortField) {
+          case "label":
+            va = (a.label || "").toLowerCase();
+            vb = (b.label || "").toLowerCase();
+            break;
+          case "source":
+            va = getSourceDisplayName(a.source).toLowerCase();
+            vb = getSourceDisplayName(b.source).toLowerCase();
+            break;
+          case "active":
+            va = Number(a.active || 0);
+            vb = Number(b.active || 0);
+            break;
+          case "count":
+          default:
+            va = Number(a.count || 0);
+            vb = Number(b.count || 0);
+            break;
+        }
+
+        if (typeof va === "number" && typeof vb === "number") {
+          if (va < vb) return -1 * dirFactor;
+          if (va > vb) return 1 * dirFactor;
+          return a.label.localeCompare(b.label);
+        }
+
+        if (va < vb) return -1 * dirFactor;
+        if (va > vb) return 1 * dirFactor;
+        return Number(b.count || 0) - Number(a.count || 0);
+      });
+
+      return entries;
+    }
+
+    function getChartColor(index) {
+      const palette = [
+        "#0ea5e9",
+        "#8b5cf6",
+        "#22c55e",
+        "#f97316",
+        "#ec4899",
+        "#eab308",
+        "#14b8a6",
+        "#ef4444",
+      ];
+      return palette[index % palette.length];
+    }
+
+    function getSourceDetectorChartEntries(list = findings) {
+      const groupedBySource = new Map();
+      (list || []).forEach((entry) => {
+        const finding = entry && entry.finding ? entry.finding : {};
+        const source = getFindingSourceTool(finding);
+        const label = getFindingDetectorLabel(entry);
+        if (!groupedBySource.has(source)) groupedBySource.set(source, new Map());
+        const detectorCounts = groupedBySource.get(source);
+        detectorCounts.set(label, (detectorCounts.get(label) || 0) + 1);
+      });
+
+      return ["kingfisher", "gitleaks", "trufflehog"]
+        .filter((source) => groupedBySource.has(source))
+        .map((source) => {
+          const countsMap = groupedBySource.get(source);
+          const sortedEntries = Array.from(countsMap.entries())
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => {
+              if (b.count !== a.count) return b.count - a.count;
+              return a.label.localeCompare(b.label);
+            });
+
+          const topEntries = sortedEntries.slice(0, 6);
+          const otherCount = sortedEntries.slice(6).reduce((sum, entry) => sum + entry.count, 0);
+          if (otherCount > 0) topEntries.push({ label: "Other", count: otherCount });
+
+          const dataPoints = topEntries.map((entry, index) => ({
+            key: entry.label,
+            label: entry.label,
+            color: entry.label === "Other" ? "#94a3b8" : getChartColor(index),
+          }));
+          const counts = {};
+          topEntries.forEach((entry) => {
+            counts[entry.label] = entry.count;
+          });
+
+          return {
+            source,
+            sourceLabel: getSourceDisplayName(source),
+            detectorCount: sortedEntries.length,
+            counts,
+            dataPoints,
+          };
+        });
+    }
+
+    function toggleDetectorBreakdownSort(field) {
+      if (detectorBreakdownSortField === field) {
+        detectorBreakdownSortDirection = detectorBreakdownSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        detectorBreakdownSortField = field;
+        detectorBreakdownSortDirection = field === "label" || field === "source" ? "asc" : "desc";
+      }
+      detectorBreakdownPage = 1;
+      renderDetectorBreakdown();
+    }
+
+    function getDetectorBreakdownSortIndicator(field) {
+      if (detectorBreakdownSortField !== field) return "";
+      return detectorBreakdownSortDirection === "asc" ? "▲" : "▼";
+    }
+
+    function getSourceBadgeClass(source) {
+      if (source === "gitleaks") return "badge-github";
+      if (source === "trufflehog") return "badge-gcp";
+      return "badge-aws";
+    }
+
+    function getSourceDisplayName(source) {
+      if (source === "gitleaks") return "Gitleaks";
+      if (source === "trufflehog") return "TruffleHog";
+      return "Kingfisher";
+    }
+
+    function renderDonutChart(canvas, legendEl, dataPoints, counts, emptyLabel) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const palette = {
-        active: "#22c55e",
-        inactive: "#f97316",
-        not_attempted: "#38bdf8",
-        unknown: "#9ca3af",
-      };
-
-      const dataPoints = [
-        { key: "active", label: "Active", color: palette.active },
-        { key: "inactive", label: "Inactive", color: palette.inactive },
-        { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
-        { key: "unknown", label: "Unknown", color: palette.unknown },
-      ];
-
       const total = dataPoints.reduce((sum, entry) => sum + (counts[entry.key] || 0), 0);
-      ctx.clearRect(0, 0, statusChartCanvas.width, statusChartCanvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const style = getComputedStyle(document.documentElement);
       const surfaceColor = style.getPropertyValue("--surface") || "#0d1424";
       const textColor = style.getPropertyValue("--text-main") || "#e5e7eb";
 
-      const radius = Math.min(statusChartCanvas.width, statusChartCanvas.height) / 2 - 10;
-      const centerX = statusChartCanvas.width / 2;
-      const centerY = statusChartCanvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) / 2 - 10;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
 
       ctx.save();
       ctx.fillStyle = surfaceColor;
@@ -2342,7 +3900,7 @@
         ctx.font = "600 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("No validation data yet", centerX, centerY);
+        ctx.fillText(emptyLabel, centerX, centerY);
       } else {
         let startAngle = -Math.PI / 2;
         dataPoints.forEach((entry) => {
@@ -2375,9 +3933,10 @@
       ctx.fillText(total + " findings", centerX, centerY);
       ctx.restore();
 
-      if (statusLegend) {
-        statusLegend.innerHTML = "";
+      if (legendEl) {
+        legendEl.innerHTML = "";
         dataPoints.forEach((entry) => {
+          if ((counts[entry.key] || 0) === 0) return;
           const row = document.createElement("div");
           row.className = "chart-legend-item";
           const swatch = document.createElement("span");
@@ -2387,9 +3946,144 @@
           text.textContent = `${entry.label}: ${counts[entry.key] || 0}`;
           row.appendChild(swatch);
           row.appendChild(text);
-          statusLegend.appendChild(row);
+          legendEl.appendChild(row);
         });
       }
+    }
+
+    function renderStatusChart(counts) {
+      const palette = {
+        active: "#22c55e",
+        inactive: "#f97316",
+        not_attempted: "#38bdf8",
+        canary: "#a855f7",
+        unknown: "#9ca3af",
+      };
+      const dataPoints = [
+        { key: "active", label: "Active", color: palette.active },
+        { key: "inactive", label: "Inactive", color: palette.inactive },
+        { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
+        { key: "canary", label: "Canary Token", color: palette.canary },
+        { key: "unknown", label: "Unknown", color: palette.unknown },
+      ];
+      renderDonutChart(statusChartCanvas, statusLegend, dataPoints, counts, "No validation data yet");
+    }
+
+    function renderSourceChart(counts) {
+      const dataPoints = [
+        { key: "kingfisher", label: "Kingfisher", color: "#0e7c56" },
+        { key: "gitleaks", label: "Gitleaks", color: "#2563eb" },
+        { key: "trufflehog", label: "TruffleHog", color: "#7c3aed" },
+      ];
+      const loadedSources = dataPoints.filter((entry) => (counts[entry.key] || 0) > 0);
+      renderDonutChart(
+        sourceChartCanvas,
+        sourceLegend,
+        loadedSources,
+        counts,
+        "No source data yet",
+      );
+    }
+
+    function renderSourceDetectorCharts() {
+      if (!sourceDetectorCharts) return;
+      const chartEntries = getSourceDetectorChartEntries(findings);
+      if (!chartEntries.length) {
+        sourceDetectorCharts.innerHTML = '<div class="breakdown-empty">No findings loaded yet.</div>';
+        return;
+      }
+
+      sourceDetectorCharts.innerHTML = "";
+      chartEntries.forEach((entry, index) => {
+        const card = document.createElement("div");
+        card.className = "chart-card";
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 260;
+        canvas.height = 220;
+        canvas.id = `source-detector-chart-${index}`;
+
+        const legendWrap = document.createElement("div");
+        legendWrap.className = "chart-legend";
+
+        const heading = document.createElement("div");
+        heading.style.marginBottom = "10px";
+
+        const titleRow = document.createElement("div");
+        titleRow.className = "chart-legend-item";
+        titleRow.style.fontWeight = "700";
+        titleRow.textContent = `${entry.sourceLabel} detector mix`;
+
+        const subtitleRow = document.createElement("div");
+        subtitleRow.className = "chart-legend-item";
+        subtitleRow.style.color = "var(--text-muted)";
+        subtitleRow.textContent = `${entry.detectorCount} detector families${entry.detectorCount > 6 ? ", top 6 plus Other" : ""}`;
+
+        heading.appendChild(titleRow);
+        heading.appendChild(subtitleRow);
+        legendWrap.appendChild(heading);
+
+        const legend = document.createElement("div");
+        legend.className = "chart-legend";
+        card.appendChild(canvas);
+        legendWrap.appendChild(legend);
+        card.appendChild(legendWrap);
+        sourceDetectorCharts.appendChild(card);
+
+        renderDonutChart(canvas, legend, entry.dataPoints, entry.counts, "No detector data yet");
+      });
+    }
+
+    function renderDetectorBreakdown() {
+      if (!detectorBreakdown) return;
+      const entries = getDetectorBreakdownEntries(findings);
+      const pageSize = 25;
+      const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+      detectorBreakdownPage = Math.min(Math.max(1, detectorBreakdownPage), totalPages);
+
+      if (detectorBreakdownPrev) detectorBreakdownPrev.disabled = detectorBreakdownPage <= 1;
+      if (detectorBreakdownNext) detectorBreakdownNext.disabled = detectorBreakdownPage >= totalPages;
+
+      if (!entries.length) {
+        if (detectorBreakdownPageInfo) detectorBreakdownPageInfo.textContent = "0 of 0";
+        detectorBreakdown.innerHTML = `<div class="breakdown-empty">${
+          detectorBreakdownActiveOnly ? "No active findings loaded yet." : "No findings loaded yet."
+        }</div>`;
+        return;
+      }
+
+      const pageStart = (detectorBreakdownPage - 1) * pageSize;
+      const pageEntries = entries.slice(pageStart, pageStart + pageSize);
+      const rangeStart = pageStart + 1;
+      const rangeEnd = Math.min(pageStart + pageEntries.length, entries.length);
+      if (detectorBreakdownPageInfo) {
+        detectorBreakdownPageInfo.textContent = `${rangeStart}-${rangeEnd} of ${entries.length}`;
+      }
+
+      const rows = pageEntries.map((entry) => `
+        <tr>
+          <td>
+            <div class="breakdown-name">${escapeHtml(entry.label)}</div>
+          </td>
+          <td><span class="badge ${getSourceBadgeClass(entry.source)}">${escapeHtml(getSourceDisplayName(entry.source))}</span></td>
+          <td class="breakdown-count">${entry.count}</td>
+          <td class="breakdown-count">${entry.active}</td>
+        </tr>
+      `).join("");
+
+      detectorBreakdown.innerHTML = `
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('label')">Detector <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("label")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('source')">Source <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("source")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('count')">${detectorBreakdownActiveOnly ? "Active findings" : "Findings"} <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("count")}</span></button></th>
+              <th><button class="breakdown-sort-btn" type="button" onclick="toggleDetectorBreakdownSort('active')">Active <span class="breakdown-sort-indicator">${getDetectorBreakdownSortIndicator("active")}</span></button></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
     }
 
     function triggerDownload(filename, content, type) {
@@ -2554,7 +4248,7 @@
         return;
       }
 
-      const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
+      const statusOrder = { active: 0, inactive: 1, canary: 2, not_attempted: 3, unknown: 4 };
       let baseFindings =
         scope === "filtered" ? getFilteredSortedFindings().slice() : (Array.isArray(findings) ? findings.slice() : []);
       if (activeOnly) {
@@ -2641,6 +4335,7 @@
       if (scanMetadata.timestamp) metaLines.push(`<strong>Scan Date:</strong> ${escapeHtml(scanMetadata.timestamp)}`);
       if (scanMetadata.target) metaLines.push(`<strong>Target:</strong> ${escapeHtml(scanMetadata.target)}`);
       if (scanMetadata.duration) metaLines.push(`<strong>Duration:</strong> ${escapeHtml(scanMetadata.duration)}`);
+      if (scanMetadata.reportSource) metaLines.push(`<strong>Source:</strong> ${escapeHtml(scanMetadata.reportSource)}`);
       if (scanMetadata.version) metaLines.push(`<strong>Version:</strong> ${escapeHtml(scanMetadata.version)}`);
       if (scanMetadata.latestVersion) metaLines.push(`<strong>Latest:</strong> ${escapeHtml(scanMetadata.latestVersion)}`);
       if (scanMetadata.updateCheckStatus) metaLines.push(`<strong>Update Check:</strong> ${escapeHtml(scanMetadata.updateCheckStatus)}`);
@@ -2692,6 +4387,8 @@
           <strong>Review Recommended:</strong> This scan found <strong>${baseFindings.length} finding${baseFindings.length !== 1 ? "s" : ""}</strong>.
           ${counts.inactive > 0 ? `${counts.inactive} credential${counts.inactive !== 1 ? "s were" : " was"} inactive at scan time.` : ""}
           ${counts.not_attempted > 0 ? `${counts.not_attempted} ${counts.not_attempted !== 1 ? "were" : "was"} not validated.` : ""}
+          ${counts.canary > 0 ? `${counts.canary} ${counts.canary !== 1 ? "were" : "was"} canary token${counts.canary !== 1 ? "s" : ""} (skipped).` : ""}
+          ${scanMetadata.imported ? `Imported reports do not include Kingfisher access-map data or command workflows.` : ""}
         </div>`;
       } else {
         execSummary = `<div style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:16px;">
@@ -2752,6 +4449,7 @@
         <span><span class="dot" style="background:#22c55e"></span> Active: ${counts.active || 0}</span>
         <span><span class="dot" style="background:#f97316"></span> Inactive: ${counts.inactive || 0}</span>
         <span><span class="dot" style="background:#38bdf8"></span> Not Attempted: ${counts.not_attempted || 0}</span>
+        <span><span class="dot" style="background:#a855f7"></span> Canary Token: ${counts.canary || 0}</span>
         <span><span class="dot" style="background:#9ca3af"></span> Unknown: ${counts.unknown || 0}</span>
       </div>
     </div>
@@ -3054,6 +4752,7 @@
     function showFindingDetail(f) {
       const rule = f.rule || {};
       const finding = f.finding || {};
+      const importInfo = finding.viewer_import && typeof finding.viewer_import === "object" ? finding.viewer_import : null;
 
       const panel = document.getElementById("finding-detail");
       panel.classList.remove("hidden");
@@ -3128,6 +4827,11 @@
         statusEl.innerHTML = `<span class="status-badge ${badgeClass}">${escapeHtml(statusRaw)}</span>`;
       }
 
+      const sourceEl = document.getElementById("fd-source");
+      if (sourceEl) {
+        sourceEl.textContent = importInfo && importInfo.source_tool ? importInfo.source_tool : (scanMetadata.reportSource || "Kingfisher");
+      }
+
       const path = finding.path || "";
       if (fdPathInput) {
         fdPathInput.value = path || "—";
@@ -3153,6 +4857,21 @@
 
       document.getElementById("fd-snippet").textContent = finding.snippet || "";
 
+      const importNoteEl = document.getElementById("fd-import-note");
+      if (importNoteEl) {
+        if (importInfo && scanMetadata.imported) {
+          const toolName = escapeHtml(importInfo.source_tool || "Imported report");
+          const note = scanMetadata.importNotes && scanMetadata.importNotes.length
+            ? scanMetadata.importNotes.join(" ")
+            : "This finding was imported into the viewer and does not include Kingfisher-native access-map or command metadata.";
+          importNoteEl.classList.remove("hidden");
+          importNoteEl.innerHTML = `<strong>${toolName} import:</strong> ${escapeHtml(note)}`;
+        } else {
+          importNoteEl.classList.add("hidden");
+          importNoteEl.innerHTML = "";
+        }
+      }
+
       const valBox = document.getElementById("fd-validation-box");
       if (finding.validation && finding.validation.response) {
         valBox.classList.remove("hidden");
@@ -3167,7 +4886,7 @@
       const validateBox = document.getElementById("fd-validate-box");
       const validateCmd = document.getElementById("fd-validate-cmd");
       const validateCopyBtn = document.getElementById("fd-validate-copy");
-      if (finding.validate_command) {
+      if (finding.validate_command && (!importInfo || scanMetadata.capabilities.validateCommandSupported)) {
         validateBox.classList.remove("hidden");
         validateCmd.textContent = finding.validate_command;
         
@@ -3194,7 +4913,7 @@
       const revokeBox = document.getElementById("fd-revoke-box");
       const revokeCmd = document.getElementById("fd-revoke-cmd");
       const revokeCopyBtn = document.getElementById("fd-revoke-copy");
-      if (finding.revoke_command) {
+      if (finding.revoke_command && (!importInfo || scanMetadata.capabilities.revokeCommandSupported)) {
         revokeBox.classList.remove("hidden");
         revokeCmd.textContent = finding.revoke_command;
         
@@ -3258,11 +4977,18 @@
     function generateRiskRationale(finding, accessEntries) {
       const rule = finding.rule || {};
       const fd = finding.finding || {};
+      const importInfo = fd.viewer_import && typeof fd.viewer_import === "object" ? fd.viewer_import : null;
       const statusRaw = fd.validation && fd.validation.status ? String(fd.validation.status) : "";
       const normalizedStatus = normalizeValidationStatus(statusRaw);
       const isActive = normalizedStatus === "active";
 
       if (!accessEntries || accessEntries.length === 0) {
+        if (importInfo && scanMetadata.imported) {
+          return {
+            level: isActive ? "low" : "none",
+            text: `This finding was imported from ${escapeHtml(importInfo.source_tool || "an external tool")}. Imported reports do not carry Kingfisher access-map data, so blast radius cannot be derived here. Re-scan with <code>kingfisher scan --access-map</code> for native mapping.`,
+          };
+        }
         if (isActive) {
           return {
             level: "medium",
@@ -3632,7 +5358,7 @@
       }
 
       // Sort: active first, then by rule name
-      const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
+      const statusOrder = { active: 0, inactive: 1, canary: 2, not_attempted: 3, unknown: 4 };
       const sorted = pool.sort((a, b) => {
         const fa = a.finding || {};
         const fb = b.finding || {};
@@ -3782,7 +5508,7 @@
 
       if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
         list.innerHTML =
-          '<div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No access map data available</div>';
+          `<div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">${getAccessMapEmptyMessage()}</div>`;
         return;
       }
 

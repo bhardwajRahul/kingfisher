@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const SENDGRID_API: &str = "https://api.sendgrid.com";
@@ -23,7 +23,7 @@ struct SendGridAccount {
 #[derive(Deserialize)]
 struct SendGridProfile {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     address: Option<String>,
     #[serde(default)]
     city: Option<String>,
@@ -36,7 +36,7 @@ struct SendGridProfile {
     #[serde(default)]
     last_name: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     phone: Option<String>,
     #[serde(default)]
     username: Option<String>,
@@ -51,7 +51,7 @@ struct SendGridScopesResponse {
 #[derive(Deserialize)]
 struct SendGridApiKey {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     api_key_id: Option<String>,
     #[serde(default)]
     name: Option<String>,

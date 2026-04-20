@@ -7,10 +7,10 @@ use std::{
 use anyhow::Result;
 use bstr::ByteSlice;
 use gix::{
-    date::{parse as parse_time, Time},
+    ObjectId, Repository,
+    date::{Time, parse as parse_time},
     hashtable::HashMap,
     prelude::FindExt,
-    ObjectId, Repository,
 };
 use smallvec::SmallVec;
 use tracing::{debug, debug_span};

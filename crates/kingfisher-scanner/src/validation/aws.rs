@@ -3,27 +3,31 @@
 //! This module provides functionality to validate AWS access keys by making
 //! an STS GetCallerIdentity call.
 
-use std::{collections::HashSet, sync::RwLock, time::Duration};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, OnceLock, RwLock},
+    time::Duration,
+};
 
-use anyhow::{anyhow, Result};
-use aws_config::{retry::RetryConfig, BehaviorVersion, SdkConfig};
+use anyhow::{Result, anyhow};
+use aws_config::{BehaviorVersion, SdkConfig, retry::RetryConfig};
 use aws_credential_types::Credentials;
 use aws_sdk_iam::{
-    config::Builder as IamConfigBuilder, error::SdkError as IamSdkError,
-    operation::update_access_key::UpdateAccessKeyError, types::StatusType, Client as IamClient,
+    Client as IamClient, config::Builder as IamConfigBuilder, error::SdkError as IamSdkError,
+    operation::update_access_key::UpdateAccessKeyError, types::StatusType,
 };
 use aws_sdk_sts::{
-    config::Builder as StsConfigBuilder, error::SdkError,
-    operation::get_caller_identity::GetCallerIdentityError, Client as StsClient,
+    Client as StsClient, config::Builder as StsConfigBuilder, error::SdkError,
+    operation::get_caller_identity::GetCallerIdentityError,
 };
 use aws_smithy_http_client::{
-    proxy::ProxyConfig, tls, Builder as HttpClientBuilder, ConnectorBuilder,
+    Builder as HttpClientBuilder, ConnectorBuilder, proxy::ProxyConfig, tls,
 };
 use aws_smithy_runtime_api::{
     box_error::BoxError,
     client::{
         http::SharedHttpClient,
-        interceptors::{context::BeforeTransmitInterceptorContextMut, Intercept},
+        interceptors::{Intercept, context::BeforeTransmitInterceptorContextMut},
         runtime_components::RuntimeComponents,
     },
 };
@@ -32,11 +36,10 @@ use aws_types::region::Region;
 use base32::Alphabet;
 use byteorder::{BigEndian, ByteOrder};
 use http::{
-    header::{HeaderValue, USER_AGENT},
     StatusCode,
+    header::{HeaderValue, USER_AGENT},
 };
-use once_cell::sync::{Lazy, OnceCell};
-use rand::{rng, RngExt};
+use rand::{RngExt, rng};
 use regex::Regex;
 use tokio::{
     sync::Semaphore,
@@ -45,7 +48,7 @@ use tokio::{
 
 use super::GLOBAL_USER_AGENT;
 
-static AWS_VALIDATION_SEMAPHORE: OnceCell<Semaphore> = OnceCell::new();
+static AWS_VALIDATION_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
 
 /// Built-in list of known canary/honeypot AWS account IDs that should be skipped.
 const BUILTIN_SKIP_ACCOUNT_IDS: &[&str] = &[
@@ -60,7 +63,7 @@ const BUILTIN_SKIP_ACCOUNT_IDS: &[&str] = &[
     "992382622183",
 ];
 
-static AWS_SKIP_ACCOUNT_IDS: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| {
+static AWS_SKIP_ACCOUNT_IDS: LazyLock<RwLock<HashSet<String>>> = LazyLock::new(|| {
     let mut set = HashSet::new();
     set.extend(BUILTIN_SKIP_ACCOUNT_IDS.iter().map(|id| id.to_string()));
     RwLock::new(set)
@@ -97,7 +100,8 @@ fn extract_account_id(input: &str) -> Option<String> {
         return Some(trimmed.to_string());
     }
 
-    static ACCOUNT_ID_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d{12})").expect("valid regex"));
+    static ACCOUNT_ID_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(\d{12})").expect("valid regex"));
     ACCOUNT_ID_RE.captures(trimmed).and_then(|caps| caps.get(1)).map(|m| m.as_str().to_string())
 }
 
@@ -149,11 +153,7 @@ pub fn should_skip_aws_validation(access_key_id: &str) -> Option<String> {
     }
 
     let account = aws_key_to_account_number(access_key_id).ok()?;
-    if guard.contains(&account) {
-        Some(account)
-    } else {
-        None
-    }
+    if guard.contains(&account) { Some(account) } else { None }
 }
 
 #[derive(Debug)]
@@ -435,11 +435,13 @@ mod tests {
 
     #[test]
     fn test_validate_credentials_format() {
-        assert!(validate_aws_credentials_input(
-            "AKIAIOSFODNN7EXAMPLE",
-            "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-        )
-        .is_ok());
+        assert!(
+            validate_aws_credentials_input(
+                "AKIAIOSFODNN7EXAMPLE",
+                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            )
+            .is_ok()
+        );
         assert!(validate_aws_credentials_input("short", "secret").is_err());
         assert!(validate_aws_credentials_input("AKIAIOSFODNN7EXAMPLE", "short").is_err());
     }

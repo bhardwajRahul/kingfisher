@@ -1,18 +1,18 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use mongodb::{
-    bson::{doc, Document},
-    options::{ClientOptions, Tls, TlsOptions},
     Client,
+    bson::{Document, doc},
+    options::{ClientOptions, Tls, TlsOptions},
 };
 use tracing::{debug, warn};
 
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ProviderMetadata,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, PermissionSummary, ProviderMetadata, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const CONNECT_TIMEOUT_MS: u64 = 5_000;

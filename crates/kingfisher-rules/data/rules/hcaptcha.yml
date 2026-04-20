@@ -22,3 +22,8 @@ rules:
       - 'hcaptcha_secret: ES_abcdef1234567890abcdef1234567890'
     references:
       - https://docs.hcaptcha.com/
+      - https://docs.hcaptcha.com/#verify-the-user-response-server-side
+    # No standalone validation is added: hCaptcha's siteverify endpoint returns the
+    # same invalid-input-response / missing-input-response errors for both real and
+    # mutated secrets when no genuine client response token is available, so it is
+    # not reliable for distinguishing active from inactive secrets during scanning.

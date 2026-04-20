@@ -1,4 +1,4 @@
-use schemars::{gen::SchemaGenerator, schema::Schema, JsonSchema};
+use schemars::{JsonSchema, r#gen::SchemaGenerator, schema::Schema};
 use serde::{Deserialize, Deserializer, Serializer};
 use std::borrow::Cow;
 
@@ -9,11 +9,7 @@ pub type ValidationResponseBody = Option<Box<str>>;
 #[inline]
 pub fn from_string(body: impl Into<String>) -> ValidationResponseBody {
     let body = body.into();
-    if body.is_empty() {
-        None
-    } else {
-        Some(body.into_boxed_str())
-    }
+    if body.is_empty() { None } else { Some(body.into_boxed_str()) }
 }
 
 #[inline]
@@ -41,6 +37,6 @@ where
     Ok(from_string(body))
 }
 
-pub fn schema(gen: &mut SchemaGenerator) -> Schema {
-    String::json_schema(gen)
+pub fn schema(r#gen: &mut SchemaGenerator) -> Schema {
+    String::json_schema(r#gen)
 }

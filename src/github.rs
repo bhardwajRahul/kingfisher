@@ -9,9 +9,9 @@ use std::{
 use anyhow::{Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use octorust::{
+    Client,
     auth::Credentials,
     types::{Order, ReposListOrgSort, ReposListOrgType, ReposListUserType},
-    Client,
 };
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -109,10 +109,10 @@ fn parse_excluded_repo(raw: &str) -> Option<String> {
         return Some(name);
     }
 
-    if let Some(idx) = trimmed.rfind(':') {
-        if let Some(name) = parse_repo_name_from_path(&trimmed[idx + 1..]) {
-            return Some(name);
-        }
+    if let Some(idx) = trimmed.rfind(':')
+        && let Some(name) = parse_repo_name_from_path(&trimmed[idx + 1..])
+    {
+        return Some(name);
     }
 
     parse_repo_name_from_path(trimmed)
@@ -358,11 +358,7 @@ pub async fn enumerate_repo_urls(
             .await?;
         repo_urls.extend(repos.body.into_iter().filter_map(|repo| {
             let clone_url = repo.clone_url;
-            if should_exclude_repo(&clone_url, &exclude_set) {
-                None
-            } else {
-                Some(clone_url)
-            }
+            if should_exclude_repo(&clone_url, &exclude_set) { None } else { Some(clone_url) }
         }));
         if let Some(progress) = progress.as_mut() {
             progress.inc(1);
@@ -388,11 +384,7 @@ pub async fn enumerate_repo_urls(
             .await?;
         repo_urls.extend(repos.body.into_iter().filter_map(|repo| {
             let clone_url = repo.clone_url;
-            if should_exclude_repo(&clone_url, &exclude_set) {
-                None
-            } else {
-                Some(clone_url)
-            }
+            if should_exclude_repo(&clone_url, &exclude_set) { None } else { Some(clone_url) }
         }));
         if let Some(progress) = progress.as_mut() {
             progress.inc(1);

@@ -5,7 +5,12 @@ rules:
       (?x)
       \b
       (
-        sk-lf-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}
+        sk-lf
+        -[0-9a-fA-F]{8}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{12}
       )
       \b
     pattern_requirements:
@@ -30,7 +35,7 @@ rules:
       content:
         request:
           method: GET
-          url: https://cloud.langfuse.com/api/public/projects
+          url: https://cloud.langfuse.com/api/public/organizations/memberships
           headers:
             Authorization: 'Basic {{ PUBLIC_KEY | append: ":" | append: TOKEN | b64enc }}'
           response_matcher:
@@ -45,7 +50,12 @@ rules:
       (?x)
       \b
       (
-        pk-lf-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}
+        pk-lf
+        -[0-9a-fA-F]{8}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{4}
+        -[0-9a-fA-F]{12}
       )
       \b
     pattern_requirements:

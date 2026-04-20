@@ -64,6 +64,23 @@ Strongly recommended fields:
 - When Rust validation is unavoidable for a one-off provider, prefer adding a raw validator instead of inventing a new typed validator.
 - Do not convert existing typed validators to `Raw` just for consistency.
 
+## HTTP Validation Request Capabilities
+The `validation.content.request` block under `type: Http` supports these fields:
+- `method` (required): `GET`, `POST`, `DELETE`, `HEAD`, `PUT`, etc.
+- `url` (required): target URL; supports Liquid templating (`{{ TOKEN }}`, filters, etc.)
+- `headers` (optional): map of header name → value; supports Liquid templating.
+- `body` (optional): request body string; supports Liquid templating. Use with `Content-Type: application/x-www-form-urlencoded` for form-encoded POST bodies or `application/json` for JSON bodies.
+- `multipart` (optional): multipart form data; use for file-upload endpoints.
+- `response_is_html` (optional, bool): allow HTML responses (default false).
+
+Useful Liquid filters for bodies and headers: `b64enc`, `url_encode`, `append`, `crc32`, `base62`.
+
+**OAuth client credential validation pattern** — when a provider's token endpoint accepts `grant_type=authorization_code`, send an invalid code with real credentials. Valid credentials return `400` (bad code); invalid credentials return `401` (bad client). Example body:
+```
+grant_type=authorization_code&client_id={{ CLIENT_ID | url_encode }}&client_secret={{ TOKEN | url_encode }}&code=invalid&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback
+```
+Pair with `StatusMatch: [400]` and `JsonValid`.
+
 ## Revocation Policy
 - If a rule has validation and the provider API safely supports revocation, add `revocation:` in the same YAML rule.
 - Prefer explicit success criteria in `response_matcher`.

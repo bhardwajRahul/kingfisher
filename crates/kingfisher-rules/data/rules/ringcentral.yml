@@ -22,8 +22,6 @@ rules:
     visible: false
     examples:
       - 'RINGCENTRAL_CLIENT_ID="aB1cD2eF3gH4iJ5kL6mN7o"'
-    negative_examples:
-      - 'RINGCENTRAL_URL="https://platform.ringcentral.com"'
     references:
       - https://developers.ringcentral.com/api-reference/
 

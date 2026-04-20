@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const TERRAFORM_API: &str = "https://app.terraform.io";
@@ -44,7 +44,7 @@ struct TerraformOrgsResponse {
 
 #[derive(Deserialize)]
 struct TerraformOrgData {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
@@ -55,7 +55,7 @@ struct TerraformOrgData {
 struct TerraformOrgAttributes {
     #[serde(default)]
     name: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     email: Option<String>,
     #[serde(default)]
@@ -86,7 +86,7 @@ struct TerraformWorkspacesResponse {
 
 #[derive(Deserialize)]
 struct TerraformWorkspaceData {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]

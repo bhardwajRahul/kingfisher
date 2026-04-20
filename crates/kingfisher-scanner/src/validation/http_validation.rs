@@ -1,18 +1,17 @@
 use std::{collections::BTreeMap, future::Future, net::IpAddr, str::FromStr, time::Duration};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result, anyhow};
 use http::StatusCode;
 use liquid::Object;
 use liquid_core::Value;
 use quick_xml::de::from_str as xml_from_str;
 use reqwest::{
-    header,
+    Client, Method, RequestBuilder, Response, Url, header,
     header::{HeaderMap, HeaderName, HeaderValue},
-    Client, Method, RequestBuilder, Response, Url,
 };
 use serde::de::IgnoredAny;
 use sha1::{Digest, Sha1};
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 use tokio::{net::lookup_host, time::sleep};
 use tracing::debug;
 

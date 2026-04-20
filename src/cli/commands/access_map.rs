@@ -67,6 +67,9 @@ pub enum AccessMapProvider {
     Microsoftteams,
     /// Airtable
     Airtable,
+    /// Alibaba Cloud
+    #[clap(alias = "aliyun")]
+    Alibaba,
     /// CircleCI
     Circleci,
     /// DigitalOcean
@@ -121,4 +124,9 @@ pub enum AccessMapProvider {
     /// JFrog Xray
     #[clap(alias = "jfrog-xray")]
     Xray,
+    /// monday.com
+    #[clap(alias = "monday.com")]
+    Monday,
+    /// Asana
+    Asana,
 }

@@ -18,3 +18,19 @@ rules:
       - 'polar_org_token: polar_oat_AbCdEfGhIjKlMnOpQrStUvWx12'
     references:
       - https://docs.polar.sh/api/authentication
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.polar.sh/v1/users/me
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"email"'

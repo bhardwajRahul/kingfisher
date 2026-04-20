@@ -28,7 +28,7 @@ struct SearchResult {
 struct HitsContainer {
     hits: Option<Vec<Hit>>,
     more_results_available: Option<bool>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     total: Option<u32>,
 }
 
@@ -71,11 +71,7 @@ fn sanitize_filename_component(value: &str) -> String {
         .collect();
 
     let trimmed = sanitized.trim_matches([' ', '.']);
-    if trimmed.is_empty() {
-        "unknown".to_string()
-    } else {
-        trimmed.to_string()
-    }
+    if trimmed.is_empty() { "unknown".to_string() } else { trimmed.to_string() }
 }
 
 pub async fn search_messages(

@@ -121,6 +121,24 @@ kingfisher view kingfisher.json
 
 The `view` subcommand starts a server (default port `7890`, bind address `127.0.0.1`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically and Kingfisher will open your browser, or open the page and upload a report in the browser. If port 7890 is already in use, re-run with `--port <PORT>`. To allow access from Docker or other hosts, use `--address 0.0.0.0`.
 
+You can pass multiple files or a directory to combine reports. Findings are deduplicated by fingerprint. Non-matching files in a directory are silently skipped (no recursion).
+
+```bash
+# Combine multiple report files
+kingfisher view report1.json report2.jsonl
+
+# Load all JSON/JSONL reports from a directory
+kingfisher view ./reports/
+```
+
+The browser-based viewer also supports loading multiple files via drag-and-drop or the file picker, with the same fingerprint-based deduplication.
+
+The local viewer also accepts Gitleaks JSON and TruffleHog JSON/JSONL as imported report formats. Imported findings are normalized into the viewer for triage, filtering, and export, which makes the viewer useful as a shared local workbench even when the original scan came from another tool.
+
+A static upload-based copy of the viewer can also be hosted from the docs site for GitHub Pages deployments. The hosted version keeps the same client-side report browsing flow, but it does not use the local CLI `/report` endpoint that powers `kingfisher view`.
+
+Imported reports are display-oriented. They do not include Kingfisher-native `access_map` data, `validate` / `revoke` commands, or the same fingerprint semantics as a native Kingfisher report. TruffleHog findings marked as verified are shown as active credentials; all other imported findings are treated as not attempted rather than inactive. For full validation context and blast-radius mapping, re-scan with Kingfisher and add `--access-map` when appropriate.
+
 ### Pipe any text directly into Kingfisher by passing `-`
 
 ```bash

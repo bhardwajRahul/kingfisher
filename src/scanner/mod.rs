@@ -6,7 +6,7 @@ pub(crate) use repos::{
     enumerate_github_repos, enumerate_huggingface_repos,
 };
 pub use runner::{load_and_record_rules, run_async_scan, run_scan};
-pub(crate) use validation::{run_secret_validation, AccessMapCollector};
+pub(crate) use validation::{AccessMapCollector, run_secret_validation};
 
 mod docker;
 mod enumerate;

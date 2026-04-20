@@ -14,7 +14,7 @@ rules:
     min_entropy: 3.4
     confidence: medium
     examples:
-      - ZAPIER_WEBHOOK=https://hooks.zapier.com/hooks/catch/11595998/3ouwv7m/
-      - webhook_url="https://hooks.zapier.com/hooks/catch/2929690/ztd17n/"
+      - ZAPIER_WEBHOOK=https://hooks.zapier.com/hooks/catch/99999999/notalive/
+      - webhook_url="https://hooks.zapier.com/hooks/catch/99999998/notlive/"
     references:
       - https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks

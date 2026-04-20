@@ -64,7 +64,7 @@ pub mod validation_rate_limit;
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use crossbeam_channel::Sender;
 pub use git_repo_enumerator::{
     GitBlobSource, GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator,

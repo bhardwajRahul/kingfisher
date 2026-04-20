@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use gouqi::{r#async::Jira, Credentials, SearchOptions};
+use gouqi::{Credentials, SearchOptions, r#async::Jira};
 use reqwest::Client;
 use std::path::PathBuf;
 use url::Url;
@@ -219,11 +219,7 @@ fn flatten_adf_fields(issue_value: &mut serde_json::Value) {
         if let Some(arr) = comments.as_array_mut() {
             for comment in arr.iter_mut() {
                 let plain_text = comment.get("body").and_then(|body| {
-                    if is_adf(body) {
-                        Some(extract_adf_text(body))
-                    } else {
-                        None
-                    }
+                    if is_adf(body) { Some(extract_adf_text(body)) } else { None }
                 });
                 if let Some(plain_text) = plain_text {
                     if let Some(comment_obj) = comment.as_object_mut() {
@@ -242,13 +238,9 @@ fn flatten_adf_fields(issue_value: &mut serde_json::Value) {
 
 fn flatten_comment_bodies(comments: &mut [serde_json::Value]) {
     for comment in comments {
-        let plain_text = comment.get("body").and_then(|body| {
-            if is_adf(body) {
-                Some(extract_adf_text(body))
-            } else {
-                None
-            }
-        });
+        let plain_text = comment
+            .get("body")
+            .and_then(|body| if is_adf(body) { Some(extract_adf_text(body)) } else { None });
         if let Some(plain_text) = plain_text {
             if let Some(comment_obj) = comment.as_object_mut() {
                 comment_obj.insert(
@@ -449,14 +441,14 @@ pub async fn download_issues_to_dir(
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_adf_text, extract_embedded_comments, fetch_comments, flatten_adf_fields,
-        flatten_comment_bodies, is_adf, JIRA_COMMENTS_PAGE_SIZE,
+        JIRA_COMMENTS_PAGE_SIZE, extract_adf_text, extract_embedded_comments, fetch_comments,
+        flatten_adf_fields, flatten_comment_bodies, is_adf,
     };
     use serde_json::json;
     use url::Url;
     use wiremock::{
-        matchers::{method, path, query_param},
         Mock, MockServer, ResponseTemplate,
+        matchers::{method, path, query_param},
     };
 
     #[test]

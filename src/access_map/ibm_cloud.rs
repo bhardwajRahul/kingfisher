@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const IBM_IAM_API: &str = "https://iam.cloud.ibm.com";
@@ -18,7 +18,7 @@ struct IbmApiKeyDetails {
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     entity_tag: Option<String>,
     #[serde(default)]
     iam_id: Option<String>,
@@ -27,7 +27,7 @@ struct IbmApiKeyDetails {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     description: Option<String>,
     #[serde(default)]
     created_at: Option<String>,
@@ -40,10 +40,10 @@ struct IbmTokenResponse {
     #[serde(default)]
     access_token: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     token_type: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     expires_in: Option<u64>,
     #[serde(default)]
     scope: Option<String>,
@@ -52,7 +52,7 @@ struct IbmTokenResponse {
 #[derive(Deserialize)]
 struct IbmResourceInstance {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     id: Option<String>,
     #[serde(default)]
     name: Option<String>,

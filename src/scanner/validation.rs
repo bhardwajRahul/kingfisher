@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -9,11 +9,11 @@ use std::{
 use anyhow::Result;
 use crossbeam_skiplist::SkipMap;
 use dashmap::DashMap;
-use futures::{stream, StreamExt};
+use futures::{FutureExt, StreamExt, stream};
 use indicatif::{ProgressBar, ProgressStyle};
 use liquid::Parser;
 use reqwest::StatusCode;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::{sync::Notify, time::timeout};
 use tracing::trace;
 
@@ -22,10 +22,10 @@ use crate::{
     blob::BlobId,
     findings_store::{FindingsStore, FindingsStoreMessage},
     location::OffsetSpan,
-    matcher::{Match, OwnedBlobMatch},
+    matcher::OwnedBlobMatch,
     rules::rule::Validation,
     validation::{
-        collect_variables_and_dependencies, utils, validate_single_match, CachedResponse,
+        CachedResponse, collect_variables_and_dependencies, utils, validate_single_match,
     },
     validation_body,
     validation_rate_limit::ValidationRateLimiter,
@@ -196,6 +196,24 @@ impl AccessMapCollector {
         let key = xxhash_rust::xxh3::xxh3_64(format!("airtable|{token}").as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::Airtable {
             token: token.to_string(),
+            fingerprint,
+        });
+    }
+
+    pub fn record_alibaba(
+        &self,
+        access_key: &str,
+        secret_key: &str,
+        session_token: Option<&str>,
+        fingerprint: String,
+    ) {
+        let key = xxhash_rust::xxh3::xxh3_64(
+            format!("alibaba|{access_key}|{secret_key}|{}", session_token.unwrap_or("")).as_bytes(),
+        );
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Alibaba {
+            access_key: access_key.to_string(),
+            secret_key: secret_key.to_string(),
+            session_token: session_token.map(|value| value.to_string()),
             fingerprint,
         });
     }
@@ -374,12 +392,26 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_monday(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("monday|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Monday { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_asana(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("asana|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Asana { token: token.to_string(), fingerprint });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn run_secret_validation(
     datastore: Arc<Mutex<FindingsStore>>,
     parser: &Parser,
@@ -394,45 +426,53 @@ pub async fn run_secret_validation(
     max_body_len: usize,
 ) -> Result<()> {
     // ── 1. Concurrency & counters ───────────────────────────────────────────
-    let concurrency = if num_jobs > 0 { num_jobs } else { num_cpus::get() };
+    let concurrency = if num_jobs > 0 {
+        num_jobs
+    } else {
+        std::thread::available_parallelism().map_or(1, |n| n.get())
+    };
     let chunk_size = std::cmp::max(concurrency * 50, 200);
     let success_count = Arc::new(AtomicUsize::new(0));
     let fail_count = Arc::new(AtomicUsize::new(0));
 
-    // ── 2. Fetch rules + matches ────────────────────────────────────────────
-    let (_all_rules, all_matches_by_blob) = {
+    // ── 2. Fetch matches & partition ──────────────────────────────────────
+    //  • simple_matches: Vec of Arcs for rules without dependencies
+    //  • dependent_blob_ids: just the blob IDs — we re-fetch in Phase 2
+    //    so we don't hold two full copies of the match set simultaneously
+    let (simple_matches, dependent_blob_ids) = {
         let ds = datastore.lock().unwrap();
-        let rules = ds.get_rules()?;
-        let mut map: FxHashMap<BlobId, Vec<Arc<FindingsStoreMessage>>> = FxHashMap::default();
         let matches = if let Some(r) = range.clone() {
             ds.get_matches()[r].to_vec()
         } else {
             ds.get_matches().to_vec()
         };
 
-        for arc_msg in matches.into_iter() {
-            map.entry(arc_msg.1.id).or_default().push(arc_msg);
+        let mut by_blob: FxHashMap<BlobId, Vec<Arc<FindingsStoreMessage>>> = FxHashMap::default();
+        for arc_msg in matches {
+            by_blob.entry(arc_msg.1.id).or_default().push(arc_msg);
         }
-        (rules, map)
+
+        let mut simple = Vec::new();
+        let mut dep_ids = FxHashSet::default();
+        for (blob_id, blob_matches) in by_blob {
+            if blob_matches.iter().any(|m| !m.2.rule.syntax().depends_on_rule.is_empty()) {
+                dep_ids.insert(blob_id);
+                // Arcs dropped here — not held during Phase 1
+            } else {
+                simple.extend(blob_matches);
+            }
+        }
+        (simple, dep_ids)
     };
-
-    // ── 3. Partition blobs ──────────────────────────────────────────────────
-    let mut simple_matches = Vec::new();
-    let mut dependent_blobs = FxHashMap::default(); // blob_id -- Vec<Arc<…>>
-    for (blob_id, matches) in all_matches_by_blob {
-        if matches.iter().any(|m| !m.2.rule.syntax().depends_on_rule.is_empty()) {
-            dependent_blobs.insert(blob_id, matches);
-        } else {
-            simple_matches.extend(matches);
-        }
-    }
-
-    // Result accumulator
-    let mut updated_arcs: Vec<Arc<FindingsStoreMessage>> = Vec::new();
 
     // ── Phase 1: simple, global de-dupe ──────────────────────────────────────
     if !simple_matches.is_empty() {
-        let mut groups: FxHashMap<String, Vec<Arc<FindingsStoreMessage>>> = FxHashMap::default();
+        // Keep only ONE representative per (rule_id, secret) group.
+        // Previous code stored ALL matches per group — holding thousands of
+        // Arc clones alive for the entire duration of the concurrent stream.
+        let total_simple = simple_matches.len();
+        let mut representatives: FxHashMap<String, Arc<FindingsStoreMessage>> =
+            FxHashMap::default();
         for arc_msg in simple_matches {
             // VALIDATION DEDUP: Use get(0) to get the first/primary capture for grouping.
             //
@@ -454,18 +494,19 @@ pub async fn run_secret_validation(
                 validation_group_key = %group_key,
                 "Grouping finding for validation"
             );
-            groups.entry(group_key).or_default().push(arc_msg);
+            // Only keep the first representative — extra Arcs are dropped immediately
+            representatives.entry(group_key).or_insert(arc_msg);
         }
 
         trace!(
-            total_findings = groups.values().map(|v| v.len()).sum::<usize>(),
-            unique_validation_groups = groups.len(),
+            total_findings = total_simple,
+            unique_validation_groups = representatives.len(),
             "Validation grouping complete (internal dedup)"
         );
 
         let validation_results = DashMap::<String, CachedResponse>::new();
 
-        let pb = ProgressBar::new(groups.len() as u64).with_message("Validating secrets…");
+        let pb = ProgressBar::new(representatives.len() as u64).with_message("Validating secrets…");
         pb.set_style(
             ProgressStyle::with_template(
                 "{spinner:.green} {msg} [{bar:40.green/blue}] {pos}/{len} ({percent}%) \
@@ -476,21 +517,29 @@ pub async fn run_secret_validation(
         );
         pb.enable_steady_tick(Duration::from_millis(100));
 
+        // Shared empty maps — avoids allocating throwaway DashMaps per task
+        let empty_dep_vars: FxHashMap<String, Vec<(String, OffsetSpan)>> = FxHashMap::default();
+        let empty_missing: FxHashMap<String, Vec<String>> = FxHashMap::default();
+        let empty_cache: Arc<DashMap<String, CachedResponse>> = Arc::new(DashMap::new());
+        let empty_inflight: Arc<DashMap<String, ()>> = Arc::new(DashMap::new());
+
         stream::iter(
-            groups.values().map(|v| v[0].clone()), // one representative
+            representatives.into_values(), // consumes map, dropping keys
         )
         .for_each_concurrent(concurrency, |rep_arc| {
-            // clones into task
             let parser = parser.clone();
             let clients = clients.clone();
             let cache_glob = cache.clone();
             let val_res = &validation_results;
             let success = success_count.clone();
             let fail = fail_count.clone();
-            // *** FIX: Clone the progress bar for each concurrent task ***
             let pb = pb.clone();
             let access_map = access_map.clone();
             let rate_limiter = rate_limiter.clone();
+            let empty_dep_vars = &empty_dep_vars;
+            let empty_missing = &empty_missing;
+            let empty_cache = empty_cache.clone();
+            let empty_inflight = empty_inflight.clone();
 
             async move {
                 // VALIDATION DEDUP: Use get(0) for the primary secret value.
@@ -501,7 +550,6 @@ pub async fn run_secret_validation(
                 match val_res.entry(key.clone()) {
                     dashmap::mapref::entry::Entry::Occupied(_) => return,
                     dashmap::mapref::entry::Entry::Vacant(entry) => {
-                        // *** FIX: Corrected placeholder to match struct definition ***
                         entry.insert(CachedResponse {
                             body: validation_body::from_string(String::new()),
                             status: StatusCode::ACCEPTED,
@@ -520,10 +568,10 @@ pub async fn run_secret_validation(
                     &mut om,
                     &parser,
                     &clients,
-                    &FxHashMap::default(),
-                    &FxHashMap::default(),
-                    &Arc::new(DashMap::new()),
-                    &Arc::new(DashMap::new()),
+                    empty_dep_vars,
+                    empty_missing,
+                    &empty_cache,
+                    &empty_inflight,
                     &success,
                     &fail,
                     &cache_glob,
@@ -543,34 +591,59 @@ pub async fn run_secret_validation(
                 };
                 val_res.insert(key, cr);
 
-                // Now we use the cloned `pb`
                 pb.inc(1);
             }
+            .boxed()
         })
         .await;
-        // This is now valid because the original `pb` was never moved
         pb.finish();
 
-        for (key, group) in groups {
-            let cr = validation_results.get(&key).expect("missing cached result");
-            for arc_msg in group {
-                let (origin, blob_md, old_match) = &*arc_msg;
-                updated_arcs.push(Arc::new((
-                    origin.clone(),
-                    blob_md.clone(),
-                    Match {
-                        validation_success: cr.is_valid,
-                        validation_response_status: cr.status.as_u16(),
-                        validation_response_body: cr.body.clone(),
-                        ..old_match.clone()
-                    },
-                )));
+        // Apply Phase 1 results in-place — avoids cloning every Match
+        {
+            let mut ds = datastore.lock().unwrap();
+            let matches = ds.get_matches_mut();
+            let slice: &mut [Arc<FindingsStoreMessage>] = if let Some(ref r) = range {
+                &mut matches[r.clone()]
+            } else {
+                matches.as_mut_slice()
+            };
+            for match_arc in slice.iter_mut() {
+                // Skip dependent matches — handled in Phase 2
+                if !match_arc.2.rule.syntax().depends_on_rule.is_empty() {
+                    continue;
+                }
+                let secret = match_arc.2.groups.captures.get(0).map_or("", |c| c.raw_value());
+                let key = format!("{}|{}", match_arc.2.rule.id(), secret);
+                if let Some(cr) = validation_results.get(&key) {
+                    let (_, _, existing) = Arc::make_mut(match_arc);
+                    existing.validation_success = cr.is_valid;
+                    existing.validation_response_status = cr.status.as_u16();
+                    existing.validation_response_body = cr.body.clone();
+                }
             }
         }
     }
 
-    // ── Phase 2: blobs with dependencies (original logic) ───────────────────
-    if !dependent_blobs.is_empty() {
+    // ── Phase 2: blobs with dependencies ─────────────────────────────────────
+    //  Re-fetch dependent matches from the datastore so we don't hold two
+    //  copies of the full match set in memory simultaneously.
+    if !dependent_blob_ids.is_empty() {
+        let dependent_blobs: FxHashMap<BlobId, Vec<Arc<FindingsStoreMessage>>> = {
+            let ds = datastore.lock().unwrap();
+            let slice = if let Some(ref r) = range {
+                &ds.get_matches()[r.clone()]
+            } else {
+                ds.get_matches()
+            };
+            let mut map: FxHashMap<BlobId, Vec<Arc<FindingsStoreMessage>>> = FxHashMap::default();
+            for arc_msg in slice {
+                if dependent_blob_ids.contains(&arc_msg.1.id) {
+                    map.entry(arc_msg.1.id).or_default().push(arc_msg.clone());
+                }
+            }
+            map
+        };
+
         let blob_ids: Vec<_> = {
             let mut v: Vec<_> = dependent_blobs.keys().cloned().collect();
             v.sort_unstable();
@@ -592,10 +665,21 @@ pub async fn run_secret_validation(
         let val_cache = Arc::new(DashMap::<String, CachedResponse>::new());
         let in_flight = Arc::new(DashMap::<String, ()>::new());
 
+        // Collect validation results keyed by finding_fingerprint:
+        // (validation_success, response_body, response_status_u16, dependent_captures)
+        type DepUpdate = (
+            bool,
+            crate::validation_body::ValidationResponseBody,
+            u16,
+            std::collections::BTreeMap<String, String>,
+        );
+        let mut dep_updates: FxHashMap<u64, DepUpdate> = FxHashMap::default();
+
         for chunk in blob_ids.chunks(chunk_size) {
-            let tasks: Vec<_> = chunk
-                .iter()
-                .map(|blob_id| {
+            // Lazy iterator — futures are created on-demand by buffer_unordered,
+            // not all at once via .collect().
+            let validated_blobs: Vec<Vec<OwnedBlobMatch>> =
+                stream::iter(chunk.iter().map(|blob_id| {
                     let matches_for_blob = dependent_blobs.get(blob_id).unwrap().clone();
                     let parser = parser.clone();
                     let clients = clients.clone();
@@ -619,6 +703,9 @@ pub async fn run_secret_validation(
                                 )
                             })
                             .collect::<Vec<_>>();
+
+                        // Drop Arc clones early — we only need OwnedBlobMatch from here
+                        drop(matches_for_blob);
 
                         let (dep_vars, missing_deps) = collect_variables_and_dependencies(&owned);
 
@@ -673,6 +760,7 @@ pub async fn run_secret_validation(
                                     out.extend(dups);
                                     out
                                 }
+                                .boxed()
                             }))
                             .buffer_unordered(concurrency)
                             .collect()
@@ -680,52 +768,57 @@ pub async fn run_secret_validation(
 
                         validated.into_iter().flatten().collect::<Vec<_>>()
                     }
-                })
-                .collect();
-
-            let validated_blobs: Vec<Vec<OwnedBlobMatch>> =
-                stream::iter(tasks).buffer_unordered(concurrency).collect().await;
+                    .boxed()
+                }))
+                .buffer_unordered(concurrency)
+                .collect()
+                .await;
 
             for blob_vec in validated_blobs {
-                if blob_vec.is_empty() {
-                    continue;
-                }
-
-                let map_original: FxHashMap<u64, _> = dependent_blobs
-                    .get(&blob_vec[0].blob_id)
-                    .unwrap()
-                    .iter()
-                    .map(|arc_msg| (arc_msg.2.finding_fingerprint, arc_msg.clone()))
-                    .collect();
-
                 for om in blob_vec {
-                    let orig = map_original.get(&om.finding_fingerprint).unwrap();
-
-                    updated_arcs.push(Arc::new((
-                        orig.0.clone(),
-                        orig.1.clone(),
-                        Match {
-                            validation_success: om.validation_success,
-                            validation_response_body: om.validation_response_body.clone(),
-                            validation_response_status: om.validation_response_status.as_u16(),
-                            // Copy dependent_captures from validated OwnedBlobMatch
-                            // so they're available for building validate/revoke commands
-                            dependent_captures: om.dependent_captures.clone(),
-                            ..orig.2.clone()
-                        },
-                    )));
+                    dep_updates.insert(
+                        om.finding_fingerprint,
+                        (
+                            om.validation_success,
+                            om.validation_response_body.clone(),
+                            om.validation_response_status.as_u16(),
+                            om.dependent_captures.clone(),
+                        ),
+                    );
                 }
             }
             pb.inc(chunk.len() as u64);
         }
         pb.finish();
+
+        // Drop dependent blob Arc clones so datastore Arcs reach refcount == 1
+        drop(dependent_blobs);
+
+        // Apply Phase 2 results in-place
+        if !dep_updates.is_empty() {
+            let mut ds = datastore.lock().unwrap();
+            let matches = ds.get_matches_mut();
+            let slice: &mut [Arc<FindingsStoreMessage>] = if let Some(ref r) = range {
+                &mut matches[r.clone()]
+            } else {
+                matches.as_mut_slice()
+            };
+            for match_arc in slice.iter_mut() {
+                if let Some((success, body, status, dep_caps)) =
+                    dep_updates.get(&match_arc.2.finding_fingerprint).map(|v| v.clone())
+                {
+                    let (_, _, existing) = Arc::make_mut(match_arc);
+                    existing.validation_success = success;
+                    existing.validation_response_status = status;
+                    existing.validation_response_body = body;
+                    existing.dependent_captures = dep_caps;
+                }
+            }
+        }
     }
 
-    // ── 4. Persist all updates ──────────────────────────────────────────────
-    {
-        let mut ds = datastore.lock().unwrap();
-        ds.replace_matches(updated_arcs);
-    }
+    // Reclaim memory from static caches that accumulated during validation
+    crate::validation::clear_validation_caches();
 
     Ok(())
 }
@@ -775,14 +868,14 @@ async fn validate_single(
         return;
     }
 
-    static NOTIFY: once_cell::sync::Lazy<DashMap<String, Arc<Notify>>> =
-        once_cell::sync::Lazy::new(DashMap::new);
+    static NOTIFY: std::sync::LazyLock<DashMap<String, Arc<Notify>>> =
+        std::sync::LazyLock::new(DashMap::new);
 
     let notify = NOTIFY.entry(cache_key.clone()).or_insert_with(|| Arc::new(Notify::new())).clone();
     let first = in_progress.insert(cache_key.clone(), ()).is_none();
     if !first {
         notify.notified().await; // suspend with zero polling
-                                 // cached result now present
+        // cached result now present
         if let Some(cached) = cache.get(&cache_key) {
             om.validation_success = cached.is_valid;
             om.validation_response_body = cached.body.clone();
@@ -800,7 +893,8 @@ async fn validate_single(
     }
     // If we reach here, we're the first task to validate this key
     // Perform validation
-    let outcome = timeout(validation_timeout, async {
+    let outcome = timeout(
+        validation_timeout,
         validate_single_match(
             om,
             parser,
@@ -813,8 +907,8 @@ async fn validate_single(
             rate_limiter,
             max_body_len,
         )
-        .await
-    })
+        .boxed(),
+    )
     .await;
     // Store result in cache
     match outcome {
@@ -985,6 +1079,45 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
 
                 if !token.is_empty() && !organization.is_empty() {
                     collector.record_azure_devops(&token, &organization, fp.clone());
+                }
+            }
+            if om.rule.id() == "kingfisher.alibabacloud.2" {
+                let secret_key = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let access_key =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "AKID")
+                        .or_else(|| om.dependent_captures.get("AKID").cloned())
+                        .unwrap_or_default();
+
+                if !access_key.is_empty() && !secret_key.is_empty() {
+                    collector.record_alibaba(&access_key, &secret_key, None, fp.clone());
+                }
+            }
+            if om.rule.id() == "kingfisher.alibabacloud.5" {
+                let secret_key = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let access_key =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "STS_AKID")
+                        .or_else(|| om.dependent_captures.get("STS_AKID").cloned())
+                        .unwrap_or_default();
+                let session_token =
+                    utils::find_closest_variable(&captures, &secret_key, "TOKEN", "SECURITY_TOKEN")
+                        .or_else(|| om.dependent_captures.get("SECURITY_TOKEN").cloned())
+                        .unwrap_or_default();
+
+                if !access_key.is_empty() && !secret_key.is_empty() && !session_token.is_empty() {
+                    collector.record_alibaba(
+                        &access_key,
+                        &secret_key,
+                        Some(&session_token),
+                        fp.clone(),
+                    );
                 }
             }
             if is_gitlab_rule {
@@ -1312,12 +1445,32 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                     collector.record_zendesk(&token, &subdomain, fp.clone());
                 }
             }
+            if om.rule.id().starts_with("kingfisher.monday.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_monday(value, fp.clone());
+                    }
+                }
+            }
+            // Only Asana rules whose TOKEN capture is a standalone access/PAT:
+            // .3 (legacy 0/...), .4 (V1 1/...), .5 (V2 2/...). Rule .1 is a client ID
+            // and .2 is a client secret that cannot be used alone to enumerate resources.
+            if matches!(
+                om.rule.id(),
+                "kingfisher.asana.3" | "kingfisher.asana.4" | "kingfisher.asana.5"
+            ) {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_asana(value, fp.clone());
+                    }
+                }
+            }
         }
     }
 }
 
 fn extract_akid_from_body(body: &validation_body::ValidationResponseBody) -> Option<String> {
-    static AKID_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static AKID_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(
             r"(?xi)\b(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[0-9A-Z]{16}\b",
         )
@@ -1331,7 +1484,7 @@ fn extract_akid_from_body(body: &validation_body::ValidationResponseBody) -> Opt
 fn extract_azure_storage_account_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<String> {
-    static ACCOUNT_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static ACCOUNT_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"(?i)Account:\s*([a-z0-9]{3,24})").expect("valid regex")
     });
 
@@ -1342,7 +1495,7 @@ fn extract_azure_storage_account_from_body(
 fn extract_azure_storage_containers_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<Vec<String>> {
-    static CONTAINERS_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static CONTAINERS_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"(?i)Containers:\s*(\\[[^\\]]*\\])").expect("valid regex")
     });
 
@@ -1356,7 +1509,7 @@ fn extract_azure_storage_containers_from_body(
 fn extract_azure_devops_org_from_body(
     body: &validation_body::ValidationResponseBody,
 ) -> Option<String> {
-    static ORG_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    static ORG_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r#"(?i)https?://dev\.azure\.com/([a-z0-9][a-z0-9-]{0,61}[a-z0-9])"#)
             .expect("valid regex")
     });
@@ -1375,5 +1528,48 @@ mod tests {
         assert!(!is_counted_validation_status(StatusCode::PRECONDITION_REQUIRED));
         assert!(is_counted_validation_status(StatusCode::OK));
         assert!(is_counted_validation_status(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn access_map_collector_dedupes_monday_and_asana_tokens() {
+        let collector = AccessMapCollector::default();
+        collector.record_monday("monday-token-1", "fp-1".into());
+        collector.record_monday("monday-token-1", "fp-2".into());
+        collector.record_asana("2/asana-token-1", "fp-3".into());
+        collector.record_asana("2/asana-token-1", "fp-4".into());
+
+        let mut requests = collector.into_requests();
+        requests.sort_by_key(|r| match r {
+            AccessMapRequest::Monday { .. } => 0,
+            AccessMapRequest::Asana { .. } => 1,
+            _ => 2,
+        });
+        assert_eq!(requests.len(), 2);
+        match &requests[0] {
+            AccessMapRequest::Monday { token, .. } => assert_eq!(token, "monday-token-1"),
+            other => panic!("unexpected request: {other:?}"),
+        }
+        match &requests[1] {
+            AccessMapRequest::Asana { token, .. } => assert_eq!(token, "2/asana-token-1"),
+            other => panic!("unexpected request: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn access_map_collector_dedupes_alibaba_credentials() {
+        let collector = AccessMapCollector::default();
+        collector.record_alibaba("LTAIexample", "secret-value", None, "fp-1".to_string());
+        collector.record_alibaba("LTAIexample", "secret-value", None, "fp-2".to_string());
+
+        let requests = collector.into_requests();
+        assert_eq!(requests.len(), 1);
+        match &requests[0] {
+            AccessMapRequest::Alibaba { access_key, secret_key, session_token, .. } => {
+                assert_eq!(access_key, "LTAIexample");
+                assert_eq!(secret_key, "secret-value");
+                assert!(session_token.is_none());
+            }
+            other => panic!("unexpected request: {other:?}"),
+        }
     }
 }

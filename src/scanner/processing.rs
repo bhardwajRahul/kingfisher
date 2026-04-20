@@ -3,13 +3,13 @@ use tokio::time::Instant;
 use tracing::{debug_span, trace};
 
 use crate::{
+    Path,
     blob::{Blob, BlobMetadata},
     content_type::ContentInspector,
     location::LocationMapping,
-    matcher::{should_attempt_context_verification, Match, Matcher, OwnedBlobMatch, ScanResult},
+    matcher::{Match, Matcher, OwnedBlobMatch, ScanResult, should_attempt_context_verification},
     origin::{Origin, OriginSet},
     scanner::repos::DatastoreMessage,
-    Path,
 };
 
 const LOCATION_LIMIT_BYTES: usize = 256 * 1024 * 1024;

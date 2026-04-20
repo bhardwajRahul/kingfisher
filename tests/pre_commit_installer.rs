@@ -1,5 +1,5 @@
-use assert_cmd::assert::OutputAssertExt;
 use assert_cmd::Command;
+use assert_cmd::assert::OutputAssertExt;
 use predicates::str::contains;
 use std::fs;
 use std::path::{Path, PathBuf};

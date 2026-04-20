@@ -39,8 +39,8 @@ Key capabilities:
 
 ## Toolchain and Environment
 - Shell assumptions in build scripts: `bash` with `set -eu -o pipefail`
-- Workspace minimum Rust version: `1.90` (`Cargo.toml`)
-- `make check-rust` enforces `>= 1.92.0` for build targets
+- Workspace minimum Rust version: `1.94` (`Cargo.toml`)
+- `make check-rust` enforces `>= 1.94.1` for build targets
 - Windows Makefile targets (`windows-x64`, `windows-arm64`) expect an MSYS2 environment with `pacman` available.
 - Prefer `rg` and `rg --files` for fast code/file search.
 

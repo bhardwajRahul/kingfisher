@@ -61,20 +61,20 @@ pub mod raw;
 
 // Re-exports
 pub use utils::{find_closest_variable, process_captures};
-pub use validation_body::{as_str, clone_as_string, from_string, ValidationResponseBody};
+pub use validation_body::{ValidationResponseBody, as_str, clone_as_string, from_string};
 
 #[cfg(feature = "validation-http")]
 pub use http_validation::{
-    build_request_builder, check_url_resolvable, generate_http_cache_key_parts, is_ssrf_safe_ip,
-    parse_http_method, process_headers, retry_multipart_request, retry_request, validate_response,
-    with_request_template_globals, SsrfBlockedError,
+    SsrfBlockedError, build_request_builder, check_url_resolvable, generate_http_cache_key_parts,
+    is_ssrf_safe_ip, parse_http_method, process_headers, retry_multipart_request, retry_request,
+    validate_response, with_request_template_globals,
 };
 
 #[cfg(feature = "validation-raw")]
-pub use raw::{required_vars as raw_required_vars, validate_raw, RawValidationOutcome};
+pub use raw::{RawValidationOutcome, required_vars as raw_required_vars, validate_raw};
 
 #[cfg(feature = "validation-http")]
-#[allow(deprecated)]
+#[expect(deprecated)]
 pub use http_validation::check_url_resolvable_safe;
 
 #[cfg(feature = "validation-aws")]
@@ -84,9 +84,8 @@ pub use aws::{
     validate_aws_credentials, validate_aws_credentials_input,
 };
 
-use once_cell::sync::OnceCell;
 use std::{
-    sync::Arc,
+    sync::{Arc, LazyLock, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -94,11 +93,10 @@ use crossbeam_skiplist::SkipMap;
 
 /// User agent string used for HTTP validation requests.
 #[cfg(feature = "validation-http")]
-pub static GLOBAL_USER_AGENT: once_cell::sync::Lazy<String> =
-    once_cell::sync::Lazy::new(build_user_agent);
+pub static GLOBAL_USER_AGENT: LazyLock<String> = LazyLock::new(build_user_agent);
 
 #[cfg(feature = "validation-http")]
-static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
+static USER_AGENT_SUFFIX: OnceLock<String> = OnceLock::new();
 
 #[cfg(feature = "validation-http")]
 const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \

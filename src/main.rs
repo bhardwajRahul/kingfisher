@@ -60,7 +60,7 @@ use console::Term;
 use kingfisher::{
     access_map, azure, bitbucket,
     cli::{
-        self,
+        self, CommandLineArgs, GlobalArgs,
         commands::{
             github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
@@ -71,12 +71,11 @@ use kingfisher::{
             },
         },
         global::Command,
-        CommandLineArgs, GlobalArgs,
     },
     direct_revoke, direct_validate, findings_store,
     findings_store::FindingsStore,
     gitea, github, huggingface,
-    reporter::{styles::Styles, DetailsReporter, ScanAuditContext},
+    reporter::{DetailsReporter, ScanAuditContext, styles::Styles},
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
@@ -104,6 +103,19 @@ use crate::cli::commands::{
 
 fn main() -> anyhow::Result<()> {
     color_backtrace::install();
+
+    // Run the real entry point on a thread with an explicit, larger stack so that
+    // deeply-nested async state machines (validation pipeline) cannot overflow the
+    // default main-thread stack.
+    const STACK_SIZE: usize = 32 * 1024 * 1024; // 32 MiB
+    let builder =
+        std::thread::Builder::new().name("kingfisher-main".to_string()).stack_size(STACK_SIZE);
+
+    let handler = builder.spawn(run).expect("failed to spawn main thread");
+    handler.join().unwrap_or_else(|e| std::panic::resume_unwind(e))
+}
+
+fn run() -> anyhow::Result<()> {
     // Rustls 0.23 requires an explicit crypto provider selection when multiple
     // providers are present in the dependency graph.
     match rustls::crypto::ring::default_provider().install_default() {
@@ -125,16 +137,20 @@ fn main() -> anyhow::Result<()> {
     let num_jobs = match &args.command {
         Command::Scan(scan_args) => scan_args.scan_args.num_jobs,
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
-        Command::Rules(_) => num_cpus::get(), // Default for Rules commands
+        Command::Rules(_) => std::thread::available_parallelism().map_or(1, |n| n.get()), // Default for Rules commands
         Command::Validate(_) => 1, // Single validation request
-        Command::Revoke(_) => 1,  // Single revocation request
+        Command::Revoke(_) => 1,   // Single revocation request
         Command::AccessMap(_) => 1,
         Command::View(_) => 1,
     };
 
-    // Set up the Tokio runtime with the specified number of threads
+    // Set up the Tokio runtime with the specified number of threads.
+    // Worker threads need larger stacks because async state machines (validation
+    // pipeline) can produce large poll stack frames. 8 MiB is sufficient now that
+    // the validators are split into separate async fns.
     let runtime = Builder::new_multi_thread()
         .worker_threads(num_jobs)
+        .thread_stack_size(8 * 1024 * 1024) // 8 MiB per worker
         .enable_all()
         .build()
         .context("Failed to create Tokio runtime")?;
@@ -164,7 +180,7 @@ fn setup_logging(global_args: &GlobalArgs) {
         tracing_subscriber::filter::Targets::new()
             .with_default(LevelFilter::ERROR) // Default for all modules
             .with_target("kingfisher", level) // Replace `kingfisher` with your
-                                              // crate's name
+        // crate's name
     };
     // Configure the formatter layer
     let fmt_layer = fmt::layer()
@@ -172,7 +188,7 @@ fn setup_logging(global_args: &GlobalArgs) {
         .with_target(true) // Enable target filtering
         .with_ansi(std::io::stderr().is_terminal()) // Emit ANSI colours when stderr is a TTY
         .without_time(); // Remove timestamps
-                         // Build and initialize the registry
+    // Build and initialize the registry
     registry()
         .with(fmt_layer) // Attach the formatter layer
         .with(filter) // Attach the filter
@@ -346,7 +362,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                             let envelope = reporter.build_report_envelope(&scan_args)?;
                             let report_bytes = serde_json::to_vec_pretty(&envelope)?;
                             let view_args = view::ViewArgs {
-                                report: None,
+                                reports: vec![],
                                 port: scan_args.view_report_port,
                                 address: scan_args.view_report_address.clone(),
                                 open_browser: true,
@@ -733,7 +749,9 @@ pub fn run_rules_check(args: &RulesCheckArgs) -> Result<()> {
                                 "    [!] Pattern requirements not met for example: {}",
                                 example
                             );
-                            println!("    The match does not satisfy the character requirements (min_digits, min_uppercase, etc.)");
+                            println!(
+                                "    The match does not satisfy the character requirements (min_digits, min_uppercase, etc.)"
+                            );
                             num_errors += 1;
                         }
                         PatternValidationResult::FailedChecksum { actual_len, expected_len } => {
@@ -805,7 +823,7 @@ pub fn run_rules_list(args: &RulesListArgs) -> Result<()> {
                 .max()
                 .unwrap_or(0)
                 .max(10); // "Confidence" header
-                          // Calculate pattern width based on terminal width
+            // Calculate pattern width based on terminal width
             let reserved_width = max_name_width + max_id_width + max_conf_width + 10;
             let pattern_width = term_width.saturating_sub(reserved_width);
             // Format pattern on a single line

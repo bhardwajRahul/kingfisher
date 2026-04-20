@@ -1,17 +1,17 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
+use anyhow::{Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::STANDARD as b64};
 use chrono::Utc;
 use hmac::{Hmac, Mac};
 use http::StatusCode;
-use quick_xml::{events::Event, Reader};
-use reqwest::{header::HeaderValue, Client};
+use quick_xml::{Reader, events::Event};
+use reqwest::{Client, header::HeaderValue};
 use serde_json::Value as JsonValue;
 use sha2::Sha256;
 
 use super::{
-    validation_body, Cache, CachedResponse, ValidationResponseBody, VALIDATION_CACHE_SECONDS,
+    Cache, CachedResponse, VALIDATION_CACHE_SECONDS, ValidationResponseBody, validation_body,
 };
 
 pub fn generate_azure_cache_key(azure_json: &str) -> String {

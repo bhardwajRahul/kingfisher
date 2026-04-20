@@ -485,6 +485,7 @@ Below is the complete list of Liquid filters available in Kingfisher, along with
 | `b64enc`              | –                                            | Base64-encodes the input using the standard alphabet.                                                          | `{{ TOKEN \| b64enc }}`                                              |
 | `b64url_enc`          | –                                            | URL-safe Base64 (no padding). Useful for JWT headers & payloads.                                               | `{{ TOKEN \| b64url_enc }}`                                          |
 | `b64dec`              | –                                            | Decodes a Base64 string.                                                                                        | `{{ "aGVsbG8=" \| b64dec }}`                                         |
+| `b64url_dec`          | –                                            | Decodes a URL-safe Base64 string (with or without padding).                                                     | `{{ "Kys_Pw" \| b64url_dec }}`                                       |
 | `sha256`              | –                                            | Computes the SHA-256 hex digest of the input.                                                                  | `{{ TOKEN \| sha256 }}`                                              |
 | `crc32`               | –                                            | Computes the CRC32 checksum of the input and returns a decimal value. | `{{ TOKEN \| crc32 }}` |
 | `crc32_dec`           | `digits` (integer, optional)                 | Computes the CRC32 checksum and returns the last `digits` decimal characters (zero-padded). Defaults to the full value when omitted. | `{{ TOKEN \| crc32_dec: 6 }}` |
@@ -538,6 +539,9 @@ Authorization: Basic {{ "api:" | append: TOKEN | b64enc }}
 - **Using the Captured Value:**  
   This captured value can then be used during the validation phase. For instance, if you have a rule for an Algolia Admin API Key that depends on an Algolia Application ID (captured as `APPID`), the validation logic can incorporate the `APPID` value to confirm that the secret matches the expected pattern or format for that specific account.
 
+- **Detection vs validation:**  
+  `depends_on_rule` is for capture chaining and validation context. It does not automatically hide the main secret finding, and it does not by itself mean the rule must be parser-verified before it can be reported from raw text.
+
 ### Use depends_on_rule to require one rule before another runs:
 
 ```yaml
@@ -548,6 +552,7 @@ depends_on_rule:
 
 - **Capture flow**: First rule captures `APPID` → second rule injects `{{ APPID }}` into validation HTTP request or pattern
 - **Visible control:** set `visible: false` on the supporting rule so it doesn’t clutter your report for non-secret matches
+- **Primary secret rule:** leave the secret rule visible unless it is also only a helper; helper rules should usually be the ones marked `visible: false`
 ## Algolia Example
 
 Consider this example rule for an Algolia Application ID and Admin Key combination. To validate that this is an active credential, both must be matched:
@@ -880,19 +885,23 @@ rules:
 
 ## Advanced Example
 
-This advanced example uses the liquid-rs filters included with Kingfisher to sign a request to validate Alibaba Cloud credential pairs:
+This advanced example uses the liquid-rs filters included with Kingfisher to sign requests that validate Alibaba Cloud long-lived and STS temporary credential pairs:
 
 ```yaml
 rules:
   - name: Alibaba Access Key ID
     id: kingfisher.alibabacloud.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        LTAI[a-z0-9]{17,21}
+        LTAI[A-Za-z0-9]{17,21}
       )
       \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
     min_entropy: 4.0
     confidence: medium
     visible: false
@@ -902,20 +911,34 @@ rules:
   - name: Alibaba Access Key Secret
     id: kingfisher.alibabacloud.2
     pattern: |
-      (?xi)
+      (?x)
       \b
-      alibaba
-      (?:.|[\n\r]){0,32}?
-      \b
+      (?:
+        (?i:alibaba|alibaba[\s_-]*cloud|aliyun)
+        |
+        LTAI[A-Za-z0-9]{17,21}
+      )
+      (?:.|[\n\r]){0,80}?
+      (?i:access[\s_-]*key[\s_-]*secret|access[\s_-]*secret|secret|token|key)
+      (?:.|[\n\r]){0,16}?
+      (?:
+        [=:]
+        |
+        ["']\s*:\s*["']
+      )
+      \s*
+      ["']?
       (
-        [a-z0-9]{30}
+        [A-Za-z0-9]{30}
       )
       \b
+      ["']?
     min_entropy: 4.2
     confidence: medium
     examples:
       - alibaba_secret = 7jkWdTjKLnSlGddwPR5gBn65PHcZG6
       - alibaba-token = aJHKLnSlGddwPR5g7jkWdTBn65PHc5
+      - AccessKeyId=LTAI8x2NiGqfyJGx7eLDhp12 AccessKeySecret=7jkWdTjKLnSlGddwPR5gBn65PHcZG6
     validation:
       type: Http
       content:
@@ -949,4 +972,108 @@ rules:
     depends_on_rule:
       - rule_id: kingfisher.alibabacloud.1
         variable: AKID
+  - name: Alibaba STS Access Key ID
+    id: kingfisher.alibabacloud.3
+    pattern: |
+      (?x)
+      \b
+      (
+        STS\.[A-Za-z0-9]{16,64}
+      )
+      \b
+    min_entropy: 3.0
+    confidence: medium
+    visible: false
+    examples:
+      - STS.NTKaenSkmLhG4HpM576UV
+      - STS.FJ6EMcS1JLZgAcBJSTDG1Z4CE
+  - name: Alibaba STS Security Token
+    id: kingfisher.alibabacloud.4
+    pattern: |
+      (?xi)
+      \b
+      (?:security[\s_-]*token|sts[\s_-]*token|x[\s_-]*oss[\s_-]*security[\s_-]*token|alibaba[\s_-]*cloud[\s_-]*security[\s_-]*token|aliyun[\s_-]*security[\s_-]*token)
+      (?:.|[\n\r]){0,16}?
+      (?:
+        [=:]
+        |
+        ["']\s*:\s*["']
+      )
+      \s*
+      ["']?
+      (
+        CAIS[A-Za-z0-9+/_=-]{20,1024}
+      )
+      (?:["'\s,;}&\]]|$)
+    min_entropy: 4.0
+    confidence: medium
+    visible: false
+    examples:
+      - securityToken = "CAISuwJ1q6Ft5B2yu9Kiaa5E0VnVJ8q2o3P4r5S6t7U8v9W0xYz"
+      - ALIBABA_CLOUD_SECURITY_TOKEN=CAIS/gF1q6Ft5B2yfSjIr5eDA9xjJCcl57eKC7A3ThnJA
+  - name: Alibaba STS Access Key Secret
+    id: kingfisher.alibabacloud.5
+    pattern: |
+      (?x)
+      \b
+      (?:
+        (?i:alibaba|alibaba[\s_-]*cloud|aliyun|sts)
+        |
+        STS\.[A-Za-z0-9]{16,64}
+      )
+      (?:.|[\n\r]){0,120}?
+      (?i:access[\s_-]*key[\s_-]*secret|access[\s_-]*secret)
+      (?:.|[\n\r]){0,16}?
+      (?:
+        [=:]
+        |
+        ["']\s*:\s*["']
+      )
+      \s*
+      ["']?
+      (
+        [A-Za-z0-9]{30,64}
+      )
+      \b
+      ["']?
+    min_entropy: 4.2
+    confidence: medium
+    examples:
+      - STS.NTKaenSkmLhG4HpM576UV AccessKeySecret=wyLTSmsyPGP1ohvvw8xYgB29dlGI8KMiH2pK
+      - "aliyun sts access_key_secret: 6itECZnhbG2RU6ktTSBSd6JxeLHKPWyBtSS62"
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: >
+            {%- assign nonce = "" | uuid | upcase -%}
+            {%- assign raw_timestamp = "" | iso_timestamp_no_frac -%}
+            {%- assign timestamp = raw_timestamp | replace: ":", "%3A" -%}
+
+            {%- capture params -%}
+            AccessKeyId={{ STS_AKID | url_encode }}&Action=GetCallerIdentity&Format=JSON&SecurityToken={{ SECURITY_TOKEN | url_encode }}&SignatureMethod=HMAC-SHA1&SignatureNonce={{ nonce }}&SignatureVersion=1.0&Timestamp={{ timestamp }}&Version=2015-04-01
+            {%- endcapture -%}
+            {%- assign encoded_params = params | replace: "+", "%20" | replace: "*", "%2A" | replace: "%7E", "~" -%}
+            {%- assign query_string = encoded_params | url_encode | replace: "%2D", "-" | replace: "%2E", "." -%}
+
+            {%- assign signature_base_string = "GET&%2F&" | append: query_string -%}
+            {%- assign token_amp = TOKEN | append: "&" -%}
+
+            {%- assign hmacsignature = signature_base_string | hmac_sha1: token_amp | url_encode -%}
+
+            https://sts.aliyuncs.com/?{{ params }}&Signature={{ hmacsignature }}
+          headers:
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words: ['"Arn"']
+    depends_on_rule:
+      - rule_id: kingfisher.alibabacloud.3
+        variable: STS_AKID
+      - rule_id: kingfisher.alibabacloud.4
+        variable: SECURITY_TOKEN
 ```

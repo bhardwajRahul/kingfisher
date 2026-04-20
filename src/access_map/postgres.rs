@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
+
+use anyhow::{Context, Result, anyhow};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring, verify_tls12_signature, verify_tls13_signature};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{client::ClientConfig, DigitallySignedStruct, SignatureScheme};
+use rustls::{DigitallySignedStruct, SignatureScheme, client::ClientConfig};
 use tokio::time::timeout;
 use tokio_postgres::config::SslMode;
 use tokio_postgres::tls::NoTls;
@@ -17,13 +18,13 @@ use tracing::{debug, warn};
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure,
-    RoleBinding, Severity,
+    AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    build_recommendations,
 };
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
 
-static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
+static INIT_PROVIDER: OnceLock<()> = OnceLock::new();
 fn ensure_crypto_provider() {
     INIT_PROVIDER.get_or_init(|| {
         let _ = CryptoProvider::install_default(ring::default_provider());
@@ -296,7 +297,7 @@ impl RoleAttributes {
 #[derive(Debug)]
 struct DatabasePrivilege {
     name: String,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     owner: String,
     privileges: Vec<String>,
 }
@@ -366,7 +367,7 @@ async fn connect(pg_url: &str) -> Result<Client> {
             }
             Ok(Err(e)) => return Err(anyhow!("Postgres connection failed: {e}")),
             Err(_) => {
-                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"))
+                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"));
             }
         }
     }

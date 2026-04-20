@@ -1,9 +1,9 @@
 use bstr::BString;
 use regex::bytes::Regex;
 use schemars::{
-    gen::SchemaGenerator,
-    schema::{ArrayValidation, InstanceType, Schema},
     JsonSchema,
+    r#gen::SchemaGenerator,
+    schema::{ArrayValidation, InstanceType, Schema},
 };
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -30,8 +30,8 @@ impl JsonSchema for Groups {
         "Groups".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
-        let group_schema = gen.subschema_for::<Group>();
+    fn json_schema(r#gen: &mut SchemaGenerator) -> Schema {
+        let group_schema = r#gen.subschema_for::<Group>();
         Schema::Object(schemars::schema::SchemaObject {
             instance_type: Some(InstanceType::Array.into()),
             array: Some(Box::new(ArrayValidation {

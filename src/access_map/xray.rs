@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::warn;
@@ -7,8 +7,8 @@ use tracing::warn;
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const MAX_REPO_RESOURCES: usize = 100;
@@ -18,7 +18,7 @@ struct XrayRepo {
     name: Option<String>,
     #[serde(rename = "type")]
     repo_type: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "pkg_type")]
     package_type: Option<String>,
 }
@@ -28,7 +28,7 @@ struct XrayPolicy {
     name: Option<String>,
     #[serde(rename = "type")]
     policy_type: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     author: Option<String>,
 }
 

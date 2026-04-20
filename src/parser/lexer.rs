@@ -1,10 +1,11 @@
+use std::sync::LazyLock;
+
 use anyhow::Result;
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 use super::Language;
 
-static ASSIGNMENT_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_LITERAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?P<key>[A-Za-z_@$][\w$@.:>-]*)
@@ -27,7 +28,7 @@ static ASSIGNMENT_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static ASSIGNMENT_ANY_RE: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_ANY_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?P<key>[A-Za-z_@$][\w$@.:>-]*)
@@ -40,7 +41,7 @@ static ASSIGNMENT_ANY_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static TYPED_ASSIGNMENT_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
+static TYPED_ASSIGNMENT_LITERAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?P<key>[A-Za-z_@$][\w$@.-]*)
@@ -62,7 +63,7 @@ static TYPED_ASSIGNMENT_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static PAIR_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
+static PAIR_LITERAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?:
@@ -88,7 +89,7 @@ static PAIR_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static TYPE_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
+static TYPE_LITERAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?P<key>[A-Za-z_@$][\w$@.-]*)
@@ -105,7 +106,7 @@ static TYPE_LITERAL_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static CALL_RE: Lazy<Regex> = Lazy::new(|| {
+static CALL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?:
@@ -119,7 +120,7 @@ static CALL_RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static BRACE_LIST_ASSIGN_RE: Lazy<Regex> = Lazy::new(|| {
+static BRACE_LIST_ASSIGN_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?P<key>[A-Za-z_@$][\w$@.:>-]*)
@@ -527,11 +528,7 @@ where
         return Flow::Continue;
     }
     let candidate = format!("{key} = {value}");
-    if sink(&candidate) {
-        Flow::Continue
-    } else {
-        Flow::Break
-    }
+    if sink(&candidate) { Flow::Continue } else { Flow::Break }
 }
 
 fn normalize_key(key: &str, keep_full_key: bool) -> String {

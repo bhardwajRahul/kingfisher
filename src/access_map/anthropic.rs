@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const ANTHROPIC_API: &str = "https://api.anthropic.com/v1";
@@ -355,11 +355,7 @@ async fn fetch_permissions_from_endpoint(
         .await
         .with_context(|| format!("Anthropic access-map: invalid API key JSON from {url}"))?;
 
-    if body.permissions.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(body))
-    }
+    if body.permissions.is_empty() { Ok(None) } else { Ok(Some(body)) }
 }
 
 fn derive_severity(permissions: &PermissionSummary) -> Severity {

@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use thiserror::Error;
 use tracing::{debug, error, info, trace};
 
@@ -12,8 +12,8 @@ use crate::{
     cli::commands::rules::RuleSpecifierArgs,
     defaults::get_builtin_rules,
     rules::{
-        rule::{Confidence, Rule},
         Rules,
+        rule::{Confidence, Rule},
     },
     util::Counted,
 };

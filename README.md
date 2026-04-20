@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" style="height: 24px;" />
   </a>
   <a href="https://github.com/mongodb/kingfisher">
-    <img src="https://img.shields.io/badge/Detection%20Rules-825-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
+    <img src="https://img.shields.io/badge/Detection%20Rules-934-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
   </a>
   <br>
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
@@ -17,7 +17,7 @@
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
 
-It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with 800+ built-in rules** to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
+It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with 934 built-in rules** to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
 
 Designed for offensive security engineers and blue-team defenders alike, Kingfisher helps you scan repositories, cloud storage, chat, docs, and CI pipelines to find and verify exposed secrets quickly.
 
@@ -49,19 +49,19 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 
 </div>
 
-### Performance, Accuracy, and 800+ Rules
+### Performance, Accuracy, and 934 Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
-- **Extensible rules**: 800+ built-in rules plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
+- **Extensible rules**: 934 built-in rules plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
 - **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 39 providers (see table below).
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
-- **Compressed Files**: Supports extracting and scanning compressed files for secrets
+- **Compressed Files**: Supports extracting and scanning compressed files for secrets, including `tar.gz`/`bz2`/`xz`, ZIP-family containers (`zip`, `jar`, `docx`, `xlsx`, `pptx`, `odt`, `epub`, `hwpx`, and more), `asar`, HWP (Hancom OLE2/CFBF binary with DEFLATE/zlib stream decoding), and EGG (ALZip; raw-byte scanning)
 - **SQLite Database Scanning**: Automatically extracts and scans SQLite database contents for secrets stored in table rows
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
-- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json`
+- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json` (supports multiple files, directories, and imported Gitleaks/TruffleHog JSON reports)
 - **Audit reporting**: Generate compliance-oriented HTML reports with scan metadata and validation ordering
 - **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
@@ -81,7 +81,7 @@ NOTE: Replay has been slowed down for demo
 ![Kingfisher secret scanning demo](docs/kingfisher-usage-01.gif)
 
 ## Report Viewer Demo
-Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers.
+Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers. The viewer also imports Gitleaks JSON and TruffleHog JSON/JSONL for local triage.
 
 Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
@@ -155,6 +155,8 @@ kingfisher scan /path/to/code
 ```bash
 kingfisher scan /path/to/code --view-report
 ```
+
+You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`. For a shareable upload-based experience, the docs site also hosts the report viewer as a static page.
 
 ### 4: Show only validated (live) secrets
 
@@ -345,7 +347,7 @@ gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
 
 # Detection Rules
 
-Kingfisher ships with [800+ built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
+Kingfisher ships with [934 built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
 
 | Category | What we catch |
 |----------|---------------|
@@ -362,7 +364,7 @@ Kingfisher ships with [800+ built-in rules](crates/kingfisher-rules/data/rules/)
 
 ## Write Custom Rules
 
-Kingfisher ships with 800+ rules with HTTP and service‑specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
+Kingfisher ships with 605 built-in rules with HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
 However, you may want to add your own custom rules, or modify a detection to better suit your needs / environment.
 
@@ -432,21 +434,33 @@ kingfisher scan /path/to/code --access-map --view-report
 
 # View access-map reports locally
 kingfisher view kingfisher.json
+
+# Import third-party reports for local triage
+kingfisher view trufflehog.json
+kingfisher view gitleaks.json
+
+# Combine multiple reports (deduplicated by fingerprint)
+kingfisher view report1.json report2.jsonl
+
+# Load all reports from a directory (non-recursive, skips non-JSON/JSONL files)
+kingfisher view ./reports/
 ```
+
+The viewer can import Gitleaks JSON and TruffleHog JSON/JSONL in addition to native Kingfisher reports. Imported findings are normalized for browsing, filtering, and export, and imported TruffleHog/Gitleaks findings deduplicate by secret identity. Imported reports remain display-oriented: native `access_map`, validate/revoke commands, and blast-radius linking still require a Kingfisher scan.
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
 
-### Supported Access Map Providers (39)
+### Supported Access Map Providers (42)
 
 | Cloud & Infra | DevOps & CI/CD | SaaS & APIs | Data & Messaging |
 |:---|:---|:---|:---|
 | AWS | GitHub | Airtable | MongoDB |
 | GCP | GitLab | Algolia | MySQL |
 | Azure Storage | Azure DevOps | Auth0 | PostgreSQL |
-| DigitalOcean | Bitbucket | HubSpot | SendGrid |
-| IBM Cloud | Buildkite | Salesforce | Sendinblue / Brevo |
-| Terraform Cloud | CircleCI | Shopify | Slack |
-| | Harness | Zendesk | Microsoft Teams |
+| Alibaba Cloud | Bitbucket | HubSpot | SendGrid |
+| DigitalOcean | Buildkite | Salesforce | Sendinblue / Brevo |
+| IBM Cloud | CircleCI | Shopify | Slack |
+| Terraform Cloud | Harness | Zendesk | Microsoft Teams |
 | | JFrog Artifactory | Stripe | |
 | | JFrog Xray | Square | |
 | | Jira | PayPal | |
@@ -457,6 +471,8 @@ kingfisher view kingfisher.json
 | | | Hugging Face | |
 | | | Weights & Biases | |
 | | | Gitea | |
+| | | monday.com | |
+| | | Asana | |
 
 ## Direct Secret Validation & Revocation
 

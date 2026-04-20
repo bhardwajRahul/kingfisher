@@ -1,25 +1,25 @@
-use anyhow::{anyhow, Context, Result};
-use once_cell::sync::Lazy;
+use anyhow::{Context, Result, anyhow};
 use regex::Regex;
-use reqwest::{header, Client, StatusCode};
+use reqwest::{Client, StatusCode, header};
 use serde_json::Value;
+use std::sync::LazyLock;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const SALESFORCE_API_VERSION: &str = "v60.0";
 const MAX_OBJECT_RESOURCES: usize = 100;
 
-static TOKEN_RE: Lazy<Regex> = Lazy::new(|| {
+static TOKEN_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?xi)\b(00[A-Z0-9]{13}![A-Z0-9._-]{80,260})\b")
         .expect("valid salesforce token regex")
 });
-static INSTANCE_RE: Lazy<Regex> = Lazy::new(|| {
+static INSTANCE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?xi)\b([A-Z0-9-]{5,128})\.my\.salesforce\.com\b")
         .expect("valid salesforce instance regex")
 });

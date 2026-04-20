@@ -11,7 +11,7 @@ rules:
     pattern_requirements:
       min_digits: 4
     min_entropy: 3.5
-    confidence: high
+    confidence: medium
     categories: [api, key]
     examples:
       - 'ROOTLY_API_KEY=rootly_abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'

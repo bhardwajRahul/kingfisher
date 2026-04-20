@@ -14,14 +14,13 @@ use std::{
     io::{Read, Write},
     path::Path,
     sync::{
+        Arc, OnceLock,
         atomic::{AtomicU64, Ordering},
-        Arc,
     },
 };
 
 use bstr::{BString, ByteSlice};
 use gix::ObjectId;
-use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use schemars::JsonSchema;
@@ -114,7 +113,7 @@ impl<'a> BlobData<'a> {
 /// ```
 pub struct Blob<'a> {
     /// Lazily computed content-based ID.
-    id: OnceCell<BlobId>,
+    id: OnceLock<BlobId>,
     /// The underlying data.
     data: BlobData<'a>,
     /// Temporary ID assigned at creation (for debugging/tracking).
@@ -134,12 +133,12 @@ impl Blob<'_> {
         if file_size > LARGE_FILE_THRESHOLD {
             // Large files: one mmap, zero extra copies.
             let mmap = unsafe { memmap2::Mmap::map(&file)? };
-            Ok(Blob { id: OnceCell::new(), data: BlobData::Mapped(mmap), temp_id })
+            Ok(Blob { id: OnceLock::new(), data: BlobData::Mapped(mmap), temp_id })
         } else {
             // Small files: read into memory.
             let mut bytes = Vec::with_capacity(file_size as usize);
             file.read_to_end(&mut bytes)?;
-            Ok(Blob { id: OnceCell::new(), data: BlobData::Owned(bytes), temp_id })
+            Ok(Blob { id: OnceLock::new(), data: BlobData::Owned(bytes), temp_id })
         }
     }
 
@@ -147,14 +146,14 @@ impl Blob<'_> {
     #[inline]
     pub fn from_bytes(bytes: Vec<u8>) -> Self {
         let temp_id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        Blob { id: OnceCell::new(), data: BlobData::Owned(bytes), temp_id }
+        Blob { id: OnceLock::new(), data: BlobData::Owned(bytes), temp_id }
     }
 
     /// Create a new `Blob` with a pre-computed ID and owned data.
     #[inline]
     pub fn new(id: BlobId, bytes: Vec<u8>) -> Self {
         let temp_id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        let cell = OnceCell::new();
+        let cell = OnceLock::new();
         let _ = cell.set(id);
         Blob { id: cell, data: BlobData::Owned(bytes), temp_id }
     }
@@ -204,7 +203,7 @@ impl<'a> Blob<'a> {
     #[inline]
     pub fn from_borrowed(bytes: &'a [u8]) -> Self {
         let temp_id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        Blob { id: OnceCell::new(), data: BlobData::Borrowed(bytes), temp_id }
+        Blob { id: OnceLock::new(), data: BlobData::Borrowed(bytes), temp_id }
     }
 }
 
@@ -317,8 +316,8 @@ impl JsonSchema for BlobId {
         "BlobId".into()
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let s = String::json_schema(gen);
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        let s = String::json_schema(r#gen);
         let mut o = s.into_object();
         o.string().pattern = Some("[0-9a-f]{40}".into());
         let md = o.metadata();

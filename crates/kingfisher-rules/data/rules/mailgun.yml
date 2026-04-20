@@ -35,6 +35,9 @@ rules:
           url: https://api.mailgun.net/v3/address/validate?address=test@example.com
     references:
       - https://documentation.mailgun.com/docs/mailgun/api-reference/mg-auth
+    # Revocation not added: Mailgun API key revocation (DELETE /v1/keys/{key_id})
+    # requires the key_id (not the key value) and the token format here doesn't
+    # allow us to reliably extract the key_id from a listing.
   - name: MailGun Primary Key
     id: kingfisher.mailgun.2
     pattern: |

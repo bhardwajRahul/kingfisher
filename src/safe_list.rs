@@ -10,9 +10,8 @@
 //       // reason contains the rule description
 //   }
 
-use once_cell::sync::Lazy;
 use regex::bytes::Regex;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use tracing::debug;
 
 /// A rule that describes *why* a match is considered safe/benign.
@@ -37,7 +36,7 @@ fn compile(pattern: &'static str) -> Regex {
 /// Case-insensitive patterns that indicate a *benign* match (placeholders, examples, redactions, etc.).
 /// `is_safe_match()` returns true if any of these are present and logs which rule fired.
 /// `is_safe_match_reason()` returns the matching rule's description instead of logging.
-static SAFE_LIST_FILTER_RULES: Lazy<Vec<SafeRule>> = Lazy::new(|| {
+static SAFE_LIST_FILTER_RULES: LazyLock<Vec<SafeRule>> = LazyLock::new(|| {
     vec![
         SafeRule {
             description: "Assignment ending with EXAMPLEKEY (placeholder)",
@@ -123,7 +122,9 @@ static SAFE_LIST_FILTER_RULES: Lazy<Vec<SafeRule>> = Lazy::new(|| {
         },
         SafeRule {
             description: "URL with basic auth to host ending in example/test (placeholder)",
-            regex: compile(r"(?i)\b((?:https?:)?//[^:@]{3,50}:[^:@]{3,50}@[\w.]{0,16}(?:example|test))"),
+            regex: compile(
+                r"(?i)\b((?:https?:)?//[^:@]{3,50}:[^:@]{3,50}@[\w.]{0,16}(?:example|test))",
+            ),
         },
         SafeRule {
             description: "Assignment ending with SECRETMANAGER (explicit placeholder)",
@@ -134,8 +135,8 @@ static SAFE_LIST_FILTER_RULES: Lazy<Vec<SafeRule>> = Lazy::new(|| {
 
 // User-supplied allow-list patterns (regexes) and skipwords. These are empty by
 // default and populated via CLI flags at runtime.
-static USER_SAFE_REGEXES: Lazy<Mutex<Vec<Regex>>> = Lazy::new(|| Mutex::new(Vec::new()));
-static USER_SAFE_SKIPWORDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static USER_SAFE_REGEXES: LazyLock<Mutex<Vec<Regex>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+static USER_SAFE_SKIPWORDS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 /// Register an additional allow-list regex provided by the user.
 /// If the pattern fails to compile, the error is returned so the caller can

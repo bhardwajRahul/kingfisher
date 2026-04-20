@@ -6,8 +6,6 @@ rules:
       \b
       (?i:todoist)
       (?:.|[\n\r]){0,32}?
-      (?i:TOKEN|API)
-      (?:.|[\n\r]){0,32}?
       \b
       (
         [0-9a-f]{40}
@@ -18,20 +16,20 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'TODOIST_API_TOKEN="0123456789abcdef0123456789abcdef01234567"'
+      - 'TODOIST_API_TOKEN="9ee0e268956ee8440fd88cf1a54665f01fcfcdf5"'
       - |
-        todoist_token = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0'
+        todoist_token = '6c387dbc97170767f2e80334a5e822895adf6d7b'
     negative_examples:
       - 'TODOIST_URL="https://api.todoist.com"'
     references:
-      - https://developer.todoist.com/rest/v2/#overview
+      - https://developer.todoist.com/api/v1/
       - https://developer.todoist.com/guides/#developing-with-todoist
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://api.todoist.com/rest/v2/projects
+          url: https://api.todoist.com/api/v1/user
           headers:
             Authorization: 'Bearer {{ TOKEN }}'
           response_matcher:

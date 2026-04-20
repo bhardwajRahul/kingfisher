@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const SQUARE_API: &str = "https://connect.squareup.com";
@@ -27,10 +27,10 @@ struct SquareMerchant {
     business_name: Option<String>,
     #[serde(default)]
     country: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     currency: Option<String>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     status: Option<String>,
 }
@@ -43,7 +43,7 @@ struct SquareLocationsResponse {
 
 #[derive(Deserialize)]
 struct SquareLocation {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
@@ -297,7 +297,7 @@ fn classify_key_type(token: &str) -> KeyClassification {
 }
 
 enum ScopeRisk {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Admin,
     Risky,
     Read,

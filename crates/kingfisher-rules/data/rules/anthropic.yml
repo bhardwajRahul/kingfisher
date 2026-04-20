@@ -2,7 +2,7 @@ rules:
   - name: Anthropic API Key
     id: kingfisher.anthropic.1
     pattern: |
-      (?xi)
+      (?x)
       (
         sk-ant-api
         \d{2,4}
@@ -15,9 +15,10 @@ rules:
       min_uppercase: 1
       min_lowercase: 1    
     min_entropy: 3.3
-    confidence: high
+    confidence: medium
     examples:
       - sk-ant-api668-Clm512odot9WDD7itfUU9R880nefA1EtYZDbpE-C9b0XQEWpqFKf9DQUo03vOfXl16oSmyar1CLF1SzV3YzpZJ6bahcpLAA
+      - sk-ant-api03-gOe0gMC1pt-tUe3PC6bqj3YqGhkHvyvJgtwIjGhmQIScHCRbIinUwsgFuqyQnnaTDXrHCaTmX2GkSU117pxITQ-XhkxPAAA
     references:
       - https://docs.anthropic.com/claude/reference/authentication
     validation:
@@ -52,9 +53,10 @@ rules:
   - name: Anthropic Admin API Key
     id: kingfisher.anthropic.2
     pattern: |
-      (?xi)
+      (?x)
+      \b
       (
-        sk-ant-admin(?:\d{2,4})?-[A-Za-z0-9_-]{40,}
+        sk-ant-admin(?:\d{2,4})?-[A-Za-z0-9_-]{92,96}
       )
     pattern_requirements:
       min_digits: 2
@@ -63,7 +65,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - sk-ant-admin03-4mB9zY2Qx8LmN7pR5sT1uV6wX0aBcDeFgHiJkLmNoPqRsTuVwXyZ1234
+      - sk-ant-admin03-4mB9zY2Qx8LmN7pR5sT1uV6wX0aBcDeFgHiJkLmNoPqRsTuVwXyZ1234AbC5dEf6GhI7jKl8MnO9pQr0StU1vWxYzABCDEFGHIJKL
+      - sk-ant-admin01-MSLxH1vwJBWWIwDTzFro0xQrkN1dWoHo-6E9qdBHiJDCx5076IoxCH_L-sritH-zkJw2tx6igyKCh5AFgKJYYw-NjbNkAAA
     references:
       - https://docs.anthropic.com/en/api/administration-api
       - https://docs.anthropic.com/en/api/admin-api/organization/get-me

@@ -3,7 +3,7 @@
 //! This module provides types for tracking commit information associated
 //! with blobs found in git history.
 
-use gix::{date::Time, ObjectId};
+use gix::{ObjectId, date::Time};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -65,8 +65,8 @@ impl JsonSchema for TextTime {
         "Time".into()
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        String::json_schema(gen)
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(r#gen)
     }
 }
 
@@ -128,8 +128,8 @@ impl JsonSchema for HexObjectId {
         "ObjectId".into()
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let s = String::json_schema(gen);
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        let s = String::json_schema(r#gen);
         let mut o = s.into_object();
         o.string().pattern = Some("[0-9a-f]{40}".into());
         let md = o.metadata();

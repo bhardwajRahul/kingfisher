@@ -1,13 +1,13 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use aws_config::{BehaviorVersion, SdkConfig};
 use aws_credential_types::Credentials;
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_ecr::Client as EcrClient;
-use aws_sdk_iam::{error::SdkError, Client as IamClient};
+use aws_sdk_iam::{Client as IamClient, error::SdkError};
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_lambda::Client as LambdaClient;
 use aws_sdk_rds::Client as RdsClient;
@@ -24,8 +24,8 @@ use tracing::warn;
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_default_account_resource, build_recommendations, AccessMapResult, AccessSummary,
-    AccessTokenDetails, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_default_account_resource, build_recommendations,
 };
 
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {

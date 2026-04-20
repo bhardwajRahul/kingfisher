@@ -1,10 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use dashmap::DashMap;
 use tokio::{
     sync::Mutex,
-    time::{sleep_until, Instant},
+    time::{Instant, sleep_until},
 };
 
 use crate::rules::rule::Validation;

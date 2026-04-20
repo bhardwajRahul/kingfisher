@@ -78,6 +78,24 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.unkey.com/v2/keys.verifyKey
+          headers:
+            Content-Type: application/json
+          body: '{"key":"{{ TOKEN }}"}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
+            - type: WordMatch
+              words:
+                - '"valid":true'
+                - '"valid": true'
     references:
       - https://www.unkey.com/docs/api-reference/v2/keys/create-api-key
       - https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key

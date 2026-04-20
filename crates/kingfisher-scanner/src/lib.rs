@@ -71,7 +71,7 @@ mod scanner_pool;
 ))]
 pub mod validation;
 
-pub use finding::{intern, Finding, FindingLocation, SerializableCapture, SerializableCaptures};
+pub use finding::{Finding, FindingLocation, SerializableCapture, SerializableCaptures, intern};
 pub use scanner::{Scanner, ScannerConfig};
 pub use scanner_pool::ScannerPool;
 

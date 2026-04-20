@@ -1,17 +1,17 @@
-use anyhow::{anyhow, Context, Result};
-use base64::{engine::general_purpose::STANDARD as b64, Engine as _};
+use anyhow::{Context, Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::STANDARD as b64};
 use chrono::Utc;
 use hmac::{Hmac, KeyInit, Mac};
-use quick_xml::{events::Event, Reader};
-use reqwest::{header::HeaderValue, Client};
+use quick_xml::{Reader, events::Event};
+use reqwest::{Client, header::HeaderValue};
 use serde_json::Value as JsonValue;
 use sha2::Sha256;
 
 use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure,
-    RoleBinding, Severity,
+    AccessMapResult, AccessSummary, PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    build_recommendations,
 };
 
 #[derive(Clone, Copy)]

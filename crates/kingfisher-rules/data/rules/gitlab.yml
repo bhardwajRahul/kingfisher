@@ -254,6 +254,9 @@ rules:
       - 'DEPLOY_TOKEN=gldt-3dEfGhIjK4MnOpQrStUv'
     references:
       - https://docs.gitlab.com/user/project/deploy_tokens/
+    # Validation not added: deploy tokens authenticate via HTTP basic auth
+    # (username + token as password) and require the deploy token username,
+    # which varies per token and is not captured by this rule.
 
   - name: GitLab Feature Flag Client Token
     id: kingfisher.gitlab.7
@@ -473,3 +476,20 @@ rules:
       - 'Cookie: _gitlab_session=0f1e2d3c4b5a69788796a5b4c3d2e1f0'
     references:
       - https://docs.gitlab.com/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://gitlab.com/api/v4/user
+          headers:
+            Cookie: "_gitlab_session={{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"id"'
+                - '"username"'
+              match_all_words: true

@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use aws_config::{defaults, meta::region::RegionProviderChain, BehaviorVersion};
+use aws_config::{BehaviorVersion, defaults, meta::region::RegionProviderChain};
 use aws_credential_types::Credentials;
 use aws_sdk_s3::{
+    Client,
     error::ProvideErrorMetadata,                    // for .code()
     operation::list_objects_v2::ListObjectsV2Error, // modeled service error
-    Client,
 };
 use aws_types::region::Region;
 use reqwest; // HTTP client for HEAD fallback

@@ -44,14 +44,63 @@ fn origin_fp(os: &OriginSet) -> u64 {
     h.finish()
 }
 
+fn dedup_origin_kind(origin: &OriginSet) -> &'static str {
+    if origin.iter().any(|o| matches!(o, Origin::Extended(_))) { "ext" } else { "file_git" }
+}
+
+const DEDUP_BLOOM_FP_RATE: f64 = 0.001;
+const INITIAL_BLOOM_CAPACITY: usize = 5_000_000;
+const MAX_BLOOM_CAPACITY: usize = 10_000_000;
+
+struct DedupBloomSet {
+    filters: Vec<Bloom<u64>>,
+    active_items: usize,
+    active_capacity: usize,
+}
+
+impl DedupBloomSet {
+    fn new() -> Self {
+        Self::with_capacity(INITIAL_BLOOM_CAPACITY)
+    }
+
+    fn with_capacity(initial_capacity: usize) -> Self {
+        let capacity = initial_capacity.max(1);
+        let first = Bloom::new_for_fp_rate(capacity, DEDUP_BLOOM_FP_RATE)
+            .expect("Bloom filter size params are valid");
+        Self { filters: vec![first], active_items: 0, active_capacity: capacity }
+    }
+
+    fn contains_or_insert(&mut self, key: u64) -> bool {
+        if self.filters.iter().any(|filter| filter.check(&key)) {
+            return true;
+        }
+
+        if self.active_items >= self.active_capacity {
+            self.grow();
+        }
+
+        let active = self.filters.last_mut().expect("at least one Bloom filter exists");
+        active.set(&key);
+        self.active_items += 1;
+        false
+    }
+
+    fn grow(&mut self) {
+        self.active_capacity = std::cmp::min(self.active_capacity * 2, MAX_BLOOM_CAPACITY);
+        let next = Bloom::new_for_fp_rate(self.active_capacity, DEDUP_BLOOM_FP_RATE)
+            .expect("Bloom filter size params are valid");
+        self.filters.push(next);
+        self.active_items = 0;
+    }
+}
+
 pub struct FindingsStore {
     rules: Vec<Arc<Rule>>,
     matches: Vec<Arc<FindingsStoreMessage>>,
     index_map: FxHashMap<(BlobId, OffsetSpan), usize>,
     blobs: FxHashSet<BlobId>,
     clone_dir: PathBuf,
-    seen_bloom: Bloom<u64>,
-    bloom_items: usize,
+    dedup_filter: DedupBloomSet,
     dependent_rule_ids: FxHashSet<String>,
     blob_meta: FxHashMap<BlobId, Arc<BlobMetadata>>,
     origin_meta: FxHashMap<u64, Arc<OriginSet>>,
@@ -66,10 +115,6 @@ pub struct FindingsStore {
 
 impl FindingsStore {
     pub fn new(clone_dir: PathBuf) -> Self {
-        let expected_items = 10_000_000; // tune to your largest scan
-        let fp_rate = 0.001; // 0.1 % false-positive rate
-        let seen_bloom = Bloom::new_for_fp_rate(expected_items, fp_rate)
-            .expect("Bloom filter size params are valid");
         Self {
             rules: Vec::new(),
             matches: Vec::new(),
@@ -78,8 +123,7 @@ impl FindingsStore {
             blob_meta: FxHashMap::default(),
             origin_meta: FxHashMap::default(),
             clone_dir,
-            seen_bloom,
-            bloom_items: 0,
+            dedup_filter: DedupBloomSet::new(),
             dependent_rule_ids: FxHashSet::default(),
             docker_images: FxHashMap::default(),
             slack_links: FxHashMap::default(),
@@ -187,11 +231,7 @@ impl FindingsStore {
                     .or_else(|| m.groups.captures.get(0).map(|c| c.raw_value()))
                     .unwrap_or("");
 
-                let origin_kind = match origin.first() {
-                    Origin::GitRepo(_) => "git",
-                    Origin::File(_) => "file",
-                    Origin::Extended(_) => "ext",
-                };
+                let origin_kind = dedup_origin_kind(&origin);
 
                 let rule_id = m.rule.id().to_uppercase();
                 let key_string = if self.dependent_rule_ids.contains(&rule_id) {
@@ -201,11 +241,9 @@ impl FindingsStore {
                 };
                 let key = xxh3_64(key_string.as_bytes());
 
-                if self.seen_bloom.check(&key) {
+                if self.dedup_filter.contains_or_insert(key) {
                     continue; // very likely a duplicate
                 }
-                self.seen_bloom.set(&key);
-                self.bloom_items += 1;
             }
 
             /*───────────────────────────────────────────────────────────────┐
@@ -233,13 +271,6 @@ impl FindingsStore {
             let blob_id = self.matches[idx].1.id;
             let offset_span = self.matches[idx].2.location.offset_span;
             self.index_map.insert((blob_id, offset_span), idx);
-        }
-
-        /* ─────────────────────────────────────────────────────────────────── */
-        // Periodically rebuild Bloom filter to bound the FP rate
-        if dedup && self.bloom_items > 5_000_000 {
-            self.seen_bloom = Bloom::new_for_fp_rate(5_000_000, 0.001).unwrap();
-            self.bloom_items = 0;
         }
 
         added
@@ -471,5 +502,23 @@ impl FindingsStore {
         chunk_size: usize,
     ) -> impl Iterator<Item = Vec<std::sync::Arc<FindingsStoreMessage>>> + '_ {
         self.matches.chunks(chunk_size).map(|slice| slice.to_vec()) // keep Arc pointers
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DedupBloomSet;
+
+    #[test]
+    fn dedup_filter_remains_monotonic_across_growth() {
+        let mut filter = DedupBloomSet::with_capacity(2);
+
+        assert!(!filter.contains_or_insert(11));
+        assert!(!filter.contains_or_insert(22));
+        assert!(!filter.contains_or_insert(33));
+
+        assert!(filter.contains_or_insert(11));
+        assert!(filter.contains_or_insert(22));
+        assert!(filter.contains_or_insert(33));
     }
 }

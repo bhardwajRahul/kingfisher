@@ -23,6 +23,7 @@ rules:
       - 'LEMONSQUEEZY_URL="https://api.lemonsqueezy.com"'
     references:
       - https://docs.lemonsqueezy.com/api
+      - https://developer.samsung.com/iap/isn/jwt/header.html
     validation:
       type: Http
       content:

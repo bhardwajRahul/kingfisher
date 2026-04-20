@@ -12,7 +12,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::{info, warn};
-use url::{form_urlencoded, Url};
+use url::{Url, form_urlencoded};
 
 use crate::{findings_store, git_host, git_url::GitUrl, validation::GLOBAL_USER_AGENT};
 use std::str::FromStr;
@@ -108,10 +108,10 @@ fn parse_excluded_project(raw: &str) -> Option<String> {
         return Some(name);
     }
 
-    if let Some(idx) = trimmed.rfind(':') {
-        if let Some(name) = parse_project_path(&trimmed[idx + 1..]) {
-            return Some(name);
-        }
+    if let Some(idx) = trimmed.rfind(':')
+        && let Some(name) = parse_project_path(&trimmed[idx + 1..])
+    {
+        return Some(name);
     }
 
     parse_project_path(trimmed)

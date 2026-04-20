@@ -98,10 +98,12 @@ fn validation_rank(status: &str) -> usize {
         0
     } else if status.eq_ignore_ascii_case("Inactive Credential") {
         1
-    } else if status.eq_ignore_ascii_case("Not Attempted") {
+    } else if status.eq_ignore_ascii_case("Canary Token (Skipped)") {
         2
-    } else {
+    } else if status.eq_ignore_ascii_case("Not Attempted") {
         3
+    } else {
+        4
     }
 }
 
@@ -136,6 +138,8 @@ fn render_findings_table(findings: &[FindingReporterRecord]) -> String {
             "status-active"
         } else if record.finding.validation.status == "Inactive Credential" {
             "status-inactive"
+        } else if record.finding.validation.status == "Canary Token (Skipped)" {
+            "status-canary"
         } else {
             "status-unknown"
         };
@@ -249,6 +253,7 @@ fn build_html(envelope: &ReportEnvelope) -> String {
     .status {{ padding: 2px 8px; border-radius: 999px; font-weight: 700; }}
     .status-active {{ background: #14532d; color: #86efac; }}
     .status-inactive {{ background: #7f1d1d; color: #fecaca; }}
+    .status-canary {{ background: #581c87; color: #e9d5ff; }}
     .status-unknown {{ background: #78350f; color: #fde68a; }}
   </style>
 </head>

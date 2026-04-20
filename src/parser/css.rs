@@ -2,8 +2,8 @@ use std::cell::Cell;
 
 use anyhow::Result;
 use cssparser::{
-    parse_important, AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserInput,
-    ParserState, RuleBodyItemParser, RuleBodyParser, StyleSheetParser, ToCss, Token,
+    AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserInput, ParserState,
+    RuleBodyItemParser, RuleBodyParser, StyleSheetParser, ToCss, Token, parse_important,
 };
 
 pub(super) fn stream_context_candidates<F>(source: &[u8], sink: &mut F) -> Result<()>

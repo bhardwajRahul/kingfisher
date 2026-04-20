@@ -149,7 +149,6 @@ rustc-hash.workspace = true
 # Concurrency
 parking_lot.workspace = true
 thread_local = "1.1"
-once_cell.workspace = true
 crossbeam-skiplist = "0.1.3"
 
 # HTTP status codes

@@ -6,8 +6,10 @@ use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
 
 mod airtable;
 mod algolia;
+mod alibaba;
 mod anthropic;
 mod artifactory;
+mod asana;
 mod auth0;
 mod aws;
 mod azure;
@@ -27,6 +29,7 @@ mod huggingface;
 mod ibm_cloud;
 mod jira;
 mod microsoft_teams;
+mod monday;
 pub(crate) mod mongodb;
 pub(crate) mod mysql;
 mod openai;
@@ -84,6 +87,7 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Weightsandbiases => weightsandbiases::map_access(&args).await?,
         AccessMapProvider::Microsoftteams => microsoft_teams::map_access(&args).await?,
         AccessMapProvider::Airtable => airtable::map_access(&args).await?,
+        AccessMapProvider::Alibaba => alibaba::map_access(&args).await?,
         AccessMapProvider::Circleci => circleci::map_access(&args).await?,
         AccessMapProvider::Digitalocean => digitalocean::map_access(&args).await?,
         AccessMapProvider::Fastly => fastly::map_access(&args).await?,
@@ -104,6 +108,8 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Zendesk => zendesk::map_access(&args).await?,
         AccessMapProvider::Artifactory => artifactory::map_access(&args).await?,
         AccessMapProvider::Xray => xray::map_access(&args).await?,
+        AccessMapProvider::Monday => monday::map_access(&args).await?,
+        AccessMapProvider::Asana => asana::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -168,6 +174,13 @@ pub enum AccessMapRequest {
     MicrosoftTeams { webhook_url: String, fingerprint: String },
     /// An Airtable API token.
     Airtable { token: String, fingerprint: String },
+    /// Alibaba Cloud access key credentials.
+    Alibaba {
+        access_key: String,
+        secret_key: String,
+        session_token: Option<String>,
+        fingerprint: String,
+    },
     /// A CircleCI API token.
     CircleCI { token: String, fingerprint: String },
     /// A DigitalOcean API token.
@@ -208,6 +221,10 @@ pub enum AccessMapRequest {
     Artifactory { token: String, base_url: Option<String>, fingerprint: String },
     /// A JFrog Xray token with optional base URL.
     Xray { token: String, base_url: Option<String>, fingerprint: String },
+    /// A monday.com API token.
+    Monday { token: String, fingerprint: String },
+    /// An Asana personal access token / OAuth token.
+    Asana { token: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -432,6 +449,16 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
             AccessMapRequest::Airtable { token, fingerprint } => {
                 (map_token(&AirtableMapper, &token).await, fingerprint)
             }
+            AccessMapRequest::Alibaba { access_key, secret_key, session_token, fingerprint } => (
+                alibaba::map_access_with_credentials(
+                    &access_key,
+                    &secret_key,
+                    session_token.as_deref(),
+                )
+                .await
+                .unwrap_or_else(|err| build_failed_result("alibaba", &access_key, err)),
+                fingerprint,
+            ),
             AccessMapRequest::CircleCI { token, fingerprint } => {
                 (map_token(&CircleCiMapper, &token).await, fingerprint)
             }
@@ -529,6 +556,12 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
                     res.unwrap_or_else(|err| build_failed_result("jfrog_xray", "token", err)),
                     fingerprint,
                 )
+            }
+            AccessMapRequest::Monday { token, fingerprint } => {
+                (map_token(&MondayMapper, &token).await, fingerprint)
+            }
+            AccessMapRequest::Asana { token, fingerprint } => {
+                (map_token(&AsanaMapper, &token).await, fingerprint)
             }
         };
 
@@ -840,6 +873,32 @@ impl TokenAccessMapper for SquareMapper {
 
     async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
         square::map_access_from_token(token).await
+    }
+}
+
+/// monday.com access mapper.
+pub struct MondayMapper;
+
+impl TokenAccessMapper for MondayMapper {
+    fn cloud_name(&self) -> &'static str {
+        "monday"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        monday::map_access_from_token(token).await
+    }
+}
+
+/// Asana access mapper.
+pub struct AsanaMapper;
+
+impl TokenAccessMapper for AsanaMapper {
+    fn cloud_name(&self) -> &'static str {
+        "asana"
+    }
+
+    async fn map_access_from_token(&self, token: &str) -> Result<AccessMapResult> {
+        asana::map_access_from_token(token).await
     }
 }
 

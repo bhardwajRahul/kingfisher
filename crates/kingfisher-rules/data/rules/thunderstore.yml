@@ -17,3 +17,19 @@ rules:
       - 'THUNDERSTORE_TOKEN=tss_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
     references:
       - https://thunderstore.io/api/docs/
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://thunderstore.io/api/experimental/current-user/
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"username"'

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tl::{HTMLTag, Node, Parser, ParserOptions};
 
-use super::{css, lexer, Language};
+use super::{Language, css, lexer};
 
 pub(super) fn stream_context_candidates<F>(source: &[u8], sink: &mut F) -> Result<()>
 where

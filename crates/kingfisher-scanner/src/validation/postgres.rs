@@ -1,25 +1,28 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{
+    str::FromStr,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
 
-use anyhow::{anyhow, Result};
-use once_cell::sync::OnceCell;
+use anyhow::{Result, anyhow};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{ring, verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring, verify_tls12_signature, verify_tls13_signature};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{client::ClientConfig, DigitallySignedStruct, RootCertStore, SignatureScheme};
-use rustls_native_certs::{load_native_certs, CertificateResult};
+use rustls::{DigitallySignedStruct, RootCertStore, SignatureScheme, client::ClientConfig};
+use rustls_native_certs::{CertificateResult, load_native_certs};
 use sha1::{Digest, Sha1};
 use tokio::time::{error::Elapsed, timeout};
 use tokio_postgres::{
+    Config, Error,
     config::{Host, SslMode},
     tls::NoTls,
-    Config, Error,
 };
 use tokio_postgres_rustls::MakeRustlsConnect;
 use tracing::debug;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
-static INIT_PROVIDER: OnceCell<()> = OnceCell::new();
+static INIT_PROVIDER: OnceLock<()> = OnceLock::new();
 fn ensure_crypto_provider() {
     INIT_PROVIDER.get_or_init(|| {
         let _ = CryptoProvider::install_default(ring::default_provider());
@@ -223,7 +226,7 @@ async fn check_postgres_db_connection(
             Ok(Err(e)) => return Err(anyhow!("Postgres connection failed: {e}")),
 
             Err(_) => {
-                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"))
+                return Err(anyhow!("Postgres connection timed out after {CONNECT_TIMEOUT:?}"));
             }
         }
     }

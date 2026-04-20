@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use kingfisher::{
     cli::{
+        GlobalArgs,
         commands::{
             azure::AzureRepoType,
             bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
@@ -15,7 +16,6 @@ use kingfisher::{
             scan::{ConfidenceLevel, ScanArgs},
         },
         global::{Mode, TlsMode},
-        GlobalArgs,
     },
     findings_store::FindingsStore,
     rule_loader::RuleLoader,
@@ -26,8 +26,8 @@ use kingfisher::{
 use tempfile::TempDir;
 use url::Url;
 use wiremock::{
-    matchers::{method, path},
     Mock, MockServer, ResponseTemplate,
+    matchers::{method, path},
 };
 
 struct TestContext {
@@ -191,7 +191,8 @@ async fn test_scan_slack_messages() -> Result<()> {
         .mount(&server)
         .await;
 
-    env::set_var("KF_SLACK_TOKEN", "xoxp-test");
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { env::set_var("KF_SLACK_TOKEN", "xoxp-test") };
 
     let temp_dir = TempDir::new()?;
     let clone_dir = temp_dir.path().to_path_buf();

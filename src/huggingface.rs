@@ -1,8 +1,8 @@
 use std::{collections::HashSet, env, time::Duration};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::{header::LINK, StatusCode, Url};
+use reqwest::{StatusCode, Url, header::LINK};
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::{debug, warn};
@@ -55,11 +55,7 @@ impl AuthConfig {
     }
 
     fn apply(&self, request: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
-        if let Some(token) = &self.token {
-            request.bearer_auth(token)
-        } else {
-            request
-        }
+        if let Some(token) = &self.token { request.bearer_auth(token) } else { request }
     }
 
     fn has_token(&self) -> bool {
@@ -182,7 +178,9 @@ impl ExcludeSet {
                                 slug.to_lowercase()
                             ));
                         } else {
-                            warn!("Ignoring invalid Hugging Face exclusion '{raw}' (expected owner/name)");
+                            warn!(
+                                "Ignoring invalid Hugging Face exclusion '{raw}' (expected owner/name)"
+                            );
                         }
                     }
                     None => warn!("Ignoring invalid Hugging Face exclusion '{raw}' (unknown type)"),

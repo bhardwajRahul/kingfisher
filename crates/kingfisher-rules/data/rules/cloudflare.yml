@@ -110,3 +110,34 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.cloudflare.com/client/v4/certificates?per_page=1
+
+  - name: Cloudflare User API Token (cfut_ prefix)
+    id: kingfisher.cloudflare.3
+    pattern: |
+      (?x)
+      \b
+      (
+        cfut_[A-Za-z0-9_-]{41,64}
+      )
+      \b
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'CF_API_TOKEN=cfut_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9TuV'
+    references:
+      - https://developers.cloudflare.com/fundamentals/api/get-started/token-formats/
+    # Cloudflare documents 40 characters plus a checksum, but not the checksum algorithm.
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.cloudflare.com/client/v4/user/tokens/verify
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

@@ -41,6 +41,20 @@ rules:
     examples:
       - "phs_8BamSCGAJL4J0hBl2WmkcswecSArJAXO20xzcpYhdiPto9B"
       - "phs_FsG1YzDpCu64PFUcbW1CiEEfiFg1IIBRsME3qqehpZ5GpoT"
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://app.posthog.com/api/users/@me/
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Content-Type: "application/json"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
     references:
       - https://posthog.com/docs/api
       - https://github.com/PostHog/posthog/blob/e408aac5debe02b39a6a67cfd028f16a2ca7bc90/posthog/models/utils.py#L260-L290

@@ -10,9 +10,9 @@ use std::path::Path;
 
 use anyhow::Result;
 use assert_cmd::Command;
-use git2::{build::CheckoutBuilder, BranchType, Repository, Signature};
+use git2::{BranchType, Repository, Signature, build::CheckoutBuilder};
 use predicates::{prelude::PredicateBooleanExt, str::contains};
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 const AWS_SECRET_VALUE: &str = "UpUbsQANRHLf2uuQ7QOlNXPbbtV5fmseW/GgTs5D";
 const GCP_PRIVATE_KEY_VALUE: &str = "c4c474d61701fd6fd4191883b8fea9a8411bf771";

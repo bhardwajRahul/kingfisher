@@ -1,7 +1,7 @@
 use std::io::{self, Cursor, Read};
 use std::path::Path;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use tracing::debug;
 
 const MAX_RECURSION_DEPTH: usize = 256;
@@ -503,7 +503,7 @@ mod tests {
         buf.extend_from_slice(&marshal_small_tuple(&[])); // cellvars
         buf.extend_from_slice(&marshal_short_ascii("<test>")); // filename
         buf.extend_from_slice(&marshal_short_ascii("<module>")); // name
-                                                                 // firstlineno
+        // firstlineno
         buf.extend_from_slice(&1i32.to_le_bytes());
         // 1 trailing object: lnotab
         buf.extend_from_slice(&marshal_string(b""));
@@ -722,7 +722,7 @@ mod tests {
         buf.extend_from_slice(&marshal_short_ascii("<test>")); // filename
         buf.extend_from_slice(&marshal_short_ascii("<module>")); // name
         buf.extend_from_slice(&marshal_short_ascii("<module>")); // qualname
-                                                                 // firstlineno
+        // firstlineno
         buf.extend_from_slice(&1i32.to_le_bytes());
         // 2 trailing objects: linetable, exceptiontable
         buf.extend_from_slice(&marshal_string(b""));

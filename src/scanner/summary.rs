@@ -76,11 +76,7 @@ pub fn compute_scan_totals(
     let total_findings = if args.no_dedup {
         all_matches.iter().fold(0, |count, msg| {
             let (origin_set, _, match_item) = &**msg;
-            if match_item.validation_success {
-                count + origin_set.len()
-            } else {
-                count + 1
-            }
+            if match_item.validation_success { count + origin_set.len() } else { count + 1 }
         })
     } else {
         ds.get_num_matches()

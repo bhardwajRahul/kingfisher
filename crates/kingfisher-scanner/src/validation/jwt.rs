@@ -1,16 +1,16 @@
-use super::http_validation::{check_url_resolvable, SsrfBlockedError};
-use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use super::http_validation::{SsrfBlockedError, check_url_resolvable};
+use anyhow::{Result, anyhow};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::Utc;
 use jsonwebtoken::{
-    decode, decode_header, jwk::JwkSet, Algorithm, DecodingKey, Validation as JwtValidation,
+    Algorithm, DecodingKey, Validation as JwtValidation, decode, decode_header, jwk::JwkSet,
 };
-use once_cell::sync::Lazy;
-use reqwest::{redirect::Policy, Client, Url};
+use reqwest::{Client, Url, redirect::Policy};
 use serde::Deserialize;
+use std::sync::LazyLock;
 
 /// Global redirect-free client with strict TLS validation.
-static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
+static STRICT_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .redirect(Policy::none())
         .danger_accept_invalid_certs(false)
@@ -19,7 +19,7 @@ static STRICT_CLIENT: Lazy<Client> = Lazy::new(|| {
 });
 
 /// Global redirect-free client with lax TLS validation (accepts any cert).
-static LAX_CLIENT: Lazy<Client> = Lazy::new(|| {
+static LAX_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .redirect(Policy::none())
         .danger_accept_invalid_certs(true)
@@ -28,11 +28,7 @@ static LAX_CLIENT: Lazy<Client> = Lazy::new(|| {
 });
 
 fn get_client(lax_tls: bool) -> &'static Client {
-    if lax_tls {
-        &LAX_CLIENT
-    } else {
-        &STRICT_CLIENT
-    }
+    if lax_tls { &LAX_CLIENT } else { &STRICT_CLIENT }
 }
 
 #[derive(Debug, Deserialize)]

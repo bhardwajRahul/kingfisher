@@ -13,6 +13,6 @@ pub use kingfisher_rules::rules::{Rules, RulesError};
 pub use kingfisher_rules::{
     ChecksumActual, ChecksumRequirement, Confidence, DependsOnRule, GrpcRequest, GrpcValidation,
     HttpRequest, HttpValidation, MultipartConfig, MultipartPart, PatternRequirementContext,
-    PatternRequirements, PatternValidationResult, ReportResponseData, ResponseMatcher, Rule,
-    RuleSyntax, Validation, RULE_COMMENTS_PATTERN,
+    PatternRequirements, PatternValidationResult, RULE_COMMENTS_PATTERN, ReportResponseData,
+    ResponseMatcher, Rule, RuleSyntax, Validation,
 };

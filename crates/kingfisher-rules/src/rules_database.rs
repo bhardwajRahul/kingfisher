@@ -1,29 +1,17 @@
 use std::{sync::Arc, time::Instant};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use regex::bytes::Regex;
 use tracing::{debug, debug_span, error};
 use vectorscan_rs::{BlockDatabase, Flag, Pattern};
 
-use crate::rule::{Rule, RULE_COMMENTS_PATTERN};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RuleDetectionProfileKind {
-    SelfIdentifying,
-    ContextDependent,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RuleMatchProfile {
-    pub kind: RuleDetectionProfileKind,
-    pub reason_codes: Vec<&'static str>,
-}
+use crate::rule::{RULE_COMMENTS_PATTERN, Rule};
 
 pub struct RulesDatabase {
     // pub(crate) rules: Vec<Rule,>,
     pub(crate) rules: Vec<Arc<Rule>>,
     pub(crate) anchored_regexes: Vec<Regex>,
-    pub(crate) rule_match_profiles: Vec<RuleMatchProfile>,
+    pub(crate) self_identifying_flags: Vec<bool>,
     pub(crate) vsdb: BlockDatabase,
 }
 
@@ -40,85 +28,11 @@ pub fn format_regex_pattern(pattern: &str) -> String {
 }
 
 impl RulesDatabase {
-    fn classify_rule_profile(rule: &Rule) -> RuleMatchProfile {
-        Self::classify_rule_match_profile(rule)
-    }
-
-    fn build_rule_profiles(rules: &[Arc<Rule>]) -> Vec<RuleMatchProfile> {
-        rules.iter().map(|r| Self::classify_rule_profile(r.as_ref())).collect()
-    }
-
     pub fn get_regex_by_rule_id(&self, rule_id: &str) -> Option<&Regex> {
         self.rules
             .iter()
             .position(|r| r.syntax().id == rule_id)
             .and_then(|index| self.anchored_regexes.get(index))
-    }
-    pub fn classify_rule_match_profile(rule: &Rule) -> RuleMatchProfile {
-        let flattened = format_regex_pattern(&rule.syntax().pattern);
-        let normalized = flattened.to_lowercase();
-
-        let mut reason_codes: Vec<&'static str> = Vec::new();
-
-        let has_self_identifying_prefix = has_self_identifying_shape(&normalized);
-        if has_self_identifying_prefix {
-            reason_codes.push("self_identifying_prefix");
-            return RuleMatchProfile {
-                kind: RuleDetectionProfileKind::SelfIdentifying,
-                reason_codes,
-            };
-        }
-
-        let has_context_keywords =
-            ["secret", "token", "key", "password", "private", "access", "client", "auth"]
-                .iter()
-                .any(|m| normalized.contains(m));
-        if has_context_keywords {
-            reason_codes.push("context_keywords");
-        }
-
-        let has_distance_operator = normalized.contains("(?:.|[\\n\\r]){0,");
-        if has_distance_operator {
-            reason_codes.push("distance_operator");
-        }
-
-        let has_depends_on = !rule.syntax().depends_on_rule.is_empty();
-        if has_depends_on {
-            reason_codes.push("depends_on_rule");
-        }
-
-        let max_quantifier = max_quantifier_min_value(&normalized);
-        let looks_generic_token = has_generic_token_class(&normalized) && max_quantifier >= 24;
-        if looks_generic_token {
-            reason_codes.push("generic_token_shape");
-        }
-
-        let mut score = 0usize;
-        if has_context_keywords {
-            score += 1;
-        }
-        if has_distance_operator {
-            score += 1;
-        }
-        if looks_generic_token {
-            score += 2;
-        }
-        if has_depends_on {
-            score += 1;
-        }
-
-        let is_context_dependent = score >= 3;
-        if !is_context_dependent {
-            return RuleMatchProfile {
-                kind: RuleDetectionProfileKind::SelfIdentifying,
-                reason_codes,
-            };
-        }
-        if looks_generic_token && has_distance_operator {
-            reason_codes.push("strict_contextual_shape");
-        }
-
-        RuleMatchProfile { kind: RuleDetectionProfileKind::ContextDependent, reason_codes }
     }
 
     pub fn get_rule_by_finding_fingerprint(&self, finding_fingerprint: &str) -> Option<Arc<Rule>> {
@@ -155,9 +69,9 @@ impl RulesDatabase {
             Ok(vsdb) => {
                 let d1 = t1.elapsed().as_secs_f64();
                 let (anchored_regexes, d2) = Self::compile_regexes(&rules)?;
-                let rule_match_profiles = Self::build_rule_profiles(&rules);
+                let self_identifying_flags = Self::build_self_identifying_flags(&rules);
                 debug!("Compiled {} rules: vectorscan {}s; regex {}s", rules.len(), d1, d2);
-                Ok(RulesDatabase { rules, vsdb, anchored_regexes, rule_match_profiles })
+                Ok(RulesDatabase { rules, vsdb, anchored_regexes, self_identifying_flags })
             }
             Err(e) => {
                 error!(
@@ -225,12 +139,12 @@ impl RulesDatabase {
             bail!("Failed to compile the following rules:\n{}", error_messages.join("\n"));
         }
         let vsdb = BlockDatabase::new(compiled_patterns)?;
-        let rule_match_profiles = Self::build_rule_profiles(&compiled_rules);
+        let self_identifying_flags = Self::build_self_identifying_flags(&compiled_rules);
         Ok(RulesDatabase {
             rules: compiled_rules,
             vsdb,
             anchored_regexes: compiled_regexes,
-            rule_match_profiles,
+            self_identifying_flags,
         })
     }
 
@@ -287,14 +201,30 @@ impl RulesDatabase {
         &self.anchored_regexes
     }
 
+    /// Returns true when the rule at `index` is recognised as
+    /// self-identifying by literal pattern shape (e.g. `GHP_`, `AIzaSy`,
+    /// `xox[pbarose]`, PEM envelopes, Slack webhook URLs). Self-identifying
+    /// rules bypass structural context gating — their regex shape already
+    /// provides strong precision.
     #[inline]
-    pub fn rule_match_profiles(&self) -> &[RuleMatchProfile] {
-        &self.rule_match_profiles
+    pub fn is_rule_self_identifying(&self, index: usize) -> bool {
+        self.self_identifying_flags.get(index).copied().unwrap_or(false)
+    }
+
+    fn build_self_identifying_flags(rules: &[Arc<Rule>]) -> Vec<bool> {
+        rules
+            .iter()
+            .map(|rule| {
+                has_self_identifying_shape(
+                    &format_regex_pattern(&rule.syntax().pattern).to_lowercase(),
+                )
+            })
+            .collect()
     }
 }
 
 fn has_self_identifying_shape(normalized_pattern: &str) -> bool {
-    let literal_markers = [
+    const LITERAL_MARKERS: &[&str] = &[
         "ccipat_",
         "xapp-",
         "ghp_",
@@ -308,55 +238,21 @@ fn has_self_identifying_shape(normalized_pattern: &str) -> bool {
         "https://hooks\\.slack\\.com/services/",
     ];
 
-    literal_markers.iter().any(|needle| normalized_pattern.contains(needle))
-        || normalized_pattern.contains("xox[pbarose]")
-        || normalized_pattern.contains("xoxe\\.xox[bparose]-")
-        || normalized_pattern.contains("xoxe-\\d-")
-        || (normalized_pattern.contains("-----begin\\s")
-            && normalized_pattern.contains("private\\skey")
-            && normalized_pattern.contains("-----end\\s"))
-        || (normalized_pattern.contains("-----begin\\ ")
-            && normalized_pattern.contains("private\\ key")
-            && normalized_pattern.contains("-----end\\ "))
-}
-
-fn has_generic_token_class(normalized_pattern: &str) -> bool {
-    [
-        "[a-za-z0-9]{",
-        "[a-z0-9]{",
-        "[a-f0-9]{",
-        "[a-z0-9_-]{",
-        "[a-za-z0-9_-]{",
-        "[a-za-z0-9+/]{",
-        "[a-za-z0-9+/=]{",
-    ]
-    .iter()
-    .any(|needle| normalized_pattern.contains(needle))
-}
-
-fn max_quantifier_min_value(normalized_pattern: &str) -> usize {
-    let mut max_seen = 0usize;
-    let bytes = normalized_pattern.as_bytes();
-    let mut i = 0usize;
-    while i < bytes.len() {
-        if bytes[i] != b'{' {
-            i += 1;
-            continue;
-        }
-        let mut j = i + 1;
-        let mut val = 0usize;
-        let mut saw_digit = false;
-        while j < bytes.len() && bytes[j].is_ascii_digit() {
-            saw_digit = true;
-            val = val.saturating_mul(10).saturating_add((bytes[j] - b'0') as usize);
-            j += 1;
-        }
-        if saw_digit && val > max_seen {
-            max_seen = val;
-        }
-        i = j.saturating_add(1);
+    if LITERAL_MARKERS.iter().any(|needle| normalized_pattern.contains(needle)) {
+        return true;
     }
-    max_seen
+
+    if normalized_pattern.contains("xox[pbarose]") || normalized_pattern.contains("xoxe-\\d-") {
+        return true;
+    }
+
+    let has_pem_escaped_space = normalized_pattern.contains("-----begin\\s")
+        && normalized_pattern.contains("private\\skey")
+        && normalized_pattern.contains("-----end\\s");
+    let has_pem_literal_space = normalized_pattern.contains("-----begin\\ ")
+        && normalized_pattern.contains("private\\ key")
+        && normalized_pattern.contains("-----end\\ ");
+    has_pem_escaped_space || has_pem_literal_space
 }
 
 #[cfg(test)]
@@ -413,141 +309,5 @@ mod test_regex_cleaning {
             )"#;
         let data = format_regex_pattern(input);
         println!("{}", data);
-    }
-}
-
-#[cfg(test)]
-mod test_rule_match_profiles {
-    use super::*;
-    use crate::rule::{Confidence, RuleSyntax, Validation};
-
-    fn mk_rule(id: &str, pattern: &str) -> Rule {
-        Rule::new(RuleSyntax {
-            id: id.to_string(),
-            name: id.to_string(),
-            pattern: pattern.to_string(),
-            confidence: Confidence::Medium,
-            min_entropy: 0.0,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None::<Validation>,
-            revocation: None,
-            depends_on_rule: vec![],
-            pattern_requirements: None,
-            tls_mode: None,
-        })
-    }
-
-    #[test]
-    fn classifies_self_identifying_prefix_rule() {
-        let rule =
-            mk_rule("kingfisher.circleci.1", r"(?x)\b(CCIPAT_[A-Za-z0-9]{22}_[a-z0-9]{40})\b");
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-        assert!(profile.reason_codes.contains(&"self_identifying_prefix"));
-    }
-
-    #[test]
-    fn classifies_google_api_key_rule_as_self_identifying() {
-        let rule = mk_rule("kingfisher.google.7", r"(?xi)\b(AIzaSy[A-Za-z0-9_-]{33})");
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-    }
-
-    #[test]
-    fn classifies_slack_token_charclass_rule_as_self_identifying() {
-        let rule = mk_rule(
-            "kingfisher.slack.2",
-            r"(?xi)\b(xox[pbarose][-0-9]{0,3}-[0-9a-z]{6,15}-[0-9a-z]{6,15}-[-0-9a-z]{6,66})\b",
-        );
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-    }
-
-    #[test]
-    fn classifies_slack_webhook_rule_as_self_identifying() {
-        let rule = mk_rule(
-            "kingfisher.slack.4",
-            r"(?xi)\b(https://hooks\.slack\.com/services/T[a-z0-9_-]{8,12}/B[a-z0-9_-]{8,12}/[a-z0-9_-]{20,30})",
-        );
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-    }
-
-    #[test]
-    fn classifies_pypi_token_rule_as_self_identifying() {
-        let rule = mk_rule("kingfisher.pypi.1", r"(?x)(pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,})\b");
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-    }
-
-    #[test]
-    fn classifies_private_key_envelope_rules_as_self_identifying() {
-        let rule = mk_rule(
-            "kingfisher.privkey.2",
-            r"(?xims)(-----BEGIN\s(?:RSA|PGP|DSA|OPENSSH|ENCRYPTED|EC)?\s{0,1}PRIVATE\sKEY-----[a-z0-9 /+=\r\n\\n]{32,}?-----END\s(?:RSA|PGP|DSA|OPENSSH|ENCRYPTED|EC)?\s{0,1}PRIVATE\sKEY-----)",
-        );
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-
-        let pem_rule = mk_rule(
-            "kingfisher.pem.1",
-            r#"(?x)-----BEGIN\ .{0,20}\ ?PRIVATE\ KEY\ ?.{0,20}-----\s*((?:[a-zA-Z0-9+/=\s"',]|\\r|\\n){50,})\s*-----END\ .{0,20}\ ?PRIVATE\ KEY\ ?.{0,20}-----"#,
-        );
-        let pem_profile = RulesDatabase::classify_rule_profile(&pem_rule);
-        assert_eq!(pem_profile.kind, RuleDetectionProfileKind::SelfIdentifying);
-    }
-
-    #[test]
-    fn classifies_context_dependent_generic_rule() {
-        let rule = mk_rule(
-            "kingfisher.auth0.2",
-            r"(?xi)\bauth0(?:.|[\n\r]){0,16}?(?:secret|token)(?:.|[\n\r]){0,64}?\b([a-z0-9_-]{64,})\b",
-        );
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-        assert!(profile.reason_codes.contains(&"generic_token_shape"));
-        assert!(profile.reason_codes.contains(&"strict_contextual_shape"));
-    }
-
-    #[test]
-    fn context_like_rule_is_parser_gated() {
-        let rule = mk_rule(
-            "kingfisher.example.1",
-            r"(?xi)\bexample(?:.|[\n\r]){0,16}?(?:secret|token)(?:.|[\n\r]){0,64}?\b([a-z0-9_-]{64,})\b",
-        );
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-    }
-
-    #[test]
-    fn depends_on_rules_keep_raw_when_parser_unavailable() {
-        use crate::rule::DependsOnRule;
-
-        let rule = Rule::new(RuleSyntax {
-            id: "kingfisher.algolia.1".to_string(),
-            name: "algolia".to_string(),
-            pattern: r"(?xi)algolia(?:.|[\n\r]){0,32}?([a-z0-9]{32})".to_string(),
-            confidence: Confidence::Medium,
-            min_entropy: 0.0,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None::<Validation>,
-            revocation: None,
-            depends_on_rule: vec![Some(DependsOnRule {
-                rule_id: "kingfisher.algolia.2".to_string(),
-                variable: "APPID".to_string(),
-            })],
-            pattern_requirements: None,
-            tls_mode: None,
-        });
-
-        let profile = RulesDatabase::classify_rule_profile(&rule);
-        assert_eq!(profile.kind, RuleDetectionProfileKind::ContextDependent);
-        assert!(profile.reason_codes.contains(&"depends_on_rule"));
     }
 }

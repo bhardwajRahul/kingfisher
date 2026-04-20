@@ -2,10 +2,10 @@ use std::{net::IpAddr, time::Duration};
 
 use anyhow::Result;
 use mongodb::{
+    Client,
     bson::doc,
     error::ErrorKind,
     options::{ClientOptions, Tls, TlsOptions},
-    Client,
 };
 use tokio::time::timeout;
 use tracing::debug;

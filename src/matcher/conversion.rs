@@ -12,7 +12,7 @@ use crate::{
     validation_body::{self, ValidationResponseBody},
 };
 
-use super::{captures::SerializableCaptures, BlobMatch};
+use super::{BlobMatch, captures::SerializableCaptures};
 
 use kingfisher_scanner::primitives::compute_finding_fingerprint;
 
@@ -224,7 +224,7 @@ impl Match {
         let mut num = xxh3_64(&buffer);
         // Ensure the number is positive and within i64 range
         num &= 0x7FFF_FFFF_FFFF_FFFF; // Clear the sign bit to make it positive
-                                      // Convert to string
+        // Convert to string
         num.to_string()
     }
 }

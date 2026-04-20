@@ -1,7 +1,7 @@
 use std::{fs, io::Read, path::Path};
 
 use anyhow::Result;
-use content_inspector::{inspect, ContentType};
+use content_inspector::{ContentType, inspect};
 
 use crate::util::is_safe_path;
 const MAX_PEEK_SIZE: usize = 1024;

@@ -1,7 +1,7 @@
 //! Finding types representing detected secrets.
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use kingfisher_core::{BlobId, Location};
 use kingfisher_rules::{Confidence, Rule};
@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 // Thread-safe string interner for capture values
-static STRING_POOL: once_cell::sync::Lazy<RwLock<std::collections::HashSet<&'static str>>> =
-    once_cell::sync::Lazy::new(|| RwLock::new(std::collections::HashSet::new()));
+static STRING_POOL: LazyLock<RwLock<std::collections::HashSet<&'static str>>> =
+    LazyLock::new(|| RwLock::new(std::collections::HashSet::new()));
 
 /// Intern a string to get a static reference.
 ///

@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::warn;
@@ -7,8 +7,8 @@ use tracing::warn;
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const MAX_REPO_RESOURCES: usize = 100;
@@ -18,7 +18,7 @@ struct ArtifactoryUser {
     name: Option<String>,
     email: Option<String>,
     admin: Option<bool>,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "profileUpdatable")]
     profile_updatable: Option<bool>,
     #[serde(default)]
@@ -37,7 +37,9 @@ struct ArtifactoryRepo {
 /// Entry point when invoked via the CLI `access-map jfrog-art` subcommand.
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {
     let path = args.credential_path.as_deref().ok_or_else(|| {
-        anyhow!("Artifactory access-map requires a credential file with token (and optionally base_url)")
+        anyhow!(
+            "Artifactory access-map requires a credential file with token (and optionally base_url)"
+        )
     })?;
     let raw = std::fs::read_to_string(path).with_context(|| {
         format!("Failed to read Artifactory credential file from {}", path.display())

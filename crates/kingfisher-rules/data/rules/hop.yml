@@ -17,6 +17,20 @@ rules:
       - 'HOP_TOKEN=ptk_AbCdEfGhIjKlMnOpQrStUvWxYz123456'
     references:
       - https://docs.hop.io/reference/rest-api
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.hop.io/v1/projects/@this
+          headers:
+            Authorization: "{{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid
 
   - name: HOP Personal Access Token
     id: kingfisher.hop.2
@@ -36,3 +50,17 @@ rules:
       - 'HOP_PAT="hop_pat_AbCdEfGhIjKlMnOpQrStUvWxYz123456"'
     references:
       - https://docs.hop.io/reference/rest-api
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.hop.io/v1/users/@me
+          headers:
+            Authorization: "{{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: JsonValid

@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Context, Result};
-use reqwest::{header, Client};
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, header};
 use serde::Deserialize;
 use tracing::warn;
 
 use crate::{cli::commands::access_map::AccessMapArgs, validation::GLOBAL_USER_AGENT};
 
 use super::{
-    build_recommendations, AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary,
-    ResourceExposure, RoleBinding, Severity,
+    AccessMapResult, AccessSummary, AccessTokenDetails, PermissionSummary, ResourceExposure,
+    RoleBinding, Severity, build_recommendations,
 };
 
 const DIGITALOCEAN_API: &str = "https://api.digitalocean.com";
@@ -25,7 +25,7 @@ struct DigitalOceanAccount {
     #[serde(default)]
     uuid: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     status: Option<String>,
     #[serde(default)]
     team: Option<DigitalOceanTeam>,
@@ -36,7 +36,7 @@ struct DigitalOceanTeam {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     uuid: Option<String>,
 }
 

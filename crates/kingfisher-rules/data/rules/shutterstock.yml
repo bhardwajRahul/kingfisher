@@ -2,14 +2,13 @@ rules:
   - name: Shutterstock OAuth Token
     id: kingfisher.shutterstock.1
     pattern: |
-      (?xi)
+      (?x)
       \b
-      shutterstock
-      (?:.|[\n\r]){0,48}?
-      (?:ACCESS|TOKEN|BEARER)
+      (?i:shutterstock)
       (?:.|[\n\r]){0,32}?
+      \b
       (
-        v2/[A-Za-z0-9+/]{40,}={0,2}
+        v2/[A-Za-z0-9+/]{40,512}={0,2}
       )
     pattern_requirements:
       min_digits: 2

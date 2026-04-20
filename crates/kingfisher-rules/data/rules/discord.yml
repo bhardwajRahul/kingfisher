@@ -33,6 +33,16 @@ rules:
           url: '{{ TOKEN }}'
     references:
       - https://discord.com/developers/docs/resources/webhook
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: "{{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]
   - name: Discord Bot Token
     id: kingfisher.discord.2
     pattern: |
