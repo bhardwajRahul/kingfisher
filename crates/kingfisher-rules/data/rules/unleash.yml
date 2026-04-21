@@ -34,8 +34,6 @@ rules:
       \b
       unleash
       (?:.|[\n\r]){0,32}?
-      (?:PAT|PERSONAL[_-]?ACCESS[_-]?TOKEN|API[_-]?TOKEN|TOKEN|KEY)
-      (?:.|[\n\r]){0,16}?
       \b
       (
         user:[0-9a-f]{56}

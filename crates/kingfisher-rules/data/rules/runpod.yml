@@ -5,7 +5,7 @@ rules:
       (?x)
       \b
       (
-        rpa_[a-zA-Z0-9]{20,60}
+        rpa_[A-Z0-9]{40}[A-Za-z0-9]{6}
       )
       \b
     pattern_requirements:
@@ -14,7 +14,7 @@ rules:
     confidence: high
     categories: [api, key]
     examples:
-      - 'RUNPOD_API_KEY=rpa_ABC123DEF456GHI789JKL012MNO345PQR678'
+      - 'RUNPOD_API_KEY=rpa_ABC123DEF456GHI789JKL012MNO345PQR678STUVX9y2z7'
     validation:
       type: Http
       content:
