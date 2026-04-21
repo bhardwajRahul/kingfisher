@@ -6,7 +6,7 @@ rules:
       (?x)
       \b
       (
-        tid_[A-Za-z0-9_]{43,55}
+        tid_[A-Za-z0-9_]{50}
       )
       \b
     pattern_requirements:
@@ -15,18 +15,18 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'TIGRIS_ACCESS_KEY=tid_zkrUeBLpqV_TOdaZzjYefcGEZJrZJqQHvmidyMx_VJtknmcWhC'
-      - 'AWS_ACCESS_KEY_ID=tid_sIYWNboOecJPzFPmgbOmxsfSqjwbmYmSoGAlrylliULbhiysCJ'
+      - 'TIGRIS_ACCESS_KEY=tid_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0U1v2W3x4Y5'
+      - 'AWS_ACCESS_KEY_ID=tid_Z9y8X7w6V5u4T3s2R1qPoNmLkJiHgFeDcBa_1234QwErTyUiOp'
     references:
       - https://www.tigrisdata.com/docs/concepts/authnz/
 
   - name: Tigris Secret Access Key
     id: kingfisher.tigris.2
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
-        tsec_[A-Za-z0-9_]{43,55}
+        tsec_[A-Za-z0-9_+-]{70}
       )
       \b
     pattern_requirements:
@@ -36,10 +36,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'TIGRIS_SECRET_KEY=tsec_pQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYz_012345678aB'
-      - 'AWS_SECRET_ACCESS_KEY=tsec_mNbVcXzAsWqErTyUiOpLkJhGfDsAzXcVbNmQwErTyUi_9876'
+      - 'TIGRIS_SECRET_KEY=tsec_Ab3D5fGh7Jk9LmNpQrStUvWxYz0123456789_+-AaBbCcDdEeFfGgHhIiJjKkLmNoPqRSt'
+      - 'AWS_SECRET_ACCESS_KEY=tsec_Z9y8X7w6V5u4T3s2R1qPoNmLkJiHgFeDcBa9876543210_+-QqRrSsTtUuVvWwXxYyZzAa'
     references:
       - https://www.tigrisdata.com/docs/concepts/authnz/
-    depends_on_rule:
-      - rule_id: kingfisher.tigris.1
-        variable: TIGRIS_ACCESS_KEY
+      - https://tigrisdata.com/docs/sdks/s3/aws-cli
