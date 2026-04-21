@@ -2305,6 +2305,18 @@
     };
 
     const THEME_KEY = "access-map-viewer-theme";
+    const systemThemeQuery = window.matchMedia("(prefers-color-scheme: light)");
+
+    function getStoredThemePreference() {
+      const stored = localStorage.getItem(THEME_KEY);
+      return stored === "light" || stored === "dark" ? stored : null;
+    }
+
+    function getPreferredTheme() {
+      const stored = getStoredThemePreference();
+      if (stored) return stored;
+      return systemThemeQuery.matches ? "light" : "dark";
+    }
 
     function setTheme(theme) {
       const normalized = theme === "light" ? "light" : "dark";
@@ -2312,9 +2324,24 @@
       if (themeToggle) {
         themeToggle.textContent = normalized === "dark" ? "Light Mode" : "Dark Mode";
       }
+      return normalized;
     }
 
-    setTheme(localStorage.getItem(THEME_KEY));
+    function rerenderThemeSensitiveViews() {
+      if (!hasLoadedReportData()) return;
+      const validationCounts = calculateValidationCounts();
+      renderStatusChart(validationCounts);
+      renderSourceChart(calculateSourceCounts());
+      renderSourceDetectorCharts();
+    }
+
+    setTheme(getPreferredTheme());
+
+    systemThemeQuery.addEventListener("change", () => {
+      if (getStoredThemePreference()) return;
+      setTheme(getPreferredTheme());
+      rerenderThemeSensitiveViews();
+    });
 
     function hasLoadedReportData() {
       return findings.length > 0 || accessMap.length > 0 || rawData !== null;
@@ -2470,6 +2497,7 @@
         const next = current === "dark" ? "light" : "dark";
         localStorage.setItem(THEME_KEY, next);
         setTheme(next);
+        rerenderThemeSensitiveViews();
       });
     }
 

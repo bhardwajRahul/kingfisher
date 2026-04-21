@@ -19,20 +19,22 @@ This generates a YAML file named `baseline-file.yml` in the current directory. T
 ExactFindings:
   matches:
   - filepath: ruby_vulnerable.rb/
-    fingerprint: 056876f00ffd0622
+    fingerprint: '389162583612032034'
     linenum: 52
     lastupdated: Mon, 14 Jul 2025 10:17:56 -0700
   - filepath: ruby_vulnerable.rb/
-    fingerprint: ce41d19b83b2b1b0
+    fingerprint: '14862156687550263216'
     linenum: 53
     lastupdated: Mon, 14 Jul 2025 10:17:56 -0700
   - filepath: ruby_vulnerable.rb/
-    fingerprint: e8644d91fa6654f5
+    fingerprint: '16736108862611731189'
     linenum: 40
     lastupdated: Mon, 14 Jul 2025 10:17:56 -0700
 ```
 
 `fingerprint` reuses Kingfisher's 64-bit *finding fingerprint* algorithm with offsets set to zero. It hashes the secret value together with the normalized filepath, so moving a secret around does not create a new entry.
+
+Fingerprints in the baseline are written as decimal `u64` values — identical to the fingerprint shown in scan output (JSON, JSONL, pretty, SARIF), so you can copy a fingerprint directly from a report into this file. For backward compatibility the baseline also accepts the legacy 16-character zero-padded hex form (e.g. `056876f00ffd0622`) and explicit `0x`-prefixed hex, so baselines produced by older releases continue to work unchanged.
 
 Running another scan with `--manage-baseline` rewrites the file so it only contains findings that still exist in the repository. Use the same YAML file with the `--baseline-file` option on future scans to hide all recorded findings:
 
