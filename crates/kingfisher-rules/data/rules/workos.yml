@@ -4,8 +4,11 @@ rules:
     pattern: |
       (?x)
       \b
+      (?i:workos)
+      (?:.|[\n\r]){0,24}?
+      \b
       (
-        sk_(?:live|test)_a2V5Xz[A-Za-z0-9+/]{69}
+        sk_live_a2V5Xz[A-Za-z0-9+/]{69}
       )
       \b
     pattern_requirements:
