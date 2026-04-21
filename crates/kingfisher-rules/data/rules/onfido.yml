@@ -5,7 +5,7 @@ rules:
       (?x)
       \b
       (
-        api_(?:live|sandbox)\.[a-zA-Z0-9_-]{20,80}
+        api_live\.[a-zA-Z0-9_-]{20,80}
       )
       \b
     pattern_requirements:
