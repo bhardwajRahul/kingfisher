@@ -82,7 +82,7 @@ Drag a Kingfisher, Gitleaks, or TruffleHog JSON report into the page (or use the
 
 You can test the hosted page with a bundled sample report:
 
-- [Open sample report JSON](../viewer/sample-report.json)       | No            |
+- [Open sample report JSON](../viewer/sample-report.json)
 
 ## Caveats for imported Gitleaks / TruffleHog reports
 

@@ -17,7 +17,7 @@ rules:
     pattern_requirements:
       min_digits: 4
     min_entropy: 3.5
-    confidence: low
+    confidence: medium
     visible: false
     examples:
       - "webex_client = Ac0769801df88a3535b4b018ef570b499002bda401b3b8789259a937f22d66095"

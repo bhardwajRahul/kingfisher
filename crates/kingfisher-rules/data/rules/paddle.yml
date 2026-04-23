@@ -21,7 +21,6 @@ rules:
     categories: [api, key]
     examples:
       - 'PADDLE_API_KEY=pdl_live_apikey_01kps076233qscw38dxz320d0e_Ab3D5fGb7Jk9LmNpQrStUv_X2z'
-      - 'paddle_key: pdl_sdbx_apikey_01kps08npwb1rv4ryqxh0jr30c_qwErTyUiObAsDfGhJkLmN2_B7Q'
     validation:
       type: Http
       content:

@@ -43,14 +43,19 @@ pub fn load_baseline(path: &Path) -> Result<BaselineFile> {
 /// or the 16-char zero-padded hex form previously written by `--manage-baseline`.
 /// Detection:
 ///   1. A `0x`/`0X` prefix is stripped and the rest parsed as hex.
-///   2. Exactly 16 characters of `[0-9a-fA-F]` are parsed as hex (legacy canonical form).
+///   2. Exactly 16 hex chars containing at least one `a-f`/`A-F` letter are parsed as hex
+///      (legacy canonical form). An all-digit 16-char string is ambiguous and is treated
+///      as decimal so that decimal fingerprints from scan output round-trip correctly.
 ///   3. Otherwise the string is parsed as decimal u64.
 fn parse_fingerprint(s: &str) -> Option<u64> {
     let trimmed = s.trim();
     if let Some(rest) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
         return u64::from_str_radix(rest, 16).ok();
     }
-    if trimmed.len() == 16 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+    if trimmed.len() == 16
+        && trimmed.chars().all(|c| c.is_ascii_hexdigit())
+        && trimmed.chars().any(|c| c.is_ascii_alphabetic())
+    {
         return u64::from_str_radix(trimmed, 16).ok();
     }
     trimmed.parse::<u64>().ok()
@@ -370,7 +375,10 @@ mod tests {
         fs::write(&file_hex, "dummy")?;
         fs::write(&file_dec, "dummy")?;
         let baseline_path = tmp.path().join("baseline.yaml");
-        let fp_hex = 0x1111_2222_3333_4444_u64;
+        // fp_hex must contain at least one hex letter so its 16-char hex form is
+        // unambiguously hex (an all-digit 16-char string is treated as decimal to
+        // satisfy the roundtrip contract for fingerprints copied from scan output).
+        let fp_hex = 0x1a2b_3c4d_5e6f_7890_u64;
         let fp_dec = 0xaaaa_bbbb_cccc_dddd_u64;
 
         let mixed = BaselineFile {

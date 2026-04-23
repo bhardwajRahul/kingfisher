@@ -17,8 +17,7 @@ rules:
     confidence: medium
     categories: [api, key]
     examples:
-      - 'HIGHNOTE_API_KEY=sk_live_AbCdEfGhIjKlMnOpQrStUvWxYz1234'
-      - 'highnote_key: rk_test_AbCdEfGhIjKlMnOpQrStUvWxYz1234'
+      - 'HIGHNOTE_API_KEY="sk_live_a2V5XzAxS1BSWE1LTjBEWE1INlpBU0VEWjU2VFE3LFdjOWxFMTNDS29xRkdlYU9uMUpDbUpTZWE"'
     validation:
       type: Http
       content:

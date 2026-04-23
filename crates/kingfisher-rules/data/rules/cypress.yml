@@ -57,4 +57,4 @@ rules:
     min_entropy: 1.0
     examples:
       - 'CYPRESS_PROJECT_ID=a7bq2k'
-      - 'projectId: "abc123"'
+      - 'CYPRESS_PROJECT_ID: "abc123"'

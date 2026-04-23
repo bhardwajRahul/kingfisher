@@ -26,6 +26,8 @@ rules:
             Accept: application/json
           response_matcher:
             - report_response: true
+            - type: StatusMatch
+              status: [200]
             - type: JsonValid
             - type: WordMatch
               words:

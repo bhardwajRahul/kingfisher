@@ -63,7 +63,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Adobe</td>
 <td>Adobe Stock API Key</td>
 <td><code>kingfisher.adobe.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -71,7 +71,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Adobe</td>
 <td>Adobe IO Product ID</td>
 <td><code>kingfisher.adobe.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -79,7 +79,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Adobe</td>
 <td>Adobe OAuth Client Secret</td>
 <td><code>kingfisher.adobe.3</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -87,7 +87,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Adobe</td>
 <td>Adobe OAuth Client ID</td>
 <td><code>kingfisher.adobe.4</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -1511,7 +1511,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Coinbase</td>
 <td>Coinbase Access Token</td>
 <td><code>kingfisher.coinbase.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -1519,7 +1519,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Coinbase</td>
 <td>Coinbase CDP API Key (ECDSA)</td>
 <td><code>kingfisher.coinbase.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -1527,7 +1527,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Coinbase</td>
 <td>Coinbase CDP API Key (Ed25519)</td>
 <td><code>kingfisher.coinbase.3</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -1975,7 +1975,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Diffbot</td>
 <td>Diffbot API Key</td>
 <td><code>kingfisher.diffbot.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -2415,7 +2415,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Facebook</td>
 <td>Facebook Secret Key</td>
 <td><code>kingfisher.facebook.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -2463,7 +2463,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Figma</td>
 <td>Figma Personal Access Header Token</td>
 <td><code>kingfisher.figma.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -2879,7 +2879,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub Personal Access Token - fine-grained permissions</td>
 <td><code>kingfisher.github.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -2887,7 +2887,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub Personal Access Token</td>
 <td><code>kingfisher.github.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -2903,7 +2903,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub App User-to-Server Token</td>
 <td><code>kingfisher.github.4</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -2911,7 +2911,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub App Server-to-Server Token</td>
 <td><code>kingfisher.github.5</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -2919,7 +2919,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub Refresh Token</td>
 <td><code>kingfisher.github.6</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -2927,7 +2927,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub Client ID</td>
 <td><code>kingfisher.github.7</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -2935,7 +2935,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Github</td>
 <td>GitHub Legacy Secret Key</td>
 <td><code>kingfisher.github.8</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -2999,7 +2999,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Gitlab</td>
 <td>GitLab Runner Registration Token</td>
 <td><code>kingfisher.gitlab.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -3007,7 +3007,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Gitlab</td>
 <td>GitLab Pipeline Trigger Token</td>
 <td><code>kingfisher.gitlab.3</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -3887,7 +3887,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Langchain</td>
 <td>LangSmith Personal Access Token</td>
 <td><code>kingfisher.langchain.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -3895,7 +3895,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Langchain</td>
 <td>LangSmith Service Key</td>
 <td><code>kingfisher.langchain.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4463,7 +4463,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Mongodb</td>
 <td>MongoDB API Private Key</td>
 <td><code>kingfisher.mongodb.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -4479,7 +4479,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Mongodb</td>
 <td>MongoDB URI Connection String</td>
 <td><code>kingfisher.mongodb.3</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4487,7 +4487,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Mongodb</td>
 <td>MongoDB Atlas Service Account Token</td>
 <td><code>kingfisher.mongodb.4</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4535,7 +4535,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Nasa</td>
 <td>NASA API Key</td>
 <td><code>kingfisher.nasa.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4567,7 +4567,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Netlify</td>
 <td>Netlify API Key</td>
 <td><code>kingfisher.netlify.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -4615,7 +4615,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Ngrok</td>
 <td>Ngrok API Key</td>
 <td><code>kingfisher.ngrok.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4759,7 +4759,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Okta</td>
 <td>Okta API Token</td>
 <td><code>kingfisher.okta.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -4767,7 +4767,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Okta</td>
 <td>Okta Domain</td>
 <td><code>kingfisher.okta.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -4879,7 +4879,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Opsgenie</td>
 <td>OpsGenie API Key</td>
 <td><code>kingfisher.opsgenie.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -5015,7 +5015,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Paypal</td>
 <td>PayPal OAuth Client ID</td>
 <td><code>kingfisher.paypal.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -5023,7 +5023,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Paypal</td>
 <td>PayPal OAuth Secret</td>
 <td><code>kingfisher.paypal.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -5239,7 +5239,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Planetscale</td>
 <td>PlanetScale API Token</td>
 <td><code>kingfisher.planetscale.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -5247,7 +5247,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Planetscale</td>
 <td>PlanetScale Username</td>
 <td><code>kingfisher.planetscale.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -5439,7 +5439,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Pubnub</td>
 <td>PubNub Publish Key</td>
 <td><code>kingfisher.pubnub.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -5455,7 +5455,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Pulumi</td>
 <td>Pulumi API Key</td>
 <td><code>kingfisher.pulumi.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6079,7 +6079,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Shopify</td>
 <td>Shopify access token</td>
 <td><code>kingfisher.shopify.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6087,7 +6087,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Shopify</td>
 <td>Shopify Domain</td>
 <td><code>kingfisher.shopify.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -6135,7 +6135,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Slack</td>
 <td>Slack App Token</td>
 <td><code>kingfisher.slack.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -6143,7 +6143,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Slack</td>
 <td>Slack Token</td>
 <td><code>kingfisher.slack.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -6151,7 +6151,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Slack</td>
 <td>Slack Webhook</td>
 <td><code>kingfisher.slack.4</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6199,7 +6199,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Snyk</td>
 <td>Snyk API Key</td>
 <td><code>kingfisher.snyk.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6215,7 +6215,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Sonarcloud</td>
 <td>SonarCloud API Token</td>
 <td><code>kingfisher.sonarcloud.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6223,7 +6223,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Sonarqube</td>
 <td>SonarQube API Key</td>
 <td><code>kingfisher.sonarqube.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6231,7 +6231,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Sonarqube</td>
 <td>SonarQube Host</td>
 <td><code>kingfisher.sonarqube.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -6247,7 +6247,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Sourcegraph</td>
 <td>Sourcegraph Access Token</td>
 <td><code>kingfisher.sourcegraph.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -6567,7 +6567,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Teamcity</td>
 <td>TeamCity API Token</td>
 <td><code>kingfisher.teamcity.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -6847,7 +6847,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Twilio</td>
 <td>Twilio API ID</td>
 <td><code>kingfisher.twilio.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -6855,7 +6855,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Twilio</td>
 <td>Twilio API Key</td>
 <td><code>kingfisher.twilio.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -6879,7 +6879,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Twitter</td>
 <td>Twitter Consumer Key</td>
 <td><code>kingfisher.twitter.2</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -6887,7 +6887,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Twitter</td>
 <td>X / Twitter Consumer Secret</td>
 <td><code>kingfisher.twitter.3</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td>Yes</td>
 <td></td>
 </tr>
@@ -7119,7 +7119,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Vmware</td>
 <td>Credentials in Connect-VIServer Invocation</td>
 <td><code>kingfisher.vmware.1</code></td>
-<td>Unknown</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>

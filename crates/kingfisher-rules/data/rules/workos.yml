@@ -20,7 +20,6 @@ rules:
     confidence: medium
     examples:
       - 'WORKOS_API_KEY="sk_live_a2V5XzAxS1BSWE1LTjBEWE1INlpBU0VEWjU2VFE3LFdjOWxFMTNDS29xRkdlYU9uMUpDbUpTZWE"'
-      - 'workos apiKey: "sk_test_a2V5XzAxS1BSWE1LTjBEWE1INlpBU0VEWjU2VFE3LFdjOWxFMTNDS29xRkdlYU9uMUpDbUpTZWE"'
     references:
       - https://workos.com/docs/reference/api-keys
       - https://workos.com/docs/authkit/api-keys

@@ -17,7 +17,7 @@ rules:
     pattern_requirements:
       min_digits: 6
     min_entropy: 2.0
-    confidence: low
+    confidence: medium
     visible: false
     examples:
       - "{ \"Huawei\": { \"ClientId\": \"100809947\", \"ClientSecret\": \"...\" } }"
