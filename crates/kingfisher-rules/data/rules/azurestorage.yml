@@ -32,7 +32,11 @@ rules:
     id: kingfisher.azurestorage.2
     pattern: |
       (?x)
-      \b
+      # Avoid leading \b: env vars like MONGODB_..._AZURE_STORAGE_ACCOUNT_KEY have no
+      # word break before AZURE (alnum or underscore). Consume a non-lowercase char (or
+      # start-of-input) so we still block mid-camelCase (myAzureStorage...) without using
+      # a lookbehind, which Vectorscan and the Rust regex crate both reject.
+      (?:\A|[^a-z])
       (?:
         (?i:azure)(?:[_\s-]*(?i:storage))?
         (?:[_\s-]*(?:account[_\s-]*key|storage[_\s-]*key|shared[_\s-]*key|access[_\s-]*key|accountkey))
@@ -62,6 +66,7 @@ rules:
     min_entropy: 4.0
     confidence: medium
     examples:
+      - '"MONGODB_AGENT_ONLINE_ARCHIVE_TEST_AZURE_STORAGE_ACCOUNT_KEY": "/dibjbwrou+tGcn7jfrrLXRXONqGOuVN2VwMy1qRvWtXTdNnR6zqzHo6HcnPb52/3DsQwmM/1VVr+AStZUyYCA=="'
       - Azure AccountKey=oqb4TdY9T0hphvktd5fJnMiHuQqzVy1jd5sSuOpAbGkaoqTlrHl0BOJN2okcasinVLOJzfDbZo1L+ASt68RAhA==
       - Azure AccountKey=B/1EVX2Ui47X09tqU3GI/j+Nko9r5COPm0Hea9tfzitF9MQX9lZZiNO3tYQckWnt+rtlGIWS+sCx+AStkq8ZLg==
       - Azure AccountKey=u45diQdTiXeuSKl5r4EjgbPP72EYpuTNEzfMTi0mk+d2sTisA4gWzt4H1Ag3kqFaCykWZv2S6KQo+AStHF56RQ==

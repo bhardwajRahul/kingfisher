@@ -19,7 +19,7 @@ Kingfisher is an open source secret scanner and **live secret validation** tool 
 
 It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with 938 built-in rules** (484 with live validation) to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
 
-Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted, upload-based copy of the viewer](https://mongodb.github.io/kingfisher/report-viewer/) is published on the Kingfisher docs site.
+Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted, upload-based copy of the viewer](https://mongodb.github.io/kingfisher/viewer/) is published on the Kingfisher docs site.
 
 Designed for offensive security engineers and blue-team defenders alike, Kingfisher helps you scan repositories, cloud storage, chat, docs, and CI pipelines to find and verify exposed secrets quickly.
 
@@ -63,7 +63,7 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
-- **Report Viewer (local + hosted)**: Visualize and triage Kingfisher, **Gitleaks, and TruffleHog** JSON output locally with `kingfisher view ./report.json` or online with the [hosted viewer](https://mongodb.github.io/kingfisher/report-viewer/). Multiple files, directories, and imported third-party reports are merged and deduplicated. See [docs/USAGE.md](/docs/USAGE.md#report-viewer-local-and-hosted).
+- **Report Viewer (local + hosted)**: Visualize and triage Kingfisher, **Gitleaks, and TruffleHog** JSON output locally with `kingfisher view ./report.json` or online with the [hosted viewer](https://mongodb.github.io/kingfisher/viewer/). Multiple files, directories, and imported third-party reports are merged and deduplicated. See [docs/USAGE.md](/docs/USAGE.md#report-viewer-local-and-hosted).
 - **Audit reporting**: Generate compliance-oriented HTML reports with scan metadata and validation ordering
 - **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
@@ -93,7 +93,7 @@ Kingfisher ships a browser-based **report viewer and triager** for three formats
 There are two ways to use it:
 
 1. **Locally via the CLI** — `kingfisher view ./report.json` (bundled into every Kingfisher binary; no external services)
-2. **Hosted** — [https://mongodb.github.io/kingfisher/report-viewer/](https://mongodb.github.io/kingfisher/report-viewer/) — a static, client-side upload-based copy of the same viewer. Drag in Kingfisher, Gitleaks, or TruffleHog reports and triage in your browser; nothing is uploaded to a server.
+2. **Hosted** — [https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/) — a static, client-side upload-based copy of the same viewer. Drag in Kingfisher, Gitleaks, or TruffleHog reports and triage in your browser; nothing is uploaded to a server.
 
 ### Why use a visual viewer / triager?
 
@@ -102,11 +102,12 @@ Raw JSON from Kingfisher, Gitleaks, or TruffleHog is great for machines, but awf
 - **Skim hundreds of findings at a glance**, grouped by detector, file, repository, and validation status instead of one line per finding in a terminal.
 - **Triage across multiple tools in one place** — import a Gitleaks report plus a TruffleHog report plus a Kingfisher scan of the same repo and look at them side-by-side with dedup, instead of eyeballing three different JSON schemas.
 - **Prioritize real, validated secrets** — validated Kingfisher findings and TruffleHog-verified findings float to the top so you act on live credentials first.
-- **Drop duplicates** — repeated imports and overlapping scans are deduplicated by fingerprint/secret identity so you don't open the same key five times.
+- **Drop duplicates** — repeated imports and overlapping scans are deduplicated by fingerprint/secret identity so you don't open the same key five times. Per-tool "duplicates removed" cards on the dashboard show how much noise each tool contributed, and an upload-time **Deduplicate findings** toggle (on by default) lets you inspect raw rows when you need to.
+- **Cross-tool enrichment** — when a Gitleaks or TruffleHog finding lines up with a Kingfisher finding at the same commit, file, and line, the imported row picks up Kingfisher's validation verdict and validate / revoke commands. This is useful when a team already has a Gitleaks or TruffleHog pipeline in CI and wants to layer Kingfisher's validation and remediation data on top of the reports they already produce, without replacing their existing tooling.
 - **See blast radius** — for Kingfisher reports generated with `--access-map`, the viewer renders the identity, permissions, and resources a leaked credential can reach, so you can tell a dev token apart from a production admin key.
 - **Export triage decisions** — filter down to what matters and export a cleaned-up subset for a ticket, a rotation runbook, or an audit reviewer.
 
-Tools like Gitleaks and TruffleHog surface candidates; Kingfisher's viewer helps you decide which ones to act on — and it works with their output too.
+Gitleaks and TruffleHog are both widely used open-source secret scanners with their own strengths; Kingfisher's viewer reads their standard JSON output so teams that already run them can pull those findings into the same triage workflow. Kingfisher is not affiliated with or endorsed by the Gitleaks project or Truffle Security Co.; TruffleHog and Gitleaks are trademarks of their respective owners, referenced here only to identify their report formats.
 
 Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
 
@@ -201,7 +202,7 @@ kingfisher view kingfisher.json gitleaks.json trufflehog.jsonl
 kingfisher view ./reports/
 ```
 
-For a shareable, upload-based experience, the docs site also hosts the same viewer as a static page: **[https://mongodb.github.io/kingfisher/report-viewer/](https://mongodb.github.io/kingfisher/report-viewer/)**. Everything runs client-side in the browser — no reports leave your machine.
+For a shareable, upload-based experience, the docs site also hosts the same viewer as a static page: **[https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/)**. Everything runs client-side in the browser — no reports leave your machine.
 
 ### 4: Show only validated (live) secrets
 

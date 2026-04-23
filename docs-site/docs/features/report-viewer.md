@@ -14,7 +14,7 @@ Kingfisher ships a browser-based **report viewer and triager** for three formats
 The same UI is available two ways:
 
 - **Locally**, bundled into every Kingfisher binary: `kingfisher view ./report.json`
-- **Hosted**, as a static upload-based copy on GitHub Pages: **[Open the hosted report viewer](../report-viewer/index.html)** ([https://mongodb.github.io/kingfisher/report-viewer/](https://mongodb.github.io/kingfisher/report-viewer/))
+- **Hosted**, as a static upload-based copy on GitHub Pages: **[Open the hosted report viewer](../viewer/index.html)** ([https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/))
 
 Both render reports entirely client-side. Nothing about the uploaded report leaves the browser.
 
@@ -71,7 +71,7 @@ kingfisher scan /path/to/code \
 
 The docs site publishes a static, upload-based copy of the viewer at:
 
-**[https://mongodb.github.io/kingfisher/report-viewer/](https://mongodb.github.io/kingfisher/report-viewer/)**
+**[https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/)**
 
 Drag a Kingfisher, Gitleaks, or TruffleHog JSON report into the page (or use the file picker) to triage it in your browser. You can also merge multiple reports in one session by uploading them one after another — duplicates collapse automatically. It's useful when you want to:
 
@@ -83,7 +83,7 @@ Drag a Kingfisher, Gitleaks, or TruffleHog JSON report into the page (or use the
 
 You can test the hosted page with a bundled sample report:
 
-- [Open sample report JSON](../report-viewer/sample-report.json)
+- [Open sample report JSON](../viewer/sample-report.json)
 
 ## Local vs hosted — quick comparison
 

@@ -98,7 +98,7 @@ nav:
     - Rust Library Crates: reference/library.md
     - Python Bindings: reference/python-bindings.md
     - Benchmarks & Comparison: reference/comparison.md
-  - Report Viewer: https://mongodb.github.io/kingfisher/report-viewer/
+  - Report Viewer: https://mongodb.github.io/kingfisher/viewer/
   - Changelog: changelog.md
 
 extra:

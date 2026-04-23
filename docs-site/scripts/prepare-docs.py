@@ -13,8 +13,8 @@ import shutil
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DOCS_SRC = os.path.join(REPO_ROOT, "docs")
 DOCS_DST = os.path.join(REPO_ROOT, "docs-site", "docs")
-VIEWER_SRC_DIR = os.path.join(DOCS_SRC, "report-viewer")
-VIEWER_DST_DIR = os.path.join(DOCS_DST, "report-viewer")
+VIEWER_SRC_DIR = os.path.join(DOCS_SRC, "viewer")
+VIEWER_DST_DIR = os.path.join(DOCS_DST, "viewer")
 VIEWER_CLI_BOOTSTRAP = "    loadCliReport();\n"
 VIEWER_STATIC_BOOTSTRAP = (
     "    // Static docs-site build: skip the CLI-only /report bootstrap.\n"
@@ -234,7 +234,7 @@ def copy_report_viewer():
     dst_index = os.path.join(VIEWER_DST_DIR, "index.html")
     if not os.path.exists(src_index):
         print(
-            "  WARNING: docs/report-viewer/index.html not found, "
+            "  WARNING: docs/viewer/index.html not found, "
             "skipping viewer publish"
         )
         return
@@ -246,15 +246,15 @@ def copy_report_viewer():
     transformed = transform_viewer_for_docs_site(content)
     with open(dst_index, "w", encoding="utf-8") as f:
         f.write(transformed)
-    print("  report-viewer/index.html -> report-viewer/index.html")
+    print("  viewer/index.html -> viewer/index.html")
 
     sample_src = os.path.join(VIEWER_SRC_DIR, "sample-report.json")
     sample_dst = os.path.join(VIEWER_DST_DIR, "sample-report.json")
     if os.path.exists(sample_src):
         shutil.copy2(sample_src, sample_dst)
         print(
-            "  report-viewer/sample-report.json -> "
-            "report-viewer/sample-report.json"
+            "  viewer/sample-report.json -> "
+            "viewer/sample-report.json"
         )
 
 

@@ -1,10 +1,10 @@
 # AGENTS.md
 
-Guidance for editing the local report viewer under `docs/report-viewer/`.
+Guidance for editing the local report viewer under `docs/viewer/`.
 
 ## Scope
 
-- Applies to `docs/report-viewer/` and all files under it.
+- Applies to `docs/viewer/` and all files under it.
 - This file overrides broader documentation guidance for this subtree.
 
 ## Current Architecture

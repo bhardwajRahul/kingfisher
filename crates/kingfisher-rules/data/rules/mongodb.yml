@@ -114,8 +114,7 @@ rules:
   - name: MongoDB URI Connection String
     id: kingfisher.mongodb.3
     pattern: |
-      (?xi)                    
-      \b                      
+      (?xi)
       (
         mongodb(?:\+srv)?://[\S]{3,50}:(?:[\S]{3,88})@[-.%\w/:]+
       )

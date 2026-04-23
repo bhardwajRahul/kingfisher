@@ -158,7 +158,7 @@ The same viewer that powers `kingfisher view` and `--view-report` also accepts *
 
    `kingfisher view` starts a tiny local web server (default `127.0.0.1:7890`) and opens the report automatically in your browser. Use `--address 0.0.0.0` to expose the viewer from a container or remote host, and `--port <PORT>` if `7890` is busy.
 
-2. **Hosted viewer** — [https://mongodb.github.io/kingfisher/report-viewer/](https://mongodb.github.io/kingfisher/report-viewer/)
+2. **Hosted viewer** — [https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/)
 
    A static, upload-based copy of the same UI published on GitHub Pages. Drag a Kingfisher, Gitleaks, or TruffleHog report into the page and triage it in your browser. Everything runs client-side — no reports leave your machine. Useful when you want to share a link rather than a binary, or triage a report on a machine that doesn't have Kingfisher installed.
 
