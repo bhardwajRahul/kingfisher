@@ -1784,6 +1784,7 @@
       </div>
     </div>
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+      <a class="btn" href="https://github.com/mongodb/kingfisher" target="_blank" rel="noopener noreferrer">GitHub</a>
       <button class="btn" id="theme-toggle" type="button">Light Mode</button>
       <button class="btn" id="reset-btn" type="button">Clear and Load New Report(s)</button>
     </div>
@@ -2304,7 +2305,7 @@
       "view-findings": document.getElementById("view-findings"),
     };
 
-    const THEME_KEY = "access-map-viewer-theme";
+    const THEME_KEY = "report-viewer-theme";
     const systemThemeQuery = window.matchMedia("(prefers-color-scheme: light)");
 
     function getStoredThemePreference() {
@@ -2581,7 +2582,7 @@
         return JSON.parse(text);
       } catch (e) {
         const trimmed = text.trim();
-        const parts = trimmed.split(/\r?\n(?=\s*{)/g).filter(Boolean);
+        const parts = trimmed.split(/\r?\n(?=\s*[{\[])/g).filter(Boolean);
         if (parts.length > 1) {
           try {
             return JSON.parse("[" + parts.join(",") + "]");
@@ -3017,6 +3018,50 @@
     }
 
     function normalizeReportPayload(payload) {
+      if (Array.isArray(payload)) {
+        const topFormat = detectReportFormat(payload);
+        if (topFormat === "gitleaks") {
+          return normalizeImportedPayload(payload, "Gitleaks");
+        }
+        if (topFormat === "trufflehog") {
+          return normalizeImportedPayload(payload, "TruffleHog");
+        }
+        const entryFormats = [];
+        let hasImported = false;
+        for (const entry of payload) {
+          if (entry === null || typeof entry !== "object") {
+            entryFormats.push(null);
+            continue;
+          }
+          const fmt = detectReportFormat(entry);
+          entryFormats.push(fmt);
+          if (fmt === "gitleaks" || fmt === "trufflehog") {
+            hasImported = true;
+          }
+        }
+        if (!hasImported) {
+          return normalizeKingfisherPayload(payload);
+        }
+        const combined = { f: [], am: [], rd: null };
+        for (let i = 0; i < payload.length; i++) {
+          const entry = payload[i];
+          const fmt = entryFormats[i];
+          if (entry === null || typeof entry !== "object") continue;
+          let partial;
+          if (fmt === "trufflehog") {
+            partial = normalizeImportedPayload(entry, "TruffleHog");
+          } else if (fmt === "gitleaks") {
+            partial = normalizeImportedPayload(entry, "Gitleaks");
+          } else {
+            partial = normalizeKingfisherPayload(entry);
+          }
+          if (!partial) continue;
+          if (Array.isArray(partial.f)) combined.f.push(...partial.f);
+          if (Array.isArray(partial.am)) combined.am.push(...partial.am);
+          combined.rd = mergeRawReportData(combined.rd, partial.rd);
+        }
+        return combined;
+      }
       const format = detectReportFormat(payload);
       if (format === "trufflehog") {
         return normalizeImportedPayload(payload, "TruffleHog");
@@ -3252,7 +3297,7 @@
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
-          if (!line || line[0] !== "{") continue;
+          if (!line || (line[0] !== "{" && line[0] !== "[")) continue;
           try {
             const obj = JSON.parse(line);
             entries.push(obj);

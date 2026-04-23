@@ -20,7 +20,7 @@ use tracing::{info, warn};
 
 pub const DEFAULT_PORT: u16 = 7890;
 // Embedded viewer assets - force rebuild
-static VIEWER_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs/access-map-viewer");
+static VIEWER_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs/report-viewer");
 
 /// Default bind address for the report viewer (localhost only for security).
 pub const DEFAULT_ADDRESS: &str = "127.0.0.1";

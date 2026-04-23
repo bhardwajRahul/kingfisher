@@ -1,13 +1,13 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 934 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 938 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **934 detection rules** across **579 providers**
-(813 detectors + 121 dependent rules).
-Of these, **605** include live validation and **53** support direct revocation.
+Kingfisher ships with **938 detection rules** across **580 providers**
+(817 detectors + 121 dependent rules).
+Of these, **605** include live validation and **57** support direct revocation.
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -2196,6 +2196,14 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Dryrunsecurity</td>
+<td>DryRun Security API Key</td>
+<td><code>kingfisher.dryrunsecurity.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Dub</td>
 <td>Dub.co API Key</td>
 <td><code>kingfisher.dub.1</code></td>
@@ -2424,8 +2432,8 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td>Fal.ai API Key</td>
 <td><code>kingfisher.falai.1</code></td>
 <td>Medium</td>
-<td></td>
-<td></td>
+<td>Yes</td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Fastly</td>
@@ -2549,10 +2557,18 @@ Of these, **605** include live validation and **53** support direct revocation.
 </tr>
 <tr>
 <td>Flagsmith</td>
-<td>Flagsmith Server-Side Environment Key</td>
+<td>Flagsmith Organisation API Key</td>
 <td><code>kingfisher.flagsmith.1</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Flagsmith</td>
+<td>Flagsmith Environment Key</td>
+<td><code>kingfisher.flagsmith.2</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2881,7 +2897,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td><code>kingfisher.github.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Github</td>
@@ -2889,7 +2905,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td><code>kingfisher.github.4</code></td>
 <td>Unknown</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Github</td>
@@ -2905,7 +2921,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td><code>kingfisher.github.6</code></td>
 <td>Unknown</td>
 <td>Yes</td>
-<td></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td>Github</td>
@@ -3320,7 +3336,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td>hCaptcha Site Verify Secret Key</td>
 <td><code>kingfisher.hcaptcha.1</code></td>
 <td>Medium</td>
-<td>Yes</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -6319,7 +6335,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td>Sshpass</td>
 <td>SSH / SCP Password (sshpass)</td>
 <td><code>kingfisher.sshpass.1</code></td>
-<td>Medium</td>
+<td>Low</td>
 <td></td>
 <td></td>
 </tr>
@@ -6972,6 +6988,22 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Upstash</td>
+<td>Upstash Account Email</td>
+<td><code>kingfisher.upstash.3</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Upstash</td>
+<td>Upstash Management API Key</td>
+<td><code>kingfisher.upstash.4</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
 <td>Uptimerobot</td>
 <td>UptimeRobot API Key</td>
 <td><code>kingfisher.uptimerobot.1</code></td>
@@ -6984,7 +7016,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td>URI with Username and Secret</td>
 <td><code>kingfisher.uri.1</code></td>
 <td>Medium</td>
-<td>Yes</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -7416,7 +7448,7 @@ Of these, **605** include live validation and **53** support direct revocation.
 <td>Zapier Webhook URL</td>
 <td><code>kingfisher.zapier.1</code></td>
 <td>Medium</td>
-<td>Yes</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
