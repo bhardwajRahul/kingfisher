@@ -75,7 +75,6 @@ The docs site publishes a static, upload-based copy of the viewer at:
 
 Drag a Kingfisher, Gitleaks, or TruffleHog JSON report into the page (or use the file picker) to triage it in your browser. You can also merge multiple reports in one session by uploading them one after another — duplicates collapse automatically. It's useful when you want to:
 
-- Hand a teammate a link rather than a binary
 - Triage a report on a machine that doesn't have Kingfisher installed
 - Show a finding with its blast-radius context without shipping the raw JSON around
 
@@ -83,21 +82,7 @@ Drag a Kingfisher, Gitleaks, or TruffleHog JSON report into the page (or use the
 
 You can test the hosted page with a bundled sample report:
 
-- [Open sample report JSON](../viewer/sample-report.json)
-
-## Local vs hosted — quick comparison
-
-| Capability                                              | `kingfisher view` (local) | Hosted viewer |
-|---------------------------------------------------------|:-------------------------:|:-------------:|
-| Open Kingfisher JSON/JSONL reports                      | Yes                       | Yes           |
-| Import Gitleaks JSON reports                            | Yes                       | Yes           |
-| Import TruffleHog JSON/JSONL reports                    | Yes                       | Yes           |
-| Merge multiple reports with deduplication               | Yes                       | Yes           |
-| Render `access_map` blast-radius data                   | Yes                       | Yes           |
-| Runs fully client-side (no report leaves your machine)  | Yes                       | Yes           |
-| Auto-load a report from disk via CLI argument           | Yes                       | —             |
-| Shareable URL you can send to a teammate                | —                         | Yes           |
-| Requires Kingfisher installed                           | Yes                       | No            |
+- [Open sample report JSON](../viewer/sample-report.json)       | No            |
 
 ## Caveats for imported Gitleaks / TruffleHog reports
 
@@ -105,3 +90,5 @@ You can test the hosted page with a bundled sample report:
 - Fingerprints on imported findings use the importer's normalization, not Kingfisher's native fingerprinting.
 - TruffleHog findings marked as verified are shown as active credentials; all other imported findings are treated as not attempted rather than inactive.
 - For full validation and blast-radius mapping, re-scan the source with Kingfisher and (when authorized) add `--access-map`.
+
+Gitleaks and TruffleHog are both widely used open-source secret scanners with their own strengths; Kingfisher's viewer reads their standard JSON output so teams that already run them can pull those findings into the same triage workflow. Kingfisher is not affiliated with or endorsed by the Gitleaks project or Truffle Security Co.; TruffleHog and Gitleaks are trademarks of their respective owners.
