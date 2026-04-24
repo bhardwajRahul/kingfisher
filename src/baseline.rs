@@ -37,28 +37,42 @@ pub fn load_baseline(path: &Path) -> Result<BaselineFile> {
     Ok(serde_yaml::from_str(&data).context("parse baseline yaml")?)
 }
 
-/// Parse a baseline fingerprint string into its canonical u64.
+/// Parse a baseline fingerprint string into its canonical u64 form(s).
 ///
 /// Accepts either the decimal form users see in scan output (JSON/pretty/SARIF)
 /// or the 16-char zero-padded hex form previously written by `--manage-baseline`.
+/// Returns a `SmallVec`-style pair so ambiguous 16-digit all-digit strings — which
+/// could be either a decimal fingerprint or a legacy hex fingerprint whose value
+/// happens to contain no `a-f` — match against both interpretations.
+///
 /// Detection:
 ///   1. A `0x`/`0X` prefix is stripped and the rest parsed as hex.
 ///   2. Exactly 16 hex chars containing at least one `a-f`/`A-F` letter are parsed as hex
-///      (legacy canonical form). An all-digit 16-char string is ambiguous and is treated
-///      as decimal so that decimal fingerprints from scan output round-trip correctly.
-///   3. Otherwise the string is parsed as decimal u64.
-fn parse_fingerprint(s: &str) -> Option<u64> {
+///      (unambiguous legacy canonical form).
+///   3. Exactly 16 digits: ambiguous — try both decimal and hex and return whichever
+///      interpretations parse successfully, so old baselines keep matching.
+///   4. Otherwise the string is parsed as decimal u64.
+fn parse_fingerprint(s: &str) -> Vec<u64> {
     let trimmed = s.trim();
     if let Some(rest) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
-        return u64::from_str_radix(rest, 16).ok();
+        return u64::from_str_radix(rest, 16).ok().into_iter().collect();
     }
-    if trimmed.len() == 16
-        && trimmed.chars().all(|c| c.is_ascii_hexdigit())
-        && trimmed.chars().any(|c| c.is_ascii_alphabetic())
-    {
-        return u64::from_str_radix(trimmed, 16).ok();
+    if trimmed.len() == 16 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+        if trimmed.chars().any(|c| c.is_ascii_alphabetic()) {
+            return u64::from_str_radix(trimmed, 16).ok().into_iter().collect();
+        }
+        let mut out = Vec::with_capacity(2);
+        if let Ok(v) = trimmed.parse::<u64>() {
+            out.push(v);
+        }
+        if let Ok(v) = u64::from_str_radix(trimmed, 16) {
+            if !out.contains(&v) {
+                out.push(v);
+            }
+        }
+        return out;
     }
-    trimmed.parse::<u64>().ok()
+    trimmed.parse::<u64>().ok().into_iter().collect()
 }
 
 pub fn save_baseline(path: &Path, baseline: &BaselineFile) -> Result<()> {
@@ -89,18 +103,15 @@ pub fn apply_baseline(
         BaselineFile::default()
     };
 
-    let mut known: HashSet<u64> = baseline
-        .exact_findings
-        .matches
-        .iter()
-        .filter_map(|m| match parse_fingerprint(&m.fingerprint) {
-            Some(v) => Some(v),
-            None => {
-                debug!("Ignoring unparseable baseline fingerprint {:?}", m.fingerprint);
-                None
-            }
-        })
-        .collect();
+    let mut known: HashSet<u64> = HashSet::new();
+    for m in &baseline.exact_findings.matches {
+        let parsed = parse_fingerprint(&m.fingerprint);
+        if parsed.is_empty() {
+            debug!("Ignoring unparseable baseline fingerprint {:?}", m.fingerprint);
+            continue;
+        }
+        known.extend(parsed);
+    }
 
     let mut encountered: HashSet<u64> = HashSet::new();
     let mut new_entries = Vec::new();
@@ -137,9 +148,10 @@ pub fn apply_baseline(
     }
     if manage {
         let original_len = baseline.exact_findings.matches.len();
-        baseline.exact_findings.matches.retain(|m| {
-            parse_fingerprint(&m.fingerprint).is_some_and(|v| encountered.contains(&v))
-        });
+        baseline
+            .exact_findings
+            .matches
+            .retain(|m| parse_fingerprint(&m.fingerprint).iter().any(|v| encountered.contains(v)));
         let mut changed = baseline.exact_findings.matches.len() != original_len;
 
         if !new_entries.is_empty() {
@@ -294,14 +306,26 @@ mod tests {
     #[test]
     fn parse_fingerprint_accepts_all_forms() {
         let value: u64 = 0xfeed_beef_dade_f00d;
-        assert_eq!(parse_fingerprint(&format!("{:016x}", value)), Some(value));
-        assert_eq!(parse_fingerprint(&format!("0x{:016x}", value)), Some(value));
-        assert_eq!(parse_fingerprint(&format!("0X{:X}", value)), Some(value));
-        assert_eq!(parse_fingerprint(&value.to_string()), Some(value));
-        assert_eq!(parse_fingerprint("  42  "), Some(42));
-        assert_eq!(parse_fingerprint("0"), Some(0));
-        assert_eq!(parse_fingerprint(""), None);
-        assert_eq!(parse_fingerprint("notahex"), None);
+        assert_eq!(parse_fingerprint(&format!("{:016x}", value)), vec![value]);
+        assert_eq!(parse_fingerprint(&format!("0x{:016x}", value)), vec![value]);
+        assert_eq!(parse_fingerprint(&format!("0X{:X}", value)), vec![value]);
+        assert_eq!(parse_fingerprint(&value.to_string()), vec![value]);
+        assert_eq!(parse_fingerprint("  42  "), vec![42]);
+        assert_eq!(parse_fingerprint("0"), vec![0]);
+        assert!(parse_fingerprint("").is_empty());
+        assert!(parse_fingerprint("notahex").is_empty());
+    }
+
+    #[test]
+    fn parse_fingerprint_all_digit_16_chars_is_ambiguous() {
+        // A 16-char all-digit string could be either a decimal fingerprint
+        // (scan output) or a legacy hex fingerprint whose value contains no
+        // a-f. Both interpretations must be returned so old baselines keep
+        // matching while new decimal fingerprints round-trip.
+        let s = "1234567890123456";
+        let parsed = parse_fingerprint(s);
+        assert!(parsed.contains(&1234567890123456_u64));
+        assert!(parsed.contains(&u64::from_str_radix(s, 16).unwrap()));
     }
 
     #[test]
