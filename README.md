@@ -315,30 +315,11 @@ Kingfisher supports multiple installation methods:
 
 ## Verifying Releases
 
-Every Kingfisher release includes [SLSA v3](https://slsa.dev) provenance and GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
-
-### SLSA provenance
-
-Each GitHub release includes a `multiple.intoto.jsonl` provenance file. Verify any release artifact with [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier):
-
-```bash
-# Install slsa-verifier
-go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@latest
-
-# Download the artifact and provenance from the release
-gh release download <version> --repo mongodb/kingfisher \
-  --pattern 'kingfisher-linux-x64.tgz' \
-  --pattern 'multiple.intoto.jsonl'
-
-# Verify
-slsa-verifier verify-artifact kingfisher-linux-x64.tgz \
-  --provenance-path multiple.intoto.jsonl \
-  --source-uri github.com/mongodb/kingfisher
-```
+Every Kingfisher release includes GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
 
 ### GitHub attestations
 
-Release artifacts also have GitHub build attestations, verifiable with the GitHub CLI:
+Release artifacts have GitHub build attestations, verifiable with the GitHub CLI:
 
 ```bash
 gh release download <version> --repo mongodb/kingfisher \
