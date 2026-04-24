@@ -8,7 +8,9 @@ rules:
       (?:.|[\n\r]){0,16}?
       (?:client|id)
       (?:.|[\n\r]){0,16}?
-      ([a-z0-9]{30,40})
+      (
+        [a-z0-9]{30,40}
+      )
       \b
     pattern_requirements:
       min_digits: 2
@@ -40,8 +42,6 @@ rules:
       (?xi)
       \b
       bitbucket
-      (?:.|[\n\r]){0,32}?
-      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
       (?:.|[\n\r]){0,32}?
       \b
       (

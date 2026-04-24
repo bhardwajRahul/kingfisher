@@ -1,12 +1,12 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 938 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 942 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **938 detection rules** across **580 providers**
-(817 detectors + 121 dependent rules).
+Kingfisher ships with **942 detection rules** across **580 providers**
+(820 detectors + 122 dependent rules).
 Of these, **605** include live validation and **57** support direct revocation.
 
 !!! tip "Search"
