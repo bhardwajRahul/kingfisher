@@ -17,6 +17,7 @@ fn library_crates_work_from_external_project() -> anyhow::Result<()> {
     let temp = tempfile::tempdir()?;
     let project_dir = temp.path().join("external-kingfisher-consumer");
     fs::create_dir_all(project_dir.join("src"))?;
+    fs::copy(repo_root.join("Cargo.lock"), project_dir.join("Cargo.lock"))?;
 
     fs::write(
         project_dir.join("Cargo.toml"),
@@ -74,8 +75,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 "#,
     )?;
 
-    let output =
-        Command::new("cargo").arg("run").arg("--quiet").current_dir(&project_dir).output()?;
+    let lock_output = Command::new("cargo")
+        .arg("generate-lockfile")
+        .arg("--offline")
+        .current_dir(&project_dir)
+        .output()?;
+    let lock_stdout = String::from_utf8_lossy(&lock_output.stdout);
+    let lock_stderr = String::from_utf8_lossy(&lock_output.stderr);
+    assert!(
+        lock_output.status.success(),
+        "external project lockfile generation failed\nstdout:\n{lock_stdout}\nstderr:\n{lock_stderr}"
+    );
+
+    let output = Command::new("cargo")
+        .arg("run")
+        .arg("--quiet")
+        .arg("--frozen")
+        .current_dir(&project_dir)
+        .output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
