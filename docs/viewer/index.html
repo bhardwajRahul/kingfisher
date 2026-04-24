@@ -950,8 +950,15 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      flex-wrap: wrap;
+      min-width: 0;
       min-height: 220px;
+      overflow: hidden;
       transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .chart-card > canvas {
+      flex-shrink: 0;
     }
 
     .chart-card:hover {
@@ -966,6 +973,10 @@
       gap: 8px;
       font-size: 13px;
       color: var(--text-main);
+      min-width: 0;
+      flex: 1 1 160px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .chart-legend-item {
@@ -973,6 +984,9 @@
       align-items: center;
       gap: 8px;
       font-weight: 600;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .legend-swatch {
@@ -1269,6 +1283,104 @@
       border-radius: 4px;
       word-break: break-all;
       white-space: pre-wrap;
+    }
+
+    /* Kingfisher enrichment callout - brand-colored so its origin is unmistakable */
+    .kf-enrichment-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--brand);
+      background: var(--brand-soft);
+    }
+    .kf-enrichment-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .kf-enrichment-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .kf-enrichment-strength {
+      font-size: 11px;
+      color: var(--brand-dark);
+    }
+    .kf-enrichment-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0 10px;
+    }
+    .kf-enrichment-row > label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    #fd-kf-validation-res {
+      white-space: pre-wrap;
+      font-size: 12px;
+      color: var(--brand-dark);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(255, 255, 255, 0.55);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    #fd-kf-validate-wrap label,
+    #fd-kf-revoke-wrap label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: block;
+      margin-bottom: 6px;
+    }
+    #fd-kf-validate-wrap,
+    #fd-kf-revoke-wrap {
+      margin-bottom: 10px;
+    }
+    #fd-kf-validate-cmd,
+    #fd-kf-revoke-cmd {
+      flex: 1;
+      font-size: 12px;
+      color: var(--brand-dark);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(255, 255, 255, 0.55);
+      padding: 8px 12px;
+      border-radius: 4px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .kf-enrichment-footnote {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .chip-enriched {
+      display: inline-block;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      border: 1px solid var(--brand);
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-left: 6px;
+      vertical-align: middle;
     }
 
     /* Shared command container styles */
@@ -1784,6 +1896,7 @@
       </div>
     </div>
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+      <a class="btn" href="https://github.com/mongodb/kingfisher" target="_blank" rel="noopener noreferrer">GitHub</a>
       <button class="btn" id="theme-toggle" type="button">Light Mode</button>
       <button class="btn" id="reset-btn" type="button">Clear and Load New Report(s)</button>
     </div>
@@ -1795,7 +1908,7 @@
     <section id="upload-section" class="panel" style="max-width: 920px; margin: 0 auto;">
       <div class="panel__header">
         <div class="panel__title">
-          <h3>Upload Report</h3>
+          <h3>Load Report</h3>
           <p>Analyze Kingfisher JSON / JSONL output, plus Gitleaks and TruffleHog JSON reports</p>
         </div>
       </div>
@@ -1809,11 +1922,17 @@
             <span class="upload-action-hint">JSON and JSONL only</span>
           </div>
           <input type="file" id="file-input" hidden accept=".json,.jsonl" multiple>
+          <div class="upload-options" style="margin-top:14px; display:flex; justify-content:center; font-size:12px; color:var(--text-muted);">
+            <label id="dedup-toggle-label" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="dedup-toggle" checked>
+              <span>Deduplicate findings (remove same-tool fingerprint repeats)</span>
+            </label>
+          </div>
         </div>
         <div class="upload-help-grid">
           <div class="upload-help-card">
             <div class="upload-help-label">Formats</div>
-            <div class="upload-help-text"><strong>Kingfisher</strong> JSON/JSONL, <strong>Gitleaks</strong> JSON, and <strong>TruffleHog</strong> JSON/JSONL.</div>
+            <div class="upload-help-text"><strong>Kingfisher</strong> JSON/JSONL, <strong>Gitleaks</strong> OSS JSON, and <strong>TruffleHog</strong> OSS JSON/JSONL.</div>
           </div>
           <div class="upload-help-card">
             <div class="upload-help-label">Merge More</div>
@@ -1821,11 +1940,15 @@
           </div>
           <div class="upload-help-card">
             <div class="upload-help-label">Deduplication</div>
-            <div class="upload-help-text"><strong>Kingfisher</strong> reports are already deduplicated. For imported <strong>Gitleaks</strong> and <strong>TruffleHog</strong> reports, the viewer attempts deduplication by finding fingerprint: native fingerprints when present, otherwise a synthetic fingerprint built from the tool, detector, and secret identity, with path/line/snippet fallback when needed.</div>
+            <div class="upload-help-text"><strong>Kingfisher</strong> reports are already deduplicated. For imported <strong>Gitleaks</strong> and <strong>TruffleHog</strong> reports, the viewer attempts deduplication (by default) by finding fingerprint: native fingerprints when present, otherwise a synthetic fingerprint built from the tool, detector, and secret identity, with path/line/snippet fallback when needed.</div>
           </div>
           <div class="upload-help-card">
             <div class="upload-help-label">Privacy</div>
             <div class="upload-help-text">Everything stays in your browser. Files are not uploaded anywhere.</div>
+          </div>
+          <div class="upload-help-card">
+            <div class="upload-help-label">Attribution</div>
+            <div class="upload-help-text">Reads JSON output from the open-source TruffleHog and Gitleaks CLIs. Kingfisher is not affiliated with or endorsed by Truffle Security Co. or the Gitleaks project. TruffleHog and Gitleaks are trademarks of their respective owners.</div>
           </div>
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
@@ -1964,6 +2087,33 @@
                 <div class="metric">
                   <div class="metric__label">Identities Mapped</div>
                   <div class="metric__value" id="stat-identities">0</div>
+                </div>
+                <div class="metric hidden" id="stat-enriched-card" title="Imported findings that match a Kingfisher finding on commit + file + line">
+                  <div class="metric__label">Enriched by Kingfisher</div>
+                  <div class="metric__value" id="stat-enriched">0</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel hidden" id="dedup-panel">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Duplicates Removed by Tool</h3>
+                  <p id="dedup-info">Same-tool fingerprint matches removed by the viewer. Uncheck &ldquo;Deduplicate findings&rdquo; on upload to keep every emitted row.</p>
+                </div>
+              </div>
+              <div class="metrics-grid">
+                <div class="metric" id="dedup-card-kingfisher">
+                  <div class="metric__label">Kingfisher duplicates removed</div>
+                  <div class="metric__value" id="dedup-count-kingfisher">0</div>
+                </div>
+                <div class="metric" id="dedup-card-trufflehog">
+                  <div class="metric__label">TruffleHog duplicates removed</div>
+                  <div class="metric__value" id="dedup-count-trufflehog">0</div>
+                </div>
+                <div class="metric" id="dedup-card-gitleaks">
+                  <div class="metric__label">Gitleaks duplicates removed</div>
+                  <div class="metric__value" id="dedup-count-gitleaks">0</div>
                 </div>
               </div>
             </section>
@@ -2107,6 +2257,9 @@
                       <th class="sortable" data-field="rule">
                         Rule <span class="sort-indicator"></span>
                       </th>
+                      <th class="sortable" data-field="source">
+                        Source <span class="sort-indicator"></span>
+                      </th>
                       <th class="sortable" data-field="location">
                         Location <span class="sort-indicator"></span>
                       </th>
@@ -2180,6 +2333,47 @@
 
                 <div id="fd-import-note" class="hidden" style="margin:14px 0 0; padding:12px 14px; border-radius:8px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; font-size:12px; line-height:1.6;"></div>
 
+                <div id="fd-kf-enrichment" class="hidden kf-enrichment-box">
+                  <div class="kf-enrichment-header">
+                    <span class="kf-enrichment-badge">Enriched by Kingfisher</span>
+                    <span id="fd-kf-enrichment-strength" class="kf-enrichment-strength"></span>
+                  </div>
+                  <div class="kf-enrichment-row">
+                    <label>Kingfisher Validation</label>
+                    <span id="fd-kf-validation"></span>
+                  </div>
+                  <pre id="fd-kf-validation-res" class="hidden"></pre>
+                  <div id="fd-kf-validate-wrap" class="hidden">
+                    <label>Validate with Kingfisher</label>
+                    <div class="cmd-container">
+                      <code id="fd-kf-validate-cmd"></code>
+                      <button class="copy-btn" id="fd-kf-validate-copy" title="Copy to clipboard">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="fd-kf-revoke-wrap" class="hidden">
+                    <label>Revoke</label>
+                    <div class="cmd-container">
+                      <code id="fd-kf-revoke-cmd"></code>
+                      <button class="copy-btn" id="fd-kf-revoke-copy" title="Copy to clipboard">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="kf-enrichment-footnote">
+                    Matched on <span id="fd-kf-match-key"></span> &middot; Kingfisher rule <span id="fd-kf-rule"></span>
+                  </div>
+                </div>
+
                 <div id="fd-validation-box" class="hidden">
                   <label>Live Validation Response</label>
                   <pre id="fd-validation-res"></pre>
@@ -2240,6 +2434,7 @@
     let rawData = null;
     let findings = [];
     let accessMap = [];
+    let duplicatesRemoved = { kingfisher: 0, trufflehog: 0, gitleaks: 0, total: 0 };
     let filteredAccessMapView = [];
     let currentFilter = "";
     let validationFilter = "all";
@@ -2304,7 +2499,19 @@
       "view-findings": document.getElementById("view-findings"),
     };
 
-    const THEME_KEY = "access-map-viewer-theme";
+    const THEME_KEY = "viewer-theme";
+    const systemThemeQuery = window.matchMedia("(prefers-color-scheme: light)");
+
+    function getStoredThemePreference() {
+      const stored = localStorage.getItem(THEME_KEY);
+      return stored === "light" || stored === "dark" ? stored : null;
+    }
+
+    function getPreferredTheme() {
+      const stored = getStoredThemePreference();
+      if (stored) return stored;
+      return systemThemeQuery.matches ? "light" : "dark";
+    }
 
     function setTheme(theme) {
       const normalized = theme === "light" ? "light" : "dark";
@@ -2312,9 +2519,47 @@
       if (themeToggle) {
         themeToggle.textContent = normalized === "dark" ? "Light Mode" : "Dark Mode";
       }
+      return normalized;
     }
 
-    setTheme(localStorage.getItem(THEME_KEY));
+    function rerenderThemeSensitiveViews() {
+      if (!hasLoadedReportData()) return;
+      const validationCounts = calculateValidationCounts();
+      renderStatusChart(validationCounts);
+      renderSourceChart(calculateSourceCounts());
+      renderSourceDetectorCharts();
+    }
+
+    setTheme(getPreferredTheme());
+
+    systemThemeQuery.addEventListener("change", () => {
+      if (getStoredThemePreference()) return;
+      setTheme(getPreferredTheme());
+      rerenderThemeSensitiveViews();
+    });
+
+    // Dedup toggle: checked means "deduplicate findings" (default ON).
+    // localStorage stores "0" only when the user has explicitly turned dedup off.
+    const DEDUP_PREF_KEY = "viewer-dedup";
+    const dedupToggle = document.getElementById("dedup-toggle");
+    const dedupToggleLabel = document.getElementById("dedup-toggle-label");
+    if (dedupToggle) {
+      try {
+        if (localStorage.getItem(DEDUP_PREF_KEY) === "0") {
+          dedupToggle.checked = false;
+        }
+      } catch (e) { /* localStorage unavailable; ignore */ }
+      dedupToggle.addEventListener("change", () => {
+        try {
+          if (dedupToggle.checked) localStorage.removeItem(DEDUP_PREF_KEY);
+          else localStorage.setItem(DEDUP_PREF_KEY, "0");
+        } catch (e) { /* ignore */ }
+      });
+      // Prevent clicks on the toggle from bubbling to the drop-zone file picker.
+      const stopBubble = (e) => e.stopPropagation();
+      dedupToggle.addEventListener("click", stopBubble);
+      if (dedupToggleLabel) dedupToggleLabel.addEventListener("click", stopBubble);
+    }
 
     function hasLoadedReportData() {
       return findings.length > 0 || accessMap.length > 0 || rawData !== null;
@@ -2470,6 +2715,7 @@
         const next = current === "dark" ? "light" : "dark";
         localStorage.setItem(THEME_KEY, next);
         setTheme(next);
+        rerenderThemeSensitiveViews();
       });
     }
 
@@ -2553,7 +2799,7 @@
         return JSON.parse(text);
       } catch (e) {
         const trimmed = text.trim();
-        const parts = trimmed.split(/\r?\n(?=\s*{)/g).filter(Boolean);
+        const parts = trimmed.split(/\r?\n(?=\s*[{\[])/g).filter(Boolean);
         if (parts.length > 1) {
           try {
             return JSON.parse("[" + parts.join(",") + "]");
@@ -2765,7 +3011,56 @@
       return payload ? [payload] : [];
     }
 
-    function buildGitMetadata(commitId, email, fileUrl) {
+    function normalizeRepositoryWebUrl(repoUrl) {
+      const raw = String(repoUrl || "").trim();
+      if (!raw || /^file:\/\//i.test(raw)) return "";
+      if (/^https?:\/\//i.test(raw)) return raw.replace(/\.git$/i, "").replace(/\/+$/g, "");
+
+      const sshMatch = raw.match(/^git@([^:]+):(.+)$/i);
+      if (sshMatch) {
+        return `https://${sshMatch[1]}/${sshMatch[2].replace(/\.git$/i, "").replace(/^\/+/, "")}`.replace(/\/+$/g, "");
+      }
+
+      const sshUrlMatch = raw.match(/^ssh:\/\/git@([^/]+)\/(.+)$/i);
+      if (sshUrlMatch) {
+        return `https://${sshUrlMatch[1]}/${sshUrlMatch[2].replace(/\.git$/i, "").replace(/^\/+/, "")}`.replace(/\/+$/g, "");
+      }
+
+      return "";
+    }
+
+    function buildGitFileUrl(repoUrl, commitId, filePath, line) {
+      const base = normalizeRepositoryWebUrl(repoUrl);
+      const commit = String(commitId || "").trim();
+      const normalizedPath = String(filePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+      const lineNumber = toNumberOrNull(line);
+      if (!base || !commit || !normalizedPath) return "";
+
+      try {
+        const parsed = new URL(base);
+        const host = (parsed.hostname || "").toLowerCase();
+        if (host === "dev.azure.com" || host.endsWith(".visualstudio.com")) {
+          const encodedPath = encodeURIComponent(normalizedPath);
+          return lineNumber
+            ? `${base}/commit/${commit}?path=/${encodedPath}&line=${lineNumber}`
+            : `${base}/commit/${commit}?path=/${encodedPath}`;
+        }
+        if (host === "bitbucket.org") {
+          const anchor = encodeURIComponent(normalizedPath).replace(/%2F/g, "/");
+          return lineNumber
+            ? `${base}/commits/${commit}#L${anchor}F${lineNumber}`
+            : `${base}/commits/${commit}`;
+        }
+      } catch (_) {
+        return "";
+      }
+
+      return lineNumber
+        ? `${base}/blob/${commit}/${normalizedPath}#L${lineNumber}`
+        : `${base}/blob/${commit}/${normalizedPath}`;
+    }
+
+    function buildGitMetadata(commitId, email, fileUrl, repositoryUrl) {
       const gitMetadata = {};
       if (commitId || email) {
         gitMetadata.commit = {};
@@ -2774,6 +3069,9 @@
       }
       if (fileUrl) {
         gitMetadata.file = { url: String(fileUrl) };
+      }
+      if (repositoryUrl) {
+        gitMetadata.repository = { url: String(repositoryUrl) };
       }
       return Object.keys(gitMetadata).length ? gitMetadata : null;
     }
@@ -2813,10 +3111,16 @@
           ? buildSyntheticFingerprint("gitleaks", [ruleId, secretIdentity])
           : buildSyntheticFingerprint("gitleaks", [ruleId, path, line, columnStart, snippet]))
       );
+      const repoUrl = firstNonEmpty(item.RepoURL, item.repoURL, item.Repo, item.repo);
+      const directUrl = firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url);
+      const fileUrl = isHttpUrl(directUrl)
+        ? directUrl
+        : buildGitFileUrl(repoUrl, firstNonEmpty(item.Commit, item.commit), path, line);
       const gitMetadata = buildGitMetadata(
         firstNonEmpty(item.Commit, item.commit),
         firstNonEmpty(item.Email, item.email),
-        firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url)
+        fileUrl,
+        normalizeRepositoryWebUrl(repoUrl)
       );
 
       return {
@@ -2853,6 +3157,7 @@
       const detectorName = String(firstNonEmpty(item.DetectorName, item.detectorName, item.DetectorDescription, item.detectorDescription) || "Unknown Detector");
       const detectorDescription = String(firstNonEmpty(item.DetectorDescription, item.detectorDescription, detectorName) || detectorName);
       const sourceMetadata = item.SourceMetadata || item.sourceMetadata || {};
+      const gitSource = findDeepValue(sourceMetadata, ["git"]) || {};
       const path = String(firstNonEmpty(
         findDeepValue(sourceMetadata, ["file", "path", "filename"]),
         item.File,
@@ -2867,6 +3172,12 @@
         findDeepValue(sourceMetadata, ["url", "link", "htmlurl", "html_url", "rawurl", "raw_url"]),
         item.Url,
         item.url
+      );
+      const repositoryUrl = firstNonEmpty(
+        findDeepValue(gitSource, ["repository", "repositoryurl", "repo", "repo_url", "remote", "remoteurl", "remote_url"]),
+        findDeepValue(sourceMetadata, ["repository", "repositoryurl", "repo", "repo_url", "remote", "remoteurl", "remote_url"]),
+        item.Repository,
+        item.repository
       );
       const commitId = firstNonEmpty(
         findDeepValue(sourceMetadata, ["commit", "commitid", "hash", "sha"]),
@@ -2888,7 +3199,9 @@
       );
       const verified = Boolean(item.Verified);
       const verificationError = String(firstNonEmpty(item.VerificationError, item.verificationError) || "");
-      const gitMetadata = buildGitMetadata(commitId, email, isHttpUrl(sourceUrl) ? sourceUrl : "");
+      const normalizedRepoUrl = normalizeRepositoryWebUrl(repositoryUrl);
+      const fileUrl = isHttpUrl(sourceUrl) ? sourceUrl : buildGitFileUrl(normalizedRepoUrl, commitId, path, line);
+      const gitMetadata = buildGitMetadata(commitId, email, fileUrl, normalizedRepoUrl);
 
       return {
         rule: {
@@ -2928,14 +3241,8 @@
         .filter(Boolean);
       const firstEntry = entries.find((item) => item && typeof item === "object") || {};
       const notes = toolName === "TruffleHog"
-        ? [
-            "Imported from TruffleHog JSON. Native Kingfisher reports are already deduplicated; for TruffleHog imports, the viewer attempts deduplication by finding fingerprint, preferring detector plus secret identity and falling back to path, line, and snippet when needed. Only findings TruffleHog marked verified are shown as active credentials; all other findings stay in Not Attempted.",
-            "Imported reports do not include Kingfisher access-map data, validate commands, or revoke commands. Re-scan with Kingfisher and --access-map for full enrichment.",
-          ]
-        : [
-            "Imported from Gitleaks JSON. Native Kingfisher reports are already deduplicated; for Gitleaks imports, the viewer attempts deduplication by finding fingerprint, preferring rule plus secret identity and falling back to path, line, column, and snippet when needed.",
-            "Re-scan with Kingfisher and --access-map to add validation context and blast-radius mapping.",
-          ];
+        ? ["Imported from the open-source TruffleHog JSON output. Only findings marked verified are shown as Active; others are Not Attempted. Re-scan with Kingfisher --access-map for validation, revoke commands, and blast radius. Not affiliated with Truffle Security Co."]
+        : ["Imported from the open-source Gitleaks JSON output. No validation, revoke commands, or access-map data. Re-scan with Kingfisher --access-map for full enrichment. Not affiliated with the Gitleaks project."];
       const target = String(firstNonEmpty(
         firstEntry.SourceName,
         firstEntry.sourceName,
@@ -2989,6 +3296,50 @@
     }
 
     function normalizeReportPayload(payload) {
+      if (Array.isArray(payload)) {
+        const topFormat = detectReportFormat(payload);
+        if (topFormat === "gitleaks") {
+          return normalizeImportedPayload(payload, "Gitleaks");
+        }
+        if (topFormat === "trufflehog") {
+          return normalizeImportedPayload(payload, "TruffleHog");
+        }
+        const entryFormats = [];
+        let hasImported = false;
+        for (const entry of payload) {
+          if (entry === null || typeof entry !== "object") {
+            entryFormats.push(null);
+            continue;
+          }
+          const fmt = detectReportFormat(entry);
+          entryFormats.push(fmt);
+          if (fmt === "gitleaks" || fmt === "trufflehog") {
+            hasImported = true;
+          }
+        }
+        if (!hasImported) {
+          return normalizeKingfisherPayload(payload);
+        }
+        const combined = { f: [], am: [], rd: null };
+        for (let i = 0; i < payload.length; i++) {
+          const entry = payload[i];
+          const fmt = entryFormats[i];
+          if (entry === null || typeof entry !== "object") continue;
+          let partial;
+          if (fmt === "trufflehog") {
+            partial = normalizeImportedPayload(entry, "TruffleHog");
+          } else if (fmt === "gitleaks") {
+            partial = normalizeImportedPayload(entry, "Gitleaks");
+          } else {
+            partial = normalizeKingfisherPayload(entry);
+          }
+          if (!partial) continue;
+          if (Array.isArray(partial.f)) combined.f.push(...partial.f);
+          if (Array.isArray(partial.am)) combined.am.push(...partial.am);
+          combined.rd = mergeRawReportData(combined.rd, partial.rd);
+        }
+        return combined;
+      }
       const format = detectReportFormat(payload);
       if (format === "trufflehog") {
         return normalizeImportedPayload(payload, "TruffleHog");
@@ -3120,6 +3471,7 @@
       rawData = null;
       currentDetailFinding = null;
       scanMetadata = {};
+      duplicatesRemoved = { kingfisher: 0, trufflehog: 0, gitleaks: 0, total: 0 };
 
       currentFilter = "";
       validationFilter = "all";
@@ -3192,8 +3544,18 @@
         nextRawData = mergeRawReportData(nextRawData, rd);
       }
 
-      // Deduplicate findings by fingerprint
-      findings = deduplicateFindings(nextFindings);
+      // Deduplicate findings by fingerprint (skip when disabled via UI toggle)
+      const dedupDisabledMulti = isDedupDisabled();
+      let dedupResultMulti;
+      if (dedupDisabledMulti) {
+        dedupResultMulti = { findings: nextFindings.slice(), dropped: { kingfisher: 0, trufflehog: 0, gitleaks: 0, total: 0 } };
+      } else {
+        dedupResultMulti = deduplicateFindings(nextFindings);
+      }
+      findings = dedupResultMulti.findings;
+      duplicatesRemoved = dedupResultMulti.dropped;
+      // Layer Kingfisher validation/revoke data onto matched imported findings
+      findings = enrichImportedFindings(findings);
       // Deduplicate access map entries by fingerprint
       accessMap = deduplicateAccessMap(nextAccessMap);
       rawData = nextRawData;
@@ -3208,7 +3570,16 @@
       rawData = null;
 
       const { f, am, rd } = parseSingleText(text);
-      findings = deduplicateFindings(f);
+      const dedupDisabledSingle = isDedupDisabled();
+      let dedupResultSingle;
+      if (dedupDisabledSingle) {
+        dedupResultSingle = { findings: f.slice(), dropped: { kingfisher: 0, trufflehog: 0, gitleaks: 0, total: 0 } };
+      } else {
+        dedupResultSingle = deduplicateFindings(f);
+      }
+      findings = dedupResultSingle.findings;
+      duplicatesRemoved = dedupResultSingle.dropped;
+      findings = enrichImportedFindings(findings);
       accessMap = deduplicateAccessMap(am);
       rawData = rd;
 
@@ -3224,7 +3595,7 @@
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
-          if (!line || line[0] !== "{") continue;
+          if (!line || (line[0] !== "{" && line[0] !== "[")) continue;
           try {
             const obj = JSON.parse(line);
             entries.push(obj);
@@ -3238,16 +3609,118 @@
       return normalizeReportPayload(parsed);
     }
 
+    function isDedupDisabled() {
+      // Toggle is default-checked; only disabled when the user has unchecked it.
+      const el = document.getElementById("dedup-toggle");
+      return !!(el && !el.checked);
+    }
+
     function deduplicateFindings(list) {
       const seen = new Set();
       const result = [];
+      const dropped = { kingfisher: 0, trufflehog: 0, gitleaks: 0, total: 0 };
       for (const f of list) {
         const fp = f.finding && f.finding.fingerprint ? f.finding.fingerprint : "";
-        if (fp && seen.has(fp)) continue;
+        if (fp && seen.has(fp)) {
+          const tool = getFindingSourceTool(f.finding || {});
+          dropped[tool] = (dropped[tool] || 0) + 1;
+          dropped.total += 1;
+          continue;
+        }
         if (fp) seen.add(fp);
         result.push(f);
       }
-      return result;
+      return { findings: result, dropped };
+    }
+
+    function normalizePathForMatch(p) {
+      if (!p) return "";
+      return String(p).replace(/^\.\//, "").replace(/^\/+|\/+$/g, "").toLowerCase();
+    }
+
+    // Two paths match if they're equal, or one is a path-suffix of the other.
+    // Handles Kingfisher absolute filesystem paths vs TruffleHog/Gitleaks
+    // repo-relative paths for the same file.
+    function pathsCompatible(a, b) {
+      if (!a || !b) return false;
+      if (a === b) return true;
+      if (a.endsWith("/" + b)) return true;
+      if (b.endsWith("/" + a)) return true;
+      return false;
+    }
+
+    function enrichImportedFindings(findingList) {
+      // Bucket native Kingfisher findings by line (and commit+line) so we can
+      // run a cheap path-compatibility check at lookup time.
+      const byLine = new Map();
+      const byCommitLine = new Map();
+      for (const f of findingList) {
+        if (!f || !f.finding) continue;
+        if (f.finding.viewer_import) continue;
+        const fg = f.finding;
+        const path = normalizePathForMatch(fg.path);
+        const line = fg.line != null ? String(fg.line) : "";
+        if (!path || !line) continue;
+        const entry = { path, f };
+        if (!byLine.has(line)) byLine.set(line, []);
+        byLine.get(line).push(entry);
+        const commit = fg.git_metadata && fg.git_metadata.commit
+          ? String(fg.git_metadata.commit.id || "") : "";
+        if (commit) {
+          const k = commit + "|" + line;
+          if (!byCommitLine.has(k)) byCommitLine.set(k, []);
+          byCommitLine.get(k).push(entry);
+        }
+      }
+      for (const f of findingList) {
+        if (!f || !f.finding || !f.finding.viewer_import) continue;
+        const fg = f.finding;
+        const path = normalizePathForMatch(fg.path);
+        const line = fg.line != null ? String(fg.line) : "";
+        if (!path || !line) continue;
+        const commit = fg.git_metadata && fg.git_metadata.commit
+          ? String(fg.git_metadata.commit.id || "") : "";
+        let match = null;
+        let matchStrength = null;
+        if (commit) {
+          const bucket = byCommitLine.get(commit + "|" + line) || [];
+          for (const e of bucket) {
+            if (pathsCompatible(e.path, path)) { match = e.f; matchStrength = "commit"; break; }
+          }
+        }
+        if (!match) {
+          const bucket = byLine.get(line) || [];
+          for (const e of bucket) {
+            if (pathsCompatible(e.path, path)) { match = e.f; matchStrength = "path-line"; break; }
+          }
+        }
+        if (!match) continue;
+        const kf = match.finding || {};
+        fg.kingfisher_enrichment = {
+          match_strength: matchStrength,
+          kingfisher_rule_id: (match.rule || {}).id || "",
+          kingfisher_rule_name: (match.rule || {}).name || "",
+          kingfisher_fingerprint: kf.fingerprint || "",
+          validation: kf.validation || null,
+          validate_command: kf.validate_command || "",
+          revoke_command: kf.revoke_command || "",
+          confidence: kf.confidence || "",
+        };
+        if (kf.git_metadata && (!fg.git_metadata || !fg.git_metadata.file || !fg.git_metadata.file.url)) {
+          fg.git_metadata = Object.assign({}, fg.git_metadata || {});
+          if (kf.git_metadata.file && kf.git_metadata.file.url) {
+            fg.git_metadata.file = Object.assign({}, fg.git_metadata.file || {}, {
+              url: kf.git_metadata.file.url,
+            });
+          }
+          if (kf.git_metadata.repository && kf.git_metadata.repository.url) {
+            fg.git_metadata.repository = Object.assign({}, fg.git_metadata.repository || {}, {
+              url: kf.git_metadata.repository.url,
+            });
+          }
+        }
+      }
+      return findingList;
     }
 
     function deduplicateAccessMap(list) {
@@ -3506,6 +3979,31 @@
 
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
+      const enrichedCount = findings.reduce(
+        (n, f) => n + (f && f.finding && f.finding.kingfisher_enrichment ? 1 : 0),
+        0
+      );
+      const enrichedEl = document.getElementById("stat-enriched");
+      const enrichedCard = document.getElementById("stat-enriched-card");
+      if (enrichedEl) enrichedEl.textContent = enrichedCount.toString();
+      if (enrichedCard) {
+        if (enrichedCount > 0) enrichedCard.classList.remove("hidden");
+        else enrichedCard.classList.add("hidden");
+      }
+
+      const dr = duplicatesRemoved || { total: 0, kingfisher: 0, trufflehog: 0, gitleaks: 0 };
+      const dedupPanel = document.getElementById("dedup-panel");
+      const kfCount = document.getElementById("dedup-count-kingfisher");
+      const thCount = document.getElementById("dedup-count-trufflehog");
+      const glCount = document.getElementById("dedup-count-gitleaks");
+      if (kfCount) kfCount.textContent = (dr.kingfisher || 0).toLocaleString();
+      if (thCount) thCount.textContent = (dr.trufflehog || 0).toLocaleString();
+      if (glCount) glCount.textContent = (dr.gitleaks || 0).toLocaleString();
+      if (dedupPanel) {
+        if (dr.total > 0) dedupPanel.classList.remove("hidden");
+        else dedupPanel.classList.add("hidden");
+      }
+
       renderStatusChart(validationCounts);
       renderSourceChart(calculateSourceCounts());
       renderSourceDetectorCharts();
@@ -3582,6 +4080,10 @@
           case "rule":
             va = (ra.name || ra.id || "").toLowerCase();
             vb = (rb.name || rb.id || "").toLowerCase();
+            break;
+          case "source":
+            va = getFindingSourceTool(fa);
+            vb = getFindingSourceTool(fb);
             break;
           case "location":
             va = (fa.path || "").toLowerCase();
@@ -4125,6 +4627,7 @@
       const headers = [
         "rule_id",
         "rule_name",
+        "source_tool",
         "file_path",
         "line",
         "validation_status",
@@ -4141,6 +4644,7 @@
         return [
           rule.id || "",
           rule.name || "",
+          getFindingSourceDisplayName(finding),
           finding.path || "",
           finding.line != null ? finding.line : "",
           status,
@@ -4314,10 +4818,12 @@
               const normalizedStatus = normalizeValidationStatus(statusRaw);
               const findingId = getFindingIdFromFinding(finding);
               const gitUrl = getFileUrlFromFinding(finding);
+              const sourceTool = getFindingSourceDisplayName(finding);
               const statusColor = normalizedStatus === "active" ? "#dc2626" : normalizedStatus === "inactive" ? "#f97316" : "#6b7280";
               return `
                 <tr>
                   <td>${escapeHtml(rule.name || rule.id || "")}</td>
+                  <td>${escapeHtml(sourceTool)}</td>
                   <td style="font-size:10px;font-family:monospace;">${escapeHtml(findingId ? findingId.substring(0, 12) : "")}</td>
                   <td style="font-size:10px;">${escapeHtml(finding.path || "")}</td>
                   <td style="color:${statusColor};font-weight:600;">${escapeHtml(statusRaw)}</td>
@@ -4328,7 +4834,7 @@
               `;
             })
             .join("")
-        : '<tr><td colspan="7">No findings available.</td></tr>';
+        : '<tr><td colspan="8">No findings available.</td></tr>';
 
       // Scan metadata section
       const metaLines = [];
@@ -4471,12 +4977,13 @@
       <thead>
         <tr>
           <th style="width:15%;">Rule</th>
+          <th style="width:10%;">Tool</th>
           <th style="width:10%;">Fingerprint</th>
-          <th style="width:22%;">File Path</th>
+          <th style="width:18%;">File Path</th>
           <th style="width:12%;">Status</th>
           <th style="width:9%;">Confidence</th>
           <th style="width:5%;">Line</th>
-          <th style="width:27%;">Git URL</th>
+          <th style="width:21%;">Git URL</th>
         </tr>
       </thead>
       <tbody>
@@ -4691,7 +5198,7 @@
 
       if (pageItems.length === 0) {
         findingsBody.innerHTML =
-          '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">No findings match your filters.</td></tr>';
+          '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No findings match your filters.</td></tr>';
       } else {
         for (let i = 0; i < pageItems.length; i++) {
           const f = pageItems[i] || {};
@@ -4713,12 +5220,20 @@
                 ? "inactive"
                 : "unknown";
 
+          const enrichedChip = finding.kingfisher_enrichment
+            ? `<span class="chip-enriched" title="Enriched with Kingfisher validation and revoke data">Enriched</span>`
+            : "";
+
+          const sourceTool = getFindingSourceTool(finding);
+          const sourceBadge = `<span class="badge ${getSourceBadgeClass(sourceTool)}">${escapeHtml(getSourceDisplayName(sourceTool))}</span>`;
+
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>
-              <div style="font-weight:600">${escapeHtml(ruleName)}</div>
+              <div style="font-weight:600">${escapeHtml(ruleName)}${enrichedChip}</div>
               <div style="font-size:11px; color:var(--text-muted)">${escapeHtml(rule.id || "")}</div>
             </td>
+            <td>${sourceBadge}</td>
             <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px; color:var(--text-muted);" title="${escapeHtml(path)}">
               ${escapeHtml(trimPath(path))}
             </td>
@@ -4872,6 +5387,8 @@
         }
       }
 
+      renderKingfisherEnrichment(finding);
+
       const valBox = document.getElementById("fd-validation-box");
       if (finding.validation && finding.validation.response) {
         valBox.classList.remove("hidden");
@@ -4946,7 +5463,97 @@
       const fileObj = finding.git_metadata.file || {};
       const url = fileObj.url || "";
       if (url && /^https?:\/\//i.test(url)) return url;
-      return "";
+      const repoObj = finding.git_metadata.repository || {};
+      const repoUrl = repoObj.url || "";
+      const commitId = finding.git_metadata.commit && finding.git_metadata.commit.id
+        ? finding.git_metadata.commit.id
+        : "";
+      return buildGitFileUrl(repoUrl, commitId, finding.path || "", finding.line);
+    }
+
+    function getFindingSourceDisplayName(finding) {
+      return getSourceDisplayName(getFindingSourceTool(finding || {}));
+    }
+
+    function wireKfEnrichmentCopyButton(wrapId, codeId, btnId, cmd) {
+      const wrap = document.getElementById(wrapId);
+      const code = document.getElementById(codeId);
+      const btn = document.getElementById(btnId);
+      if (!wrap || !code || !btn) return;
+      if (!cmd) {
+        wrap.classList.add("hidden");
+        code.textContent = "";
+        btn.onclick = null;
+        return;
+      }
+      wrap.classList.remove("hidden");
+      code.textContent = cmd;
+      btn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(cmd);
+          btn.classList.add("copied");
+          const label = btn.querySelector("span");
+          if (label) label.textContent = "Copied!";
+          setTimeout(() => {
+            btn.classList.remove("copied");
+            const l = btn.querySelector("span");
+            if (l) l.textContent = "Copy";
+          }, 2000);
+        } catch (err) {
+          console.error("Failed to copy:", err);
+        }
+      };
+    }
+
+    function renderKingfisherEnrichment(finding) {
+      const box = document.getElementById("fd-kf-enrichment");
+      if (!box) return;
+      const enr = finding && finding.kingfisher_enrichment;
+      if (!enr) {
+        box.classList.add("hidden");
+        return;
+      }
+      box.classList.remove("hidden");
+
+      const strengthEl = document.getElementById("fd-kf-enrichment-strength");
+      if (strengthEl) {
+        strengthEl.textContent = enr.match_strength === "commit"
+          ? "Strong match (commit + file + line)"
+          : "Partial match (file + line only)";
+      }
+
+      const statusRaw = enr.validation && enr.validation.status ? String(enr.validation.status) : "Unknown";
+      const normalized = normalizeValidationStatus(statusRaw);
+      const badgeClass = normalized === "active" ? "active" : normalized === "inactive" ? "inactive" : "unknown";
+      const validationEl = document.getElementById("fd-kf-validation");
+      if (validationEl) {
+        validationEl.innerHTML = `<span class="status-badge ${badgeClass}">${escapeHtml(statusRaw)}</span>`;
+      }
+
+      const resEl = document.getElementById("fd-kf-validation-res");
+      if (resEl) {
+        if (enr.validation && enr.validation.response) {
+          resEl.classList.remove("hidden");
+          resEl.textContent = enr.validation.response;
+        } else {
+          resEl.classList.add("hidden");
+          resEl.textContent = "";
+        }
+      }
+
+      wireKfEnrichmentCopyButton("fd-kf-validate-wrap", "fd-kf-validate-cmd", "fd-kf-validate-copy", enr.validate_command);
+      wireKfEnrichmentCopyButton("fd-kf-revoke-wrap", "fd-kf-revoke-cmd", "fd-kf-revoke-copy", enr.revoke_command);
+
+      const matchKeyEl = document.getElementById("fd-kf-match-key");
+      if (matchKeyEl) {
+        matchKeyEl.textContent = enr.match_strength === "commit"
+          ? "commit + file + line"
+          : "file + line (no commit context)";
+      }
+      const ruleEl = document.getElementById("fd-kf-rule");
+      if (ruleEl) {
+        ruleEl.textContent = enr.kingfisher_rule_id || enr.kingfisher_rule_name || "(unknown rule)";
+      }
     }
 
     function getAccessMapForFingerprint(fingerprint) {
@@ -5211,6 +5818,7 @@
       const { level, text: rationaleText } = generateRiskRationale(f, entries);
       const statusRaw = finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
       const gitUrl = getFileUrlFromFinding(finding);
+      const sourceTool = getFindingSourceDisplayName(finding);
 
       const levelColors = {
         critical: { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b" },
@@ -5302,6 +5910,7 @@
   <div class="detail-grid">
     <div class="detail-item"><label>Rule</label><div>${escapeHtml(rule.name || "")} (${escapeHtml(rule.id || "")})</div></div>
     <div class="detail-item"><label>Validation</label><div>${escapeHtml(statusRaw)}</div></div>
+    <div class="detail-item"><label>Tool</label><div>${escapeHtml(sourceTool)}</div></div>
     <div class="detail-item"><label>Confidence</label><div>${escapeHtml(finding.confidence || "")}</div></div>
     <div class="detail-item"><label>Entropy</label><div>${finding.entropy != null ? escapeHtml(String(finding.entropy)) : "—"}</div></div>
     <div class="detail-item" style="grid-column:span 2;"><label>File Path</label><div>${escapeHtml(finding.path || "")}</div></div>
@@ -5397,6 +6006,7 @@
         const colors = levelColors[level] || levelColors.none;
         const statusRaw = finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
         const gitUrl = getFileUrlFromFinding(finding);
+        const sourceTool = getFindingSourceDisplayName(finding);
 
         let accessSummary = "";
         if (entries.length > 0) {
@@ -5433,6 +6043,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px;">
               <div><strong>Path:</strong> ${escapeHtml(finding.path || "—")}</div>
               <div><strong>Line:</strong> ${finding.line != null ? finding.line : "—"}</div>
+              <div><strong>Tool:</strong> ${escapeHtml(sourceTool)}</div>
               <div><strong>Validation:</strong> ${escapeHtml(statusRaw)}</div>
               <div><strong>Confidence:</strong> ${escapeHtml(finding.confidence || "—")}</div>
               ${gitUrl ? `<div style="grid-column:span 2;"><strong>URL:</strong> <a href="${escapeHtml(gitUrl)}" style="color:#1d4ed8;">${escapeHtml(gitUrl)}</a></div>` : ""}

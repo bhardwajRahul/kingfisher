@@ -8,7 +8,10 @@ use std::{
 use anyhow::{Context, Result};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
+use smallvec::{SmallVec, smallvec};
 use tracing::debug;
+
+type FingerprintForms = SmallVec<[u64; 2]>;
 
 use crate::findings_store::FindingsStore;
 
@@ -35,6 +38,54 @@ pub struct BaselineFinding {
 pub fn load_baseline(path: &Path) -> Result<BaselineFile> {
     let data = fs::read_to_string(path).context("read baseline file")?;
     Ok(serde_yaml::from_str(&data).context("parse baseline yaml")?)
+}
+
+/// Parse a baseline fingerprint string into its canonical u64 form(s).
+///
+/// Accepts either the decimal form users see in scan output (JSON/pretty/SARIF)
+/// or the 16-char zero-padded hex form previously written by `--manage-baseline`.
+/// Returns 0–2 canonical u64 interpretations: ambiguous 16-digit all-digit
+/// strings — which could be either a decimal fingerprint or a legacy hex
+/// fingerprint whose value happens to contain no `a-f` — yield both so either
+/// form matches.
+///
+/// Detection:
+///   1. A `0x`/`0X` prefix is stripped and the rest parsed as hex.
+///   2. Exactly 16 hex chars containing at least one `a-f`/`A-F` letter are parsed as hex
+///      (unambiguous legacy canonical form).
+///   3. Exactly 16 digits: ambiguous — try both decimal and hex and return whichever
+///      interpretations parse successfully, so old baselines keep matching.
+///   4. Otherwise the string is parsed as decimal u64.
+fn parse_fingerprint(s: &str) -> FingerprintForms {
+    let trimmed = s.trim();
+    if let Some(rest) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
+        return match u64::from_str_radix(rest, 16) {
+            Ok(v) => smallvec![v],
+            Err(_) => SmallVec::new(),
+        };
+    }
+    if trimmed.len() == 16 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+        if trimmed.chars().any(|c| c.is_ascii_alphabetic()) {
+            return match u64::from_str_radix(trimmed, 16) {
+                Ok(v) => smallvec![v],
+                Err(_) => SmallVec::new(),
+            };
+        }
+        let mut out: FingerprintForms = SmallVec::new();
+        if let Ok(v) = trimmed.parse::<u64>() {
+            out.push(v);
+        }
+        if let Ok(v) = u64::from_str_radix(trimmed, 16) {
+            if !out.contains(&v) {
+                out.push(v);
+            }
+        }
+        return out;
+    }
+    match trimmed.parse::<u64>() {
+        Ok(v) => smallvec![v],
+        Err(_) => SmallVec::new(),
+    }
 }
 
 pub fn save_baseline(path: &Path, baseline: &BaselineFile) -> Result<()> {
@@ -65,45 +116,55 @@ pub fn apply_baseline(
         BaselineFile::default()
     };
 
-    let mut known: HashSet<String> =
-        baseline.exact_findings.matches.iter().map(|m| m.fingerprint.clone()).collect();
+    let mut known: HashSet<u64> = HashSet::new();
+    for m in &baseline.exact_findings.matches {
+        let parsed = parse_fingerprint(&m.fingerprint);
+        if parsed.is_empty() {
+            debug!("Ignoring unparseable baseline fingerprint {:?}", m.fingerprint);
+            continue;
+        }
+        known.extend(parsed);
+    }
 
-    let mut encountered: HashSet<String> = HashSet::new();
+    let mut encountered: HashSet<u64> = HashSet::new();
     let mut new_entries = Vec::new();
     for arc_msg in store.get_matches_mut() {
         let (origin, _blob, m) = Arc::make_mut(arc_msg);
         let file_path = origin.iter().filter_map(|o| o.full_path()).next();
-        let hash = format!("{:016x}", m.finding_fingerprint);
+        let fp_value = m.finding_fingerprint;
 
         if let Some(fp) = file_path {
             let normalized = normalize_path(&fp, roots);
-            if known.contains(&hash) {
-                debug!("Skipping {} due to baseline (hash {})", normalized, hash);
+            if known.contains(&fp_value) {
+                debug!("Skipping {} due to baseline (fingerprint {})", normalized, fp_value);
                 m.visible = false;
                 if manage {
-                    encountered.insert(hash.clone());
+                    encountered.insert(fp_value);
                 }
             } else if manage {
-                known.insert(hash.clone());
-                encountered.insert(hash.clone());
+                known.insert(fp_value);
+                encountered.insert(fp_value);
                 let entry = BaselineFinding {
                     filepath: normalized,
-                    fingerprint: hash,
+                    fingerprint: fp_value.to_string(),
                     linenum: m.location.resolved_source_span().start.line,
                     lastupdated: Local::now().to_rfc2822(),
                 };
                 new_entries.push(entry);
             }
-        } else if known.contains(&hash) {
+        } else if known.contains(&fp_value) {
             m.visible = false;
             if manage {
-                encountered.insert(hash.clone());
+                encountered.insert(fp_value);
             }
         }
     }
     if manage {
         let original_len = baseline.exact_findings.matches.len();
-        baseline.exact_findings.matches.retain(|m| encountered.contains(&m.fingerprint));
+        baseline
+            .exact_findings
+            .matches
+            .retain(|m| parse_fingerprint(&m.fingerprint).iter().any(|v| encountered.contains(v)));
         let mut changed = baseline.exact_findings.matches.len() != original_len;
 
         if !new_entries.is_empty() {
@@ -217,7 +278,7 @@ mod tests {
         let baseline = load_baseline(&baseline_path)?;
         assert_eq!(baseline.exact_findings.matches.len(), 1);
         let entry = &baseline.exact_findings.matches[0];
-        assert_eq!(entry.fingerprint, format!("{:016x}", fingerprint));
+        assert_eq!(entry.fingerprint, fingerprint.to_string());
         assert_eq!(entry.filepath, expected_relative_path(roots[0].as_path(), &secret_file));
 
         let (_, _, recorded) = store.get_matches()[0].as_ref();
@@ -251,6 +312,139 @@ mod tests {
 
         let (_, _, suppressed) = rerun.get_matches()[0].as_ref();
         assert!(!suppressed.visible);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_fingerprint_accepts_all_forms() {
+        let value: u64 = 0xfeed_beef_dade_f00d;
+        assert_eq!(parse_fingerprint(&format!("{:016x}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&format!("0x{:016x}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&format!("0X{:X}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&value.to_string()).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint("  42  ").as_slice(), &[42]);
+        assert_eq!(parse_fingerprint("0").as_slice(), &[0]);
+        assert!(parse_fingerprint("").is_empty());
+        assert!(parse_fingerprint("notahex").is_empty());
+    }
+
+    #[test]
+    fn parse_fingerprint_all_digit_16_chars_is_ambiguous() {
+        // A 16-char all-digit string could be either a decimal fingerprint
+        // (scan output) or a legacy hex fingerprint whose value contains no
+        // a-f. Both interpretations must be returned so old baselines keep
+        // matching while new decimal fingerprints round-trip.
+        let s = "1234567890123456";
+        let parsed = parse_fingerprint(s);
+        assert!(parsed.contains(&1234567890123456_u64));
+        assert!(parsed.contains(&u64::from_str_radix(s, 16).unwrap()));
+    }
+
+    #[test]
+    fn decimal_fingerprint_from_output_roundtrips() -> Result<()> {
+        // Regression for issue #344: a fingerprint copied (in decimal) from
+        // scan output into a hand-written baseline file must suppress the match.
+        let tmp = TempDir::new()?;
+        let roots = [tmp.path().to_path_buf()];
+        let secret_file = tmp.path().join("secret.txt");
+        fs::write(&secret_file, "dummy")?;
+        let baseline_path = tmp.path().join("baseline.yaml");
+        let fingerprint = 0xfeed_beef_dade_f00d_u64;
+
+        let hand_written = BaselineFile {
+            exact_findings: ExactFindings {
+                matches: vec![BaselineFinding {
+                    filepath: expected_relative_path(roots[0].as_path(), &secret_file),
+                    fingerprint: fingerprint.to_string(),
+                    linenum: 1,
+                    lastupdated: "now".to_string(),
+                }],
+            },
+        };
+        save_baseline(&baseline_path, &hand_written)?;
+
+        let mut store = make_store_with_match(fingerprint, &secret_file);
+        apply_baseline(&mut store, &baseline_path, false, &roots)?;
+        let (_, _, m) = store.get_matches()[0].as_ref();
+        assert!(!m.visible);
+
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_hex_baseline_still_matches() -> Result<()> {
+        // A baseline file written by an older kingfisher (hex-padded) must
+        // still suppress matches after the decimal switchover.
+        let tmp = TempDir::new()?;
+        let roots = [tmp.path().to_path_buf()];
+        let secret_file = tmp.path().join("secret.txt");
+        fs::write(&secret_file, "dummy")?;
+        let baseline_path = tmp.path().join("baseline.yaml");
+        let fingerprint = 0xfeed_beef_dade_f00d_u64;
+
+        let legacy = BaselineFile {
+            exact_findings: ExactFindings {
+                matches: vec![BaselineFinding {
+                    filepath: expected_relative_path(roots[0].as_path(), &secret_file),
+                    fingerprint: format!("{:016x}", fingerprint),
+                    linenum: 1,
+                    lastupdated: "then".to_string(),
+                }],
+            },
+        };
+        save_baseline(&baseline_path, &legacy)?;
+
+        let mut store = make_store_with_match(fingerprint, &secret_file);
+        apply_baseline(&mut store, &baseline_path, false, &roots)?;
+        let (_, _, m) = store.get_matches()[0].as_ref();
+        assert!(!m.visible);
+
+        Ok(())
+    }
+
+    #[test]
+    fn mixed_format_baseline_matches_both_entries() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let roots = [tmp.path().to_path_buf()];
+        let file_hex = tmp.path().join("hex.txt");
+        let file_dec = tmp.path().join("dec.txt");
+        fs::write(&file_hex, "dummy")?;
+        fs::write(&file_dec, "dummy")?;
+        let baseline_path = tmp.path().join("baseline.yaml");
+        // fp_hex must contain at least one hex letter so its 16-char hex form is
+        // unambiguously hex (an all-digit 16-char string is treated as decimal to
+        // satisfy the roundtrip contract for fingerprints copied from scan output).
+        let fp_hex = 0x1a2b_3c4d_5e6f_7890_u64;
+        let fp_dec = 0xaaaa_bbbb_cccc_dddd_u64;
+
+        let mixed = BaselineFile {
+            exact_findings: ExactFindings {
+                matches: vec![
+                    BaselineFinding {
+                        filepath: expected_relative_path(roots[0].as_path(), &file_hex),
+                        fingerprint: format!("{:016x}", fp_hex),
+                        linenum: 1,
+                        lastupdated: "then".to_string(),
+                    },
+                    BaselineFinding {
+                        filepath: expected_relative_path(roots[0].as_path(), &file_dec),
+                        fingerprint: fp_dec.to_string(),
+                        linenum: 1,
+                        lastupdated: "now".to_string(),
+                    },
+                ],
+            },
+        };
+        save_baseline(&baseline_path, &mixed)?;
+
+        let mut store_hex = make_store_with_match(fp_hex, &file_hex);
+        apply_baseline(&mut store_hex, &baseline_path, false, &roots)?;
+        assert!(!store_hex.get_matches()[0].as_ref().2.visible);
+
+        let mut store_dec = make_store_with_match(fp_dec, &file_dec);
+        apply_baseline(&mut store_dec, &baseline_path, false, &roots)?;
+        assert!(!store_dec.get_matches()[0].as_ref().2.visible);
 
         Ok(())
     }

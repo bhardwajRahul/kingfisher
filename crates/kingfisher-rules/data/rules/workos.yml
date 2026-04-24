@@ -2,17 +2,15 @@ rules:
   - name: WorkOS API Key
     id: kingfisher.workos.1
     pattern: |
-      (?xi)
+      (?x)
       \b
-      workos
-      (?:.|[\n\r]){0,32}?
-      (?:SECRET|PRIVATE|API|KEY|TOKEN)
-      (?:.|[\n\r]){0,16}?
+      (?i:workos)
+      (?:.|[\n\r]){0,24}?
       \b
       (
-        sk_[A-Za-z0-9_-]{16,64}
+        sk_live_a2V5Xz[A-Za-z0-9+/]{69}={0,2}
       )
-      \b
+      (?:[^A-Za-z0-9+/=]|$)
     pattern_requirements:
       min_digits: 4
       min_lowercase: 4
@@ -21,11 +19,10 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'WORKOS_API_KEY="sk_live_Qj7mN4vK8sL2xP6zT9aBcD3eF5gH1jK2"'
-      - 'workos apiKey: "sk_test_P7rT2mK9vL4qN8sX6cA3dF5gH1jZ0QaB"'
+      - 'WORKOS_API_KEY="sk_live_a2V5XzAxS1BSWE1LTjBEWE1INlpBU0VEWjU2VFE3LFdjOWxFMTNDS29xRkdlYU9uMUpDbUpTZWE"'
     references:
-      - https://workos.com/docs/reference/organization
-      - https://workos.com/docs/reference/authkit/user
+      - https://workos.com/docs/reference/api-keys
+      - https://workos.com/docs/authkit/api-keys
       - https://docs.github.com/en/code-security/reference/secret-security/supported-secret-scanning-patterns
     validation:
       type: Http

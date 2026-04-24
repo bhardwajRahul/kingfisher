@@ -6,7 +6,7 @@ rules:
       \b
       agora
       (?:.|[\n\r]){0,32}?
-      \b(?:app[_-]?id|customer[_-]?id)\b
+      (?:\b|_)(?:app[_-]?id|customer[_-]?id)\b
       (?:.|[\n\r]){0,16}?
       [=:"'\s]
       \b
@@ -17,7 +17,7 @@ rules:
     pattern_requirements:
       min_digits: 4
     min_entropy: 3.0
-    confidence: low
+    confidence: medium
     visible: false
     examples:
       - AGORA_APP_ID=78b8de76d5678a6feb2605721c0aefbe

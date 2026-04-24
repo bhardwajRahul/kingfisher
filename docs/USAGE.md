@@ -128,11 +128,51 @@ kingfisher view ./reports/
 
 The browser-based viewer also supports loading multiple files via drag-and-drop or the file picker, with the same fingerprint-based deduplication.
 
-The local viewer also accepts Gitleaks JSON and TruffleHog JSON/JSONL as imported report formats. Imported findings are normalized into the viewer for triage, filtering, and export, which makes the viewer useful as a shared local workbench even when the original scan came from another tool.
+#### Report viewer (local and hosted) {#report-viewer-local-and-hosted}
 
-A static upload-based copy of the viewer can also be hosted from the docs site for GitHub Pages deployments. The hosted version keeps the same client-side report browsing flow, but it does not use the local CLI `/report` endpoint that powers `kingfisher view`.
+The same viewer that powers `kingfisher view` and `--view-report` also accepts **Gitleaks JSON** and **TruffleHog JSON/JSONL** as imported report formats, and is published in two forms:
 
-Imported reports are display-oriented. They do not include Kingfisher-native `access_map` data, `validate` / `revoke` commands, or the same fingerprint semantics as a native Kingfisher report. TruffleHog findings marked as verified are shown as active credentials; all other imported findings are treated as not attempted rather than inactive. For full validation context and blast-radius mapping, re-scan with Kingfisher and add `--access-map` when appropriate.
+1. **Local CLI viewer** — bundled into every Kingfisher binary. No network calls, no install step beyond Kingfisher itself.
+
+   ```bash
+   # Open a Kingfisher scan
+   kingfisher view kingfisher.json
+
+   # Open a Gitleaks report
+   kingfisher view gitleaks-report.json
+
+   # Open a TruffleHog report
+   kingfisher view trufflehog-report.jsonl
+
+   # Merge multiple reports (deduplicated by fingerprint / secret identity)
+   kingfisher view kingfisher.json gitleaks.json trufflehog.jsonl
+
+   # Or drop a directory of reports in and the viewer will ingest the JSON/JSONL files
+   kingfisher view ./reports/
+   ```
+
+   `kingfisher view` starts a tiny local web server (default `127.0.0.1:7890`) and opens the report automatically in your browser. Use `--address 0.0.0.0` to expose the viewer from a container or remote host, and `--port <PORT>` if `7890` is busy.
+
+2. **Hosted viewer** — [https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/)
+
+   A static, upload-based copy of the same UI published on GitHub Pages. Drag a Kingfisher, Gitleaks, or TruffleHog report into the page and triage it in your browser. Everything runs client-side — no reports leave your machine. Useful when you want to share a link rather than a binary, or triage a report on a machine that doesn't have Kingfisher installed.
+
+#### Why use a visual viewer / triager for Gitleaks, TruffleHog, and Kingfisher output?
+
+Raw JSON output from Kingfisher, Gitleaks, and TruffleHog is excellent input for CI, ticketing systems, and SIEMs, but it's not how a human makes rotation and risk decisions. The viewer gives security engineers:
+
+- **A skimmable overview** — findings are grouped by detector, rule, file, and repository, with counts and validation state, instead of one JSON object per line.
+- **Cross-tool triage in one UI** — import a Gitleaks scan, a TruffleHog scan, and a Kingfisher scan of the same codebase into the same session and look at them side-by-side with deduplication, instead of reconciling three different schemas.
+- **Clear "this is live" signals** — validated Kingfisher findings and TruffleHog-verified findings are surfaced as active credentials so you rotate real keys first; unverified/static matches are marked as not attempted rather than active or inactive.
+- **Fingerprint-aware deduplication** — the same secret appearing across multiple reports, directories, or scan runs collapses to one entry.
+- **Blast-radius context** — when a Kingfisher report was produced with `--access-map`, the viewer renders the identity, permissions, and resources the leaked credential actually reaches, so you can tell apart a test token from a production admin key.
+- **A shareable, offline-friendly workbench** — runs locally via `kingfisher view` or via the hosted static page; nothing about the report is exfiltrated.
+
+Gitleaks and TruffleHog are great at surfacing candidate matches. Kingfisher's viewer turns their candidates (and its own) into a triageable workflow without changing the scanner you already use.
+
+#### Caveats for imported reports
+
+Imported Gitleaks and TruffleHog reports are display-oriented. They do not carry Kingfisher-native `access_map` data, they cannot be driven by `kingfisher validate` / `revoke`, and their fingerprints use the importer's normalization rather than Kingfisher's native fingerprinting. TruffleHog findings marked as verified are shown as active credentials; all other imported findings are treated as not attempted rather than inactive. For full validation context and blast-radius mapping, re-scan with Kingfisher and add `--access-map` when appropriate.
 
 ### Pipe any text directly into Kingfisher by passing `-`
 

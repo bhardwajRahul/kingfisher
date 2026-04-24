@@ -29,17 +29,17 @@ rules:
     confidence: medium
     examples:
       - https://username:secret@example.com/path
-    validation:
-      type: Http
-      content:
-        request:
-          method: GET
-          response_is_html: true
-          url: '{{ TOKEN }}'
-          response_matcher:
-            - report_response: false
-              type: StatusMatch
-              status:
-                - 200
-    references:
-      - https://www.rfc-editor.org/rfc/rfc3986#section-3.2.1
+    # validation:
+    #   type: Http
+    #   content:
+    #     request:
+    #       method: GET
+    #       response_is_html: true
+    #       url: '{{ TOKEN }}'
+    #       response_matcher:
+    #         - report_response: false
+    #           type: StatusMatch
+    #           status:
+    #             - 200
+    # references:
+    #   - https://www.rfc-editor.org/rfc/rfc3986#section-3.2.1

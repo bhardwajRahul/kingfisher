@@ -370,58 +370,6 @@ jobs:
         with:
           subject-path: 'target/release/*'
 
-  # ──────────────── SLSA Provenance ────────────────
-  hash:
-    name: Compute artifact hashes
-    needs: [release]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    outputs:
-      hashes: ${{ steps.hash.outputs.hashes }}
-    steps:
-      - name: Download release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ needs.release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          mkdir -p assets
-          gh release download "${TAG_NAME}" \
-            --repo "${{ github.repository }}" \
-            --dir assets \
-            --pattern '*.tgz' \
-            --pattern '*.deb' \
-            --pattern '*.rpm' \
-            --pattern '*.zip'
-
-      - name: Compute SHA256 hashes
-        id: hash
-        run: |
-          set -euo pipefail
-          cd assets
-          shopt -s nullglob
-          files=( * )
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "Error: no release assets found to hash in $(pwd)" >&2
-            exit 1
-          fi
-          hashes=$(sha256sum -- "${files[@]}" | base64 -w0)
-          echo "hashes=${hashes}" >> "$GITHUB_OUTPUT"
-
-  provenance:
-    name: Generate SLSA provenance
-    needs: [hash, release]
-    permissions:
-      actions: read
-      id-token: write
-      contents: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
-    with:
-      base64-subjects: "${{ needs.hash.outputs.hashes }}"
-      upload-assets: true
-      upload-tag-name: "${{ needs.release.outputs.tag }}"
-
   # ──────────────── Publish Docker image ────────────────
   publish-docker:
     needs: [release]

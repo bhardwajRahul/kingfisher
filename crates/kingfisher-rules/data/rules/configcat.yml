@@ -19,8 +19,8 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'CONFIGCAT_SDK_KEY=PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A'
-      - 'configcat_key: "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A"'
+      - 'CONFIGCAT_SDK_KEY=Aa1Bb2Cc3Dd4Ee5Ff6Gg7H/aA1bB2cC3dD4eE5fF6gG7h'
+      - 'configcat_key: "Aa1Bb2Cc3Dd4Ee5Ff6Gg7H/aA1bB2cC3dD4eE5fF6gG7h"'
     references:
       - https://configcat.com/docs/sdk-reference/overview/
     validation:
@@ -51,7 +51,7 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'CONFIGCAT_SDK_KEY=configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A'
+      - 'CONFIGCAT_SDK_KEY=configcat-sdk-1/Aa1Bb2Cc3Dd4Ee5Ff6Gg7H/aA1bB2cC3dD4eE5fF6gG7h'
     references:
       - https://configcat.com/docs/sdk-reference/overview/
     validation:

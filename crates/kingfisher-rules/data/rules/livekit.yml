@@ -7,8 +7,6 @@ rules:
       \b
       (?i:livekit)
       (?:.|[\n\r]){0,32}?
-      (?i:(?:API[_-]?KEY|KEY|ACCESS))
-      (?:.|[\n\r]){0,16}?
       \b
       (
         API[A-Za-z0-9]{12}

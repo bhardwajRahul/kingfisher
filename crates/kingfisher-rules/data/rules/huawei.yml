@@ -6,7 +6,7 @@ rules:
       \b
       huawei
       (?:.|[\n\r]){0,32}?
-      \b(?:client[_-]?id|app[_-]?id)\b
+      (?:\b|_)(?:client[_-]?id|app[_-]?id)\b
       (?:.|[\n\r]){0,16}?
       [=:"'\s]
       \b
@@ -17,7 +17,7 @@ rules:
     pattern_requirements:
       min_digits: 6
     min_entropy: 2.0
-    confidence: low
+    confidence: medium
     visible: false
     examples:
       - "{ \"Huawei\": { \"ClientId\": \"100809947\", \"ClientSecret\": \"...\" } }"

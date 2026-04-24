@@ -8,17 +8,16 @@ rules:
       (?:.|[\n\r]){0,24}?
       \b
       (
-        (?:sk|rk)_(?:live|test)_[a-zA-Z0-9]{20,60}
+        sk_live_a2V5Xz[A-Za-z0-9+/]{69}={0,2}
       )
-      \b
+      (?:[^A-Za-z0-9+/=]|$)
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.5
     confidence: medium
     categories: [api, key]
     examples:
-      - 'HIGHNOTE_API_KEY=sk_live_AbCdEfGhIjKlMnOpQrStUvWxYz1234'
-      - 'highnote_key: rk_test_AbCdEfGhIjKlMnOpQrStUvWxYz1234'
+      - 'HIGHNOTE_API_KEY="sk_live_a2V5XzAxS1BSWE1LTjBEWE1INlpBU0VEWjU2VFE3LFdjOWxFMTNDS29xRkdlYU9uMUpDbUpTZWE"'
     validation:
       type: Http
       content:

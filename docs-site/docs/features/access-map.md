@@ -485,11 +485,11 @@ kingfisher access-map microsoftteams ./teams.webhook --json-out teams.access-map
 ### monday.com (`monday`)
 
 - **Credential**: a single monday.com API token (read from a file for `kingfisher access-map monday <FILE>`).
-- **Token types supported**: personal or account-level API tokens accepted by the monday.com GraphQL API with the `Authorization: <TOKEN>` header (monday.com's native scheme; the JWT-style token is sent verbatim, without the `Bearer` prefix).
+- **Token types supported**: personal or account-level API tokens accepted by the monday.com GraphQL API with the `Authorization: <TOKEN>` header (the JWT-style token is sent verbatim, without the `Bearer` prefix — this matches monday.com's native scheme).
 
 Kingfisher performs read-only enumeration against `https://api.monday.com/v2`:
 
-- `me { id, name, email, is_admin, is_guest, is_view_only, created_at, last_activity, account { id, name, slug, plan { tier } }, teams { name } }` for caller identity, role, and account metadata
+- `me { ..., account { id, name, slug, plan { tier } }, teams { name } }` for caller identity, role, and account metadata
 - `workspaces(limit: 100) { id, name, kind, state }` for workspace-level resource exposure
 - `boards(limit: 50) { id, name, board_kind, state }` for board-level resource exposure
 

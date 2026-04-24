@@ -22,7 +22,7 @@ rules:
     min_entropy: 3.3
     confidence: medium
     examples:
-      - 'const CLIENTSECRET = "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"'
+      - 'const CLIENTSECRET = "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"'
     depends_on_rule:
       - rule_id: "kingfisher.google.1"
         variable: GOOGLE_CLIENT_ID
@@ -42,8 +42,19 @@ rules:
             - type: StatusMatch
               status: [400]
             - type: WordMatch
+              match_all_words: false
+              words:
+                - invalid_grant
+                - Malformed auth code
+                - Bad Request
+              # Only mark as active when Google acknowledges the credentials
+              # and rejects the (intentionally invalid) authorization code.
+            - type: WordMatch
               words:
                 - invalid_client
+                - unauthorized_client
+                - unsupported_grant_type
+                - invalid_request
               negative: true
     # Revocation not added: Google's OAuth revocation endpoint revokes tokens,
     # not client secrets.
@@ -81,8 +92,19 @@ rules:
             - type: StatusMatch
               status: [400]
             - type: WordMatch
+              match_all_words: false
+              words:
+                - invalid_grant
+                - Malformed auth code
+                - Bad Request
+              # Only mark as active when Google acknowledges the credentials
+              # and rejects the (intentionally invalid) authorization code.
+            - type: WordMatch
               words:
                 - invalid_client
+                - unauthorized_client
+                - unsupported_grant_type
+                - invalid_request
               negative: true
     # Revocation not added: Google's OAuth revocation endpoint revokes tokens,
     # not client secrets.

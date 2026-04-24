@@ -141,7 +141,7 @@
   },
   {
     "rule_id": "kingfisher.stripe.1",
-    "snippet": "pk_live_bu9JFVJtII3FINL1rOKcNpveXD4hSMtSDx7opOWDEFGHIJKLMNOPQRSTUVWX"
+    "snippet": "pk_live_bu9JFVJtII3FINL1rOKcNpveXD4hSMtSDx7opOWDEFGHIJKLMNOPQRSTUVWXYZ"
   },
   {
     "rule_id": "kingfisher.stripe.2",
@@ -149,7 +149,7 @@
   },
   {
     "rule_id": "kingfisher.stripe.2",
-    "snippet": "sk_live_bu9JFVJtII3FINL1rOKcNpveXD4hSMtSDx7opOWDEFGHIJKLMNOPQRST"
+    "snippet": "sk_live_bu9JFVJtII3FINL1rOKcNpveXD4hSMtSDx7opOWDEFGHIJKLMNOPQRSTUVWXYZ"
   },
   {
     "rule_id": "kingfisher.twilio.2",

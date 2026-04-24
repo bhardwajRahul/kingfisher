@@ -3,7 +3,7 @@ rules:
     id: kingfisher.cypress.1
     pattern: |
       (?xi)
-      (?:cypress|CYPRESS_RECORD_KEY|record_key|recordKey|--record\s+--key)
+      (?:cypress)
       (?:.|[\n\r]){0,16}?
       \b
       (
@@ -18,7 +18,6 @@ rules:
     examples:
       - "CYPRESS_RECORD_KEY=a1b2c3d4-e5f6-7890-abcd-ef1234567890"
       - 'cypress_record_key: "f8e7d6c5-b4a3-2190-fedc-ba0987654321"'
-      - "--record --key a9b8c7d6-e5f4-3210-abcd-ef9876543210"
     references:
       - https://docs.cypress.io/guides/guides/command-line#cypress-run
       - https://docs.cypress.io/guides/cloud/account-management/projects#Record-key
@@ -48,7 +47,7 @@ rules:
     pattern: |
       (?xi)
       \b
-      (?:CYPRESS_PROJECT_ID|projectId|project_id)
+      (?:CYPRESS_PROJECT_ID)
       \s* [=:] \s* ["']?
       (
         [a-z0-9]{6,8}
@@ -58,4 +57,4 @@ rules:
     min_entropy: 1.0
     examples:
       - 'CYPRESS_PROJECT_ID=a7bq2k'
-      - 'projectId: "abc123"'
+      - 'CYPRESS_PROJECT_ID: "abc123"'

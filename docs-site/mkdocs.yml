@@ -1,8 +1,10 @@
 site_name: Kingfisher
 site_url: https://mongodb.github.io/kingfisher
 site_description: >-
-  Open source secret scanner with live validation. 921 detection rules,
-  blast radius mapping, and credential revocation. Built in Rust by MongoDB.
+  Open source secret scanner with live validation. 938 detection rules,
+  blast radius mapping, credential revocation, and a browser-based
+  report viewer that also imports Gitleaks and TruffleHog output.
+  Built in Rust by MongoDB.
 site_author: MongoDB
 repo_url: https://github.com/mongodb/kingfisher
 repo_name: mongodb/kingfisher
@@ -89,13 +91,14 @@ nav:
     - Finding Fingerprints: features/fingerprints.md
     - LLM & Agent Integration: features/agents.md
   - Rules:
-    - Writing Custom Rules: rules/overview.md
     - Built-in Rules List: rules/builtin-rules.md
+    - Writing Custom Rules: rules/overview.md
   - Reference:
     - Architecture: reference/architecture.md
     - Rust Library Crates: reference/library.md
     - Python Bindings: reference/python-bindings.md
     - Benchmarks & Comparison: reference/comparison.md
+  - Report Viewer: https://mongodb.github.io/kingfisher/viewer/
   - Changelog: changelog.md
 
 extra:

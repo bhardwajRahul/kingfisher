@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" style="height: 24px;" />
   </a>
   <a href="https://github.com/mongodb/kingfisher">
-    <img src="https://img.shields.io/badge/Detection%20Rules-934-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
+    <img src="https://img.shields.io/badge/Detection%20Rules-942-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
   </a>
   <br>
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
@@ -17,7 +17,9 @@
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
 
-It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with 934 built-in rules** to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
+It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and ships with [942 built-in rules](https://mongodb.github.io/kingfisher/rules/builtin-rules/) to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
+
+Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted copy of the viewer](https://mongodb.github.io/kingfisher/viewer/) is published on the Kingfisher docs site.
 
 Designed for offensive security engineers and blue-team defenders alike, Kingfisher helps you scan repositories, cloud storage, chat, docs, and CI pipelines to find and verify exposed secrets quickly.
 
@@ -49,19 +51,19 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 
 </div>
 
-### Performance, Accuracy, and 934 Rules
+### Performance, Accuracy, and 942 Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
-- **Extensible rules**: 934 built-in rules plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))
+- **Extensible rules**: 942 built-in rules (484 with live validation) plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
-- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 39 providers (see table below).
+- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 42 providers (see table below).
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets, including `tar.gz`/`bz2`/`xz`, ZIP-family containers (`zip`, `jar`, `docx`, `xlsx`, `pptx`, `odt`, `epub`, `hwpx`, and more), `asar`, HWP (Hancom OLE2/CFBF binary with DEFLATE/zlib stream decoding), and EGG (ALZip; raw-byte scanning)
 - **SQLite Database Scanning**: Automatically extracts and scans SQLite database contents for secrets stored in table rows
 - **Python Bytecode (.pyc) Scanning**: Extracts and scans string constants from compiled Python (`.pyc`, `.pyo`) files
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
 - **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
-- **Built-in Report Viewer**: Visualize and triage findings locally with `kingfisher view ./report-file.json` (supports multiple files, directories, and imported Gitleaks/TruffleHog JSON reports)
+- **Report Viewer (local + hosted)**: Visualize and triage Kingfisher, **Gitleaks, and TruffleHog** JSON output locally with `kingfisher view ./report.json` or online with the [hosted viewer](https://mongodb.github.io/kingfisher/viewer/). Multiple files, directories, and imported third-party reports are merged and deduplicated. See [docs/USAGE.md](/docs/USAGE.md#report-viewer-local-and-hosted).
 - **Audit reporting**: Generate compliance-oriented HTML reports with scan metadata and validation ordering
 - **Library crates**: Embed Kingfisher's scanning engine in your own Rust applications ([docs/LIBRARY.md](docs/LIBRARY.md))
 
@@ -80,30 +82,11 @@ kingfisher scan /path/to/scan --view-report
 NOTE: Replay has been slowed down for demo
 ![Kingfisher secret scanning demo](docs/kingfisher-usage-01.gif)
 
-## Report Viewer Demo
-Explore Kingfisher's built-in report viewer and its `--access-map`, which maps the blast radius of discovered credentials across 39 supported providers. The viewer also imports Gitleaks JSON and TruffleHog JSON/JSONL for local triage.
-
-Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
-
-```bash
-INFO kingfisher::cli::commands::view: Starting access-map viewer address=127.0.0.1:7890
-Serving access-map viewer at http://127.0.0.1:7890 (Ctrl+C to stop)
-```
-
-**Usage:**
-```bash
-kingfisher scan /path/to/scan --access-map --view-report
-```
-
-![Kingfisher access map and report viewer demo](docs/kingfisher-usage-access-map-01.gif)
-
-**Click to view video**
-[![Demo](docs/demos/findings-thumbnail.png)](https://github.com/user-attachments/assets/d33ee7a6-c60a-4e42-88e0-ac03cb429a46)
-
 # Table of Contents
 
 - [What Is Kingfisher?](#what-is-kingfisher)
 - [Key Features](#key-features)
+- [Report Viewer (local and hosted)](#report-viewer-local-and-hosted)
 - [Compliance and Audit-Ready Scans](#compliance-and-audit-ready-scans)
 - [Benchmark Results](#benchmark-results)
 - [Getting Started](#getting-started)
@@ -156,7 +139,26 @@ kingfisher scan /path/to/code
 kingfisher scan /path/to/code --view-report
 ```
 
-You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`. For a shareable upload-based experience, the docs site also hosts the report viewer as a static page.
+You can also open existing Kingfisher, Gitleaks, or TruffleHog JSON reports with `kingfisher view <report.json>`:
+
+```bash
+# Kingfisher report
+kingfisher view kingfisher.json
+
+# Import a Gitleaks JSON report
+kingfisher view gitleaks-report.json
+
+# Import a TruffleHog JSON or JSONL report
+kingfisher view trufflehog-report.jsonl
+
+# Combine multiple reports (deduplicated by fingerprint / secret identity)
+kingfisher view kingfisher.json gitleaks.json trufflehog.jsonl
+
+# Or load every JSON/JSONL report in a directory
+kingfisher view ./reports/
+```
+
+For a shareable, upload-based experience, the docs site also hosts the same viewer as a static page: **[https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/)**. Everything runs client-side in the browser — no reports leave your machine.
 
 ### 4: Show only validated (live) secrets
 
@@ -313,30 +315,11 @@ Kingfisher supports multiple installation methods:
 
 ## Verifying Releases
 
-Every Kingfisher release includes [SLSA v3](https://slsa.dev) provenance and GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
-
-### SLSA provenance
-
-Each GitHub release includes a `multiple.intoto.jsonl` provenance file. Verify any release artifact with [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier):
-
-```bash
-# Install slsa-verifier
-go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@latest
-
-# Download the artifact and provenance from the release
-gh release download <version> --repo mongodb/kingfisher \
-  --pattern 'kingfisher-linux-x64.tgz' \
-  --pattern 'multiple.intoto.jsonl'
-
-# Verify
-slsa-verifier verify-artifact kingfisher-linux-x64.tgz \
-  --provenance-path multiple.intoto.jsonl \
-  --source-uri github.com/mongodb/kingfisher
-```
+Every Kingfisher release includes GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
 
 ### GitHub attestations
 
-Release artifacts also have GitHub build attestations, verifiable with the GitHub CLI:
+Release artifacts have GitHub build attestations, verifiable with the GitHub CLI:
 
 ```bash
 gh release download <version> --repo mongodb/kingfisher \
@@ -345,9 +328,54 @@ gh release download <version> --repo mongodb/kingfisher \
 gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
 ```
 
+
+## Report Viewer (local and hosted)
+
+Kingfisher ships a browser-based **report viewer and triager** for three formats:
+
+- Kingfisher JSON / JSONL (with full `access_map` blast-radius data when present)
+- **Gitleaks** JSON
+- **TruffleHog** JSON / JSONL (verified findings are surfaced as active credentials)
+
+There are two ways to use it:
+
+1. **Locally via the CLI** — `kingfisher view ./report.json` (bundled into every Kingfisher binary; no external services)
+2. **Hosted** — [https://mongodb.github.io/kingfisher/viewer/](https://mongodb.github.io/kingfisher/viewer/) — a static, client-side upload-based copy of the same viewer. Drag in Kingfisher, Gitleaks, or TruffleHog reports and triage in your browser; nothing is uploaded to a server.
+
+### Why use a visual viewer / triager?
+
+Raw JSON from Kingfisher, Gitleaks, or TruffleHog is great for machines, but awful for humans making decisions on which findings are real and which need to be rotated first. The viewer lets a security engineer:
+
+- **Skim hundreds of findings at a glance**, grouped by detector, file, repository, and validation status instead of one line per finding in a terminal.
+- **Triage across multiple tools in one place** — import a Gitleaks report plus a TruffleHog report plus a Kingfisher scan of the same repo and look at them side-by-side with dedup, instead of eyeballing three different JSON schemas.
+- **Prioritize real, validated secrets** — validated Kingfisher findings and TruffleHog-verified findings float to the top so you act on live credentials first.
+- **Drop duplicates** — repeated imports and overlapping scans are deduplicated by fingerprint/secret identity so you don't open the same key five times. Per-tool "duplicates removed" cards on the dashboard show how much noise each tool contributed, and an upload-time **Deduplicate findings** toggle (on by default) lets you inspect raw rows when you need to.
+- **Cross-tool enrichment** — when a Gitleaks or TruffleHog finding lines up with a Kingfisher finding at the same commit, file, and line, the imported row picks up Kingfisher's validation verdict and validate / revoke commands. This is useful when a team already has a Gitleaks or TruffleHog pipeline in CI and wants to layer Kingfisher's validation and remediation data on top of the reports they already produce, without replacing their existing tooling.
+- **See blast radius** — for Kingfisher reports generated with `--access-map`, the viewer renders the identity, permissions, and resources a leaked credential can reach, so you can tell a dev token apart from a production admin key.
+- **Export triage decisions** — filter down to what matters and export a cleaned-up subset for a ticket, a rotation runbook, or an audit reviewer.
+
+Gitleaks and TruffleHog are both widely used open-source secret scanners with their own strengths; Kingfisher's viewer reads their standard JSON output so teams that already run them can pull those findings into the same triage workflow. Kingfisher is not affiliated with or endorsed by the Gitleaks project or Truffle Security Co.; TruffleHog and Gitleaks are trademarks of their respective owners.
+
+Note: when you pass `--view-report`, Kingfisher starts a web server on port `7890` (default) and opens it in your default browser. By default it binds to `127.0.0.1` for security. You'll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
+
+```bash
+INFO kingfisher::cli::commands::view: Starting access-map viewer address=127.0.0.1:7890
+Serving access-map viewer at http://127.0.0.1:7890 (Ctrl+C to stop)
+```
+
+**Usage:**
+```bash
+kingfisher scan /path/to/scan --access-map --view-report
+```
+
+![Kingfisher access map and report viewer demo](docs/kingfisher-usage-access-map-01.gif)
+
+**Click to view video**
+[![Demo](docs/demos/findings-thumbnail.png)](https://github.com/user-attachments/assets/d33ee7a6-c60a-4e42-88e0-ac03cb429a46)
+
 # Detection Rules
 
-Kingfisher ships with [934 built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
+Kingfisher ships with [942 built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
 
 | Category | What we catch |
 |----------|---------------|
@@ -364,7 +392,7 @@ Kingfisher ships with [934 built-in rules](crates/kingfisher-rules/data/rules/) 
 
 ## Write Custom Rules
 
-Kingfisher ships with 605 built-in rules with HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
+Kingfisher ships with 484 built-in rules that include HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
 However, you may want to add your own custom rules, or modify a detection to better suit your needs / environment.
 
@@ -730,7 +758,7 @@ kingfisher scan /tmp/repo --branch feature-1 \
 |----------|-------------|
 | [INSTALLATION.md](docs/INSTALLATION.md) | Complete installation guide including pre-commit hooks setup for git, pre-commit framework, and Husky |
 | [INTEGRATIONS.md](docs/INTEGRATIONS.md) | Platform-specific scanning guide (GitHub, GitLab, AWS S3, Docker, Jira, Confluence, Slack, etc.) |
-| [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (39 providers including AWS, GCP, Azure, Stripe, Jira, and more) |
+| [ACCESS_MAP.md](docs/ACCESS_MAP.md) | Access map: supported tokens and credential formats (42 providers including AWS, GCP, Azure, Alibaba Cloud, Stripe, Jira, monday.com, Asana, and more) |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | High-level Mermaid architecture diagram of the CLI, scanner pipeline, validation, access map, and outputs |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment models for self-serve CLI use, CI/pre-commit enforcement, centralized scanning, and embedded library integrations |
 | [ADVANCED.md](docs/ADVANCED.md) | Advanced features: baselines, confidence levels, validation tuning, CI scanning, and more |

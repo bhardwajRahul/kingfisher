@@ -43,7 +43,7 @@ finding-bytes + origin + start-offset + end-offset -> XXH3-64 -> finding_fingerp
 ```
 
 
-This fingerprint is what you see reported in the finding output.
+This fingerprint is what you see reported in the finding output. It is rendered as an unsigned decimal `u64` in every output format (pretty, JSON, JSONL, and SARIF) and is the same value written into [baseline files](../usage/baseline.md), so a fingerprint copied from a report can be pasted directly into a baseline.
 
 ---
 
