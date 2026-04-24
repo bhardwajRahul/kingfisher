@@ -23,39 +23,14 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "docusign.secret_key = 7a39ce6d-94cf-4bf6-9e9e-9213373c15f4"
-      - "docusign\nds_secret = 3d2f18c9-2075-4e78-834b-64f57f8757d0"
-    validation:
-      type: Http
-      content:
-        request:
-          method: POST
-          url: "https://{{ DOCUSIGN_AUTH_HOST }}/oauth/token"
-          headers:
-            Accept: application/json
-            Content-Type: application/x-www-form-urlencoded
-          body: >
-            grant_type=authorization_code&code=INVALID_AUTH_CODE&client_id={{ DOCUSIGN_CLIENT_ID | url_encode }}&client_secret={{ TOKEN | url_encode }}&redirect_uri={{ REDIRECT_URI | url_encode }}
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [400]
-            - type: WordMatch
-              match_all_words: false
-              words:
-                - invalid_grant
-                - invalid authorization code
-            - type: WordMatch
-              words:
-                - invalid_client
-              negative: true
-    depends_on_rule:
-      - rule_id: kingfisher.docusign.2
-        variable: DOCUSIGN_CLIENT_ID
-      - rule_id: kingfisher.docusign.3
-        variable: DOCUSIGN_AUTH_HOST
-      - rule_id: kingfisher.docusign.4
-        variable: REDIRECT_URI
+      - "docusign.secret_key = 12345678-abcd-9876-5432-abcdef123456"
+      - "docusign\nds_secret = 87654321-fedc-1234-abcd-fedcba987654"
+    # Validation intentionally omitted: DocuSign's /oauth/token endpoint
+    # returns {"error":"invalid_grant"} for any request with an invalid
+    # authorization code, regardless of whether client_id/client_secret are
+    # actually valid. That makes it impossible to distinguish live from
+    # inactive credentials via that endpoint without performing a full OAuth
+    # flow, which is out of scope for passive validation.
     references:
       - https://developers.docusign.com/platform/auth/
       - https://developers.docusign.com/platform/build-integration/

@@ -28,7 +28,12 @@ rules:
           body: '{"event":{"message":"test"}}'
           response_matcher:
             - report_response: true
-            - type: StatusMatch
-              status: [200, 401, 403]
+            - type: JsonValid
+            - type: WordMatch
+              words:
+                - '"status":"Unauthorized"'
+                - '"status":"NotAuthorized"'
+                - '"status":"Forbidden"'
+              negative: true
     references:
       - https://pangea.cloud/docs/

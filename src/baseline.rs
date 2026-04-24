@@ -8,7 +8,10 @@ use std::{
 use anyhow::{Context, Result};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
+use smallvec::{SmallVec, smallvec};
 use tracing::debug;
+
+type FingerprintForms = SmallVec<[u64; 2]>;
 
 use crate::findings_store::FindingsStore;
 
@@ -41,9 +44,10 @@ pub fn load_baseline(path: &Path) -> Result<BaselineFile> {
 ///
 /// Accepts either the decimal form users see in scan output (JSON/pretty/SARIF)
 /// or the 16-char zero-padded hex form previously written by `--manage-baseline`.
-/// Returns a `SmallVec`-style pair so ambiguous 16-digit all-digit strings — which
-/// could be either a decimal fingerprint or a legacy hex fingerprint whose value
-/// happens to contain no `a-f` — match against both interpretations.
+/// Returns 0–2 canonical u64 interpretations: ambiguous 16-digit all-digit
+/// strings — which could be either a decimal fingerprint or a legacy hex
+/// fingerprint whose value happens to contain no `a-f` — yield both so either
+/// form matches.
 ///
 /// Detection:
 ///   1. A `0x`/`0X` prefix is stripped and the rest parsed as hex.
@@ -52,16 +56,22 @@ pub fn load_baseline(path: &Path) -> Result<BaselineFile> {
 ///   3. Exactly 16 digits: ambiguous — try both decimal and hex and return whichever
 ///      interpretations parse successfully, so old baselines keep matching.
 ///   4. Otherwise the string is parsed as decimal u64.
-fn parse_fingerprint(s: &str) -> Vec<u64> {
+fn parse_fingerprint(s: &str) -> FingerprintForms {
     let trimmed = s.trim();
     if let Some(rest) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
-        return u64::from_str_radix(rest, 16).ok().into_iter().collect();
+        return match u64::from_str_radix(rest, 16) {
+            Ok(v) => smallvec![v],
+            Err(_) => SmallVec::new(),
+        };
     }
     if trimmed.len() == 16 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
         if trimmed.chars().any(|c| c.is_ascii_alphabetic()) {
-            return u64::from_str_radix(trimmed, 16).ok().into_iter().collect();
+            return match u64::from_str_radix(trimmed, 16) {
+                Ok(v) => smallvec![v],
+                Err(_) => SmallVec::new(),
+            };
         }
-        let mut out = Vec::with_capacity(2);
+        let mut out: FingerprintForms = SmallVec::new();
         if let Ok(v) = trimmed.parse::<u64>() {
             out.push(v);
         }
@@ -72,7 +82,10 @@ fn parse_fingerprint(s: &str) -> Vec<u64> {
         }
         return out;
     }
-    trimmed.parse::<u64>().ok().into_iter().collect()
+    match trimmed.parse::<u64>() {
+        Ok(v) => smallvec![v],
+        Err(_) => SmallVec::new(),
+    }
 }
 
 pub fn save_baseline(path: &Path, baseline: &BaselineFile) -> Result<()> {
@@ -306,12 +319,12 @@ mod tests {
     #[test]
     fn parse_fingerprint_accepts_all_forms() {
         let value: u64 = 0xfeed_beef_dade_f00d;
-        assert_eq!(parse_fingerprint(&format!("{:016x}", value)), vec![value]);
-        assert_eq!(parse_fingerprint(&format!("0x{:016x}", value)), vec![value]);
-        assert_eq!(parse_fingerprint(&format!("0X{:X}", value)), vec![value]);
-        assert_eq!(parse_fingerprint(&value.to_string()), vec![value]);
-        assert_eq!(parse_fingerprint("  42  "), vec![42]);
-        assert_eq!(parse_fingerprint("0"), vec![0]);
+        assert_eq!(parse_fingerprint(&format!("{:016x}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&format!("0x{:016x}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&format!("0X{:X}", value)).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint(&value.to_string()).as_slice(), &[value]);
+        assert_eq!(parse_fingerprint("  42  ").as_slice(), &[42]);
+        assert_eq!(parse_fingerprint("0").as_slice(), &[0]);
         assert!(parse_fingerprint("").is_empty());
         assert!(parse_fingerprint("notahex").is_empty());
     }

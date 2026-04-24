@@ -3011,7 +3011,56 @@
       return payload ? [payload] : [];
     }
 
-    function buildGitMetadata(commitId, email, fileUrl) {
+    function normalizeRepositoryWebUrl(repoUrl) {
+      const raw = String(repoUrl || "").trim();
+      if (!raw || /^file:\/\//i.test(raw)) return "";
+      if (/^https?:\/\//i.test(raw)) return raw.replace(/\.git$/i, "").replace(/\/+$/g, "");
+
+      const sshMatch = raw.match(/^git@([^:]+):(.+)$/i);
+      if (sshMatch) {
+        return `https://${sshMatch[1]}/${sshMatch[2].replace(/\.git$/i, "").replace(/^\/+/, "")}`.replace(/\/+$/g, "");
+      }
+
+      const sshUrlMatch = raw.match(/^ssh:\/\/git@([^/]+)\/(.+)$/i);
+      if (sshUrlMatch) {
+        return `https://${sshUrlMatch[1]}/${sshUrlMatch[2].replace(/\.git$/i, "").replace(/^\/+/, "")}`.replace(/\/+$/g, "");
+      }
+
+      return "";
+    }
+
+    function buildGitFileUrl(repoUrl, commitId, filePath, line) {
+      const base = normalizeRepositoryWebUrl(repoUrl);
+      const commit = String(commitId || "").trim();
+      const normalizedPath = String(filePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+      const lineNumber = toNumberOrNull(line);
+      if (!base || !commit || !normalizedPath) return "";
+
+      try {
+        const parsed = new URL(base);
+        const host = (parsed.hostname || "").toLowerCase();
+        if (host === "dev.azure.com" || host.endsWith(".visualstudio.com")) {
+          const encodedPath = encodeURIComponent(normalizedPath);
+          return lineNumber
+            ? `${base}/commit/${commit}?path=/${encodedPath}&line=${lineNumber}`
+            : `${base}/commit/${commit}?path=/${encodedPath}`;
+        }
+        if (host === "bitbucket.org") {
+          const anchor = encodeURIComponent(normalizedPath).replace(/%2F/g, "/");
+          return lineNumber
+            ? `${base}/commits/${commit}#L${anchor}F${lineNumber}`
+            : `${base}/commits/${commit}`;
+        }
+      } catch (_) {
+        return "";
+      }
+
+      return lineNumber
+        ? `${base}/blob/${commit}/${normalizedPath}#L${lineNumber}`
+        : `${base}/blob/${commit}/${normalizedPath}`;
+    }
+
+    function buildGitMetadata(commitId, email, fileUrl, repositoryUrl) {
       const gitMetadata = {};
       if (commitId || email) {
         gitMetadata.commit = {};
@@ -3020,6 +3069,9 @@
       }
       if (fileUrl) {
         gitMetadata.file = { url: String(fileUrl) };
+      }
+      if (repositoryUrl) {
+        gitMetadata.repository = { url: String(repositoryUrl) };
       }
       return Object.keys(gitMetadata).length ? gitMetadata : null;
     }
@@ -3059,10 +3111,16 @@
           ? buildSyntheticFingerprint("gitleaks", [ruleId, secretIdentity])
           : buildSyntheticFingerprint("gitleaks", [ruleId, path, line, columnStart, snippet]))
       );
+      const repoUrl = firstNonEmpty(item.RepoURL, item.repoURL, item.Repo, item.repo);
+      const directUrl = firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url);
+      const fileUrl = isHttpUrl(directUrl)
+        ? directUrl
+        : buildGitFileUrl(repoUrl, firstNonEmpty(item.Commit, item.commit), path, line);
       const gitMetadata = buildGitMetadata(
         firstNonEmpty(item.Commit, item.commit),
         firstNonEmpty(item.Email, item.email),
-        firstNonEmpty(item.LeakURL, item.leakURL, item.Url, item.url)
+        fileUrl,
+        normalizeRepositoryWebUrl(repoUrl)
       );
 
       return {
@@ -3099,6 +3157,7 @@
       const detectorName = String(firstNonEmpty(item.DetectorName, item.detectorName, item.DetectorDescription, item.detectorDescription) || "Unknown Detector");
       const detectorDescription = String(firstNonEmpty(item.DetectorDescription, item.detectorDescription, detectorName) || detectorName);
       const sourceMetadata = item.SourceMetadata || item.sourceMetadata || {};
+      const gitSource = findDeepValue(sourceMetadata, ["git"]) || {};
       const path = String(firstNonEmpty(
         findDeepValue(sourceMetadata, ["file", "path", "filename"]),
         item.File,
@@ -3113,6 +3172,12 @@
         findDeepValue(sourceMetadata, ["url", "link", "htmlurl", "html_url", "rawurl", "raw_url"]),
         item.Url,
         item.url
+      );
+      const repositoryUrl = firstNonEmpty(
+        findDeepValue(gitSource, ["repository", "repositoryurl", "repo", "repo_url", "remote", "remoteurl", "remote_url"]),
+        findDeepValue(sourceMetadata, ["repository", "repositoryurl", "repo", "repo_url", "remote", "remoteurl", "remote_url"]),
+        item.Repository,
+        item.repository
       );
       const commitId = firstNonEmpty(
         findDeepValue(sourceMetadata, ["commit", "commitid", "hash", "sha"]),
@@ -3134,7 +3199,9 @@
       );
       const verified = Boolean(item.Verified);
       const verificationError = String(firstNonEmpty(item.VerificationError, item.verificationError) || "");
-      const gitMetadata = buildGitMetadata(commitId, email, isHttpUrl(sourceUrl) ? sourceUrl : "");
+      const normalizedRepoUrl = normalizeRepositoryWebUrl(repositoryUrl);
+      const fileUrl = isHttpUrl(sourceUrl) ? sourceUrl : buildGitFileUrl(normalizedRepoUrl, commitId, path, line);
+      const gitMetadata = buildGitMetadata(commitId, email, fileUrl, normalizedRepoUrl);
 
       return {
         rule: {
@@ -3639,6 +3706,19 @@
           revoke_command: kf.revoke_command || "",
           confidence: kf.confidence || "",
         };
+        if (kf.git_metadata && (!fg.git_metadata || !fg.git_metadata.file || !fg.git_metadata.file.url)) {
+          fg.git_metadata = Object.assign({}, fg.git_metadata || {});
+          if (kf.git_metadata.file && kf.git_metadata.file.url) {
+            fg.git_metadata.file = Object.assign({}, fg.git_metadata.file || {}, {
+              url: kf.git_metadata.file.url,
+            });
+          }
+          if (kf.git_metadata.repository && kf.git_metadata.repository.url) {
+            fg.git_metadata.repository = Object.assign({}, fg.git_metadata.repository || {}, {
+              url: kf.git_metadata.repository.url,
+            });
+          }
+        }
       }
       return findingList;
     }
@@ -4547,6 +4627,7 @@
       const headers = [
         "rule_id",
         "rule_name",
+        "source_tool",
         "file_path",
         "line",
         "validation_status",
@@ -4563,6 +4644,7 @@
         return [
           rule.id || "",
           rule.name || "",
+          getFindingSourceDisplayName(finding),
           finding.path || "",
           finding.line != null ? finding.line : "",
           status,
@@ -4736,10 +4818,12 @@
               const normalizedStatus = normalizeValidationStatus(statusRaw);
               const findingId = getFindingIdFromFinding(finding);
               const gitUrl = getFileUrlFromFinding(finding);
+              const sourceTool = getFindingSourceDisplayName(finding);
               const statusColor = normalizedStatus === "active" ? "#dc2626" : normalizedStatus === "inactive" ? "#f97316" : "#6b7280";
               return `
                 <tr>
                   <td>${escapeHtml(rule.name || rule.id || "")}</td>
+                  <td>${escapeHtml(sourceTool)}</td>
                   <td style="font-size:10px;font-family:monospace;">${escapeHtml(findingId ? findingId.substring(0, 12) : "")}</td>
                   <td style="font-size:10px;">${escapeHtml(finding.path || "")}</td>
                   <td style="color:${statusColor};font-weight:600;">${escapeHtml(statusRaw)}</td>
@@ -4750,7 +4834,7 @@
               `;
             })
             .join("")
-        : '<tr><td colspan="7">No findings available.</td></tr>';
+        : '<tr><td colspan="8">No findings available.</td></tr>';
 
       // Scan metadata section
       const metaLines = [];
@@ -4893,12 +4977,13 @@
       <thead>
         <tr>
           <th style="width:15%;">Rule</th>
+          <th style="width:10%;">Tool</th>
           <th style="width:10%;">Fingerprint</th>
-          <th style="width:22%;">File Path</th>
+          <th style="width:18%;">File Path</th>
           <th style="width:12%;">Status</th>
           <th style="width:9%;">Confidence</th>
           <th style="width:5%;">Line</th>
-          <th style="width:27%;">Git URL</th>
+          <th style="width:21%;">Git URL</th>
         </tr>
       </thead>
       <tbody>
@@ -5378,7 +5463,16 @@
       const fileObj = finding.git_metadata.file || {};
       const url = fileObj.url || "";
       if (url && /^https?:\/\//i.test(url)) return url;
-      return "";
+      const repoObj = finding.git_metadata.repository || {};
+      const repoUrl = repoObj.url || "";
+      const commitId = finding.git_metadata.commit && finding.git_metadata.commit.id
+        ? finding.git_metadata.commit.id
+        : "";
+      return buildGitFileUrl(repoUrl, commitId, finding.path || "", finding.line);
+    }
+
+    function getFindingSourceDisplayName(finding) {
+      return getSourceDisplayName(getFindingSourceTool(finding || {}));
     }
 
     function wireKfEnrichmentCopyButton(wrapId, codeId, btnId, cmd) {
@@ -5724,6 +5818,7 @@
       const { level, text: rationaleText } = generateRiskRationale(f, entries);
       const statusRaw = finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
       const gitUrl = getFileUrlFromFinding(finding);
+      const sourceTool = getFindingSourceDisplayName(finding);
 
       const levelColors = {
         critical: { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b" },
@@ -5815,6 +5910,7 @@
   <div class="detail-grid">
     <div class="detail-item"><label>Rule</label><div>${escapeHtml(rule.name || "")} (${escapeHtml(rule.id || "")})</div></div>
     <div class="detail-item"><label>Validation</label><div>${escapeHtml(statusRaw)}</div></div>
+    <div class="detail-item"><label>Tool</label><div>${escapeHtml(sourceTool)}</div></div>
     <div class="detail-item"><label>Confidence</label><div>${escapeHtml(finding.confidence || "")}</div></div>
     <div class="detail-item"><label>Entropy</label><div>${finding.entropy != null ? escapeHtml(String(finding.entropy)) : "—"}</div></div>
     <div class="detail-item" style="grid-column:span 2;"><label>File Path</label><div>${escapeHtml(finding.path || "")}</div></div>
@@ -5910,6 +6006,7 @@
         const colors = levelColors[level] || levelColors.none;
         const statusRaw = finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
         const gitUrl = getFileUrlFromFinding(finding);
+        const sourceTool = getFindingSourceDisplayName(finding);
 
         let accessSummary = "";
         if (entries.length > 0) {
@@ -5946,6 +6043,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px;">
               <div><strong>Path:</strong> ${escapeHtml(finding.path || "—")}</div>
               <div><strong>Line:</strong> ${finding.line != null ? finding.line : "—"}</div>
+              <div><strong>Tool:</strong> ${escapeHtml(sourceTool)}</div>
               <div><strong>Validation:</strong> ${escapeHtml(statusRaw)}</div>
               <div><strong>Confidence:</strong> ${escapeHtml(finding.confidence || "—")}</div>
               ${gitUrl ? `<div style="grid-column:span 2;"><strong>URL:</strong> <a href="${escapeHtml(gitUrl)}" style="color:#1d4ed8;">${escapeHtml(gitUrl)}</a></div>` : ""}

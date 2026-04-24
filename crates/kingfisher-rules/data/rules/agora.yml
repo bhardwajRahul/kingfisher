@@ -6,7 +6,7 @@ rules:
       \b
       agora
       (?:.|[\n\r]){0,32}?
-      \b(?:app[_-]?id|customer[_-]?id)\b
+      (?:\b|_)(?:app[_-]?id|customer[_-]?id)\b
       (?:.|[\n\r]){0,16}?
       [=:"'\s]
       \b

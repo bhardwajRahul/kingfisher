@@ -18,8 +18,8 @@ rules:
     pattern_requirements:
       min_digits: 2
     examples:
-      - STORYBLOK_ACCESS_TOKEN=wANpEQEsMYGOwLxwXQ76Ggtt
-      - storyblok_token = "13Kft3335iwbBOI333wawOtt"
+      - STORYBLOK_ACCESS_TOKEN=ExampleBogusTokenXYZ12tt
+      - storyblok_token = "FakeExampleTok45AB67CDtt"
     references:
       - https://www.storyblok.com/docs/api/content-delivery/v2/getting-started/authentication
       - https://www.storyblok.com/docs/concepts/access-tokens
