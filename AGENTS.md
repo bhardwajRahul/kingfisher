@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 Kingfisher is an open-source secret scanner and live secret validator written in Rust by MongoDB. It detects, validates, and helps remediate leaked API keys, tokens, and credentials across code repositories, git history, and integrated platforms.
 
 Key capabilities:
-- Secret detection with 500+ built-in rules (YAML-based, SIMD-accelerated via Hyperscan/vectorscan)
+- Secret detection with 942 built-in rules (820 standalone detectors + 122 dependent rules; 484 standalone detectors include live validation as of 2026-04-24)
 - Live credential validation against provider APIs
 - Direct secret revocation from CLI
 - Blast radius mapping (AWS, GCP, Azure, GitHub, GitLab, Slack)
@@ -17,7 +17,6 @@ Key capabilities:
 ## Scope
 - Applies to the entire repository rooted at this file.
 - If a deeper `AGENTS.md` exists in a subdirectory, that file takes precedence for its subtree.
-
 
 ## Repository Structure
 - `src/`: main binary source
@@ -35,6 +34,8 @@ Key capabilities:
 - `tests/`: integration/e2e tests
 - `testdata/`: test fixtures
 - `docs/`: user and developer docs
+- `docs/viewer/`: static hosted/local report viewer assets
+- `docs-site/`: MkDocs documentation sources, overrides, and generated site output
 - `vendor/vectorscan-rs/`: vendored vectorscan bindings
 
 ## Toolchain and Environment
@@ -96,6 +97,7 @@ Key capabilities:
 - Add a detection rule: follow the workflow below and validate with relevant tests.
 - Add a CLI command: implement under `src/cli/commands/` and register in the CLI command wiring.
 - Add a validator (rare exception path): implement it in `crates/kingfisher-scanner/src/validation/`, prefer `raw.rs` for one-off provider flows, and wire the narrowest feature/dependencies in `crates/kingfisher-scanner/Cargo.toml` only when YAML validation cannot express the required logic.
+- Update docs-site rule counts: use `uv run '/Users/mickg/src/kingfisher/data/default/rule_cleanup/count_rules.py'` and update `docs-site/overrides/` plus `docs-site/mkdocs.yml` to match the reported totals before rebuilding the docs site.
 
 ## Rule Authoring Workflow
 Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/`.
@@ -135,6 +137,7 @@ Use this when creating or updating rules in `crates/kingfisher-rules/data/rules/
 - If validation commands cannot be run, report exactly what was skipped and why.
 - Prefer `kingfisher scan --format toon` when invoking Kingfisher from an LLM or agent workflow; keep `pretty` for interactive human CLI use unless the task explicitly calls for a different format.
 - After markdown/doc changes, verify local documentation links when practical.
+- After `docs-site/` source changes, rebuild with `docs-site/.venv/bin/mkdocs build -f docs-site/mkdocs.yml` when practical so checked-in generated output stays in sync.
 
 ## Documentation Pointers
 - `docs/USAGE.md`
