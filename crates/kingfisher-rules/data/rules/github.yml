@@ -362,3 +362,48 @@ rules:
       - |
         GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
         GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
+
+  - name: GitHub App Server-to-Server Token (stateless JWT format)
+    id: kingfisher.github.9
+    pattern: |
+      (?x)
+      (
+        ghs_[0-9]+_
+        [A-Za-z0-9_-]+ \. [A-Za-z0-9_-]+ \. [A-Za-z0-9_-]+
+      )
+      \b
+    min_entropy: 3.5
+    examples:
+      - 'ghs_12345_eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDU1NjgwMDAsImV4cCI6MTc0NTU2ODM2MCwiaXNzIjoiMTIzNDUiLCJzdWIiOiJnaXRodWJ8MTIzNDUifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+    references:
+      - https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/about-authentication-with-a-github-app
+      - https://github.com/mongodb/kingfisher/issues/359
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.github.com/user
+          headers:
+            Authorization: token {{ TOKEN }}
+            Accept: application/vnd.github+json
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"login"'
+                - '"id"'
+    revocation:
+      type: Http
+      content:
+        request:
+          method: DELETE
+          url: https://api.github.com/installation/token
+          headers:
+            Authorization: token {{ TOKEN }}
+            Accept: application/vnd.github+json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [204]

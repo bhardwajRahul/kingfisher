@@ -7,6 +7,9 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 
 All notable changes to this project will be documented in this file.
 
+## [v1.98.0]
+- Fixed [#359](https://github.com/mongodb/kingfisher/issues/359): added `kingfisher.github.9` to detect the new ~520-character stateless GitHub App installation token format (`ghs_<APP_ID>_<JWT>`). The legacy 36-character `ghs_` rule (`kingfisher.github.5`) is retained for older / GHES-issued tokens that are still in circulation. Bundled ruleset is now **943 rules** (821 standalone detectors + 122 dependent rules), with **485 standalone detectors** offering live validation.
+
 ## [v1.97.0]
 - **Report viewer cross-tool triage:** when a Kingfisher report is loaded alongside a Gitleaks or TruffleHog report, matching imported findings are enriched with Kingfisher's validation verdict, validation response, validate command, and revoke command. Matching is keyed on `commit + file + line` with a `file + line` fallback, and enriched rows show an "Enriched by Kingfisher" callout in the detail panel plus an "Enriched" chip in the findings table. Added a **Source** column to the findings table; a new **Duplicates Removed by Tool** dashboard panel showing per-tool cards for Kingfisher / TruffleHog / Gitleaks; and an upload-time **Deduplicate findings** toggle (on by default) so users can inspect the raw rows before fingerprint dedup when needed.
 - Fixed the HTML report viewer dark mode so charts redraw correctly on theme changes and follow the system color scheme until manually overridden.

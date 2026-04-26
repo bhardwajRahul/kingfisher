@@ -13,6 +13,9 @@
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
     <img src="https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher" alt="ghcr downloads" />
   </a>
+  <a href="https://github.com/mongodb/kingfisher/releases">
+    <img src="https://img.shields.io/github/downloads/mongodb/kingfisher/total" alt="GitHub Downloads" style="height: 24px;" />
+  </a>
   <br>
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
@@ -392,7 +395,7 @@ Kingfisher ships with [942 built-in rules](crates/kingfisher-rules/data/rules/) 
 
 ## Write Custom Rules
 
-Kingfisher ships with 484 built-in rules that include HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
+Of Kingfisher's 942 built-in rules, 484 include HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
 However, you may want to add your own custom rules, or modify a detection to better suit your needs / environment.
 
