@@ -16,11 +16,14 @@ tags:
 
 # Scanning an Entire GitHub Organization for Leaked Secrets
 
-Most organizations have hundreds of repositories — some abandoned, some active,
-plenty inherited from acquisitions. A leaked AWS key in a five-year-old archived
-repo is just as dangerous as one in `main` today. Kingfisher can enumerate every
-repo in a GitHub organization, scan the full git history, and then **validate
-which credentials are still live** so you know what to rotate first.
+Most organizations have more GitHub surface area than they think: active
+services, abandoned repositories, internal tooling, forks, experiments, and
+projects inherited through acquisitions. A credential leaked in a five-year-old
+archived repo can still be live today.
+
+Kingfisher can enumerate every repository in a GitHub organization, scan the
+full git history, and then **validate which credentials are still live** so
+you can focus on what needs rotation first.
 
 <!-- more -->
 
@@ -42,14 +45,15 @@ export KF_GITHUB_TOKEN=ghp_yourTokenHere
 kingfisher scan github --organization my-org
 ```
 
-That's it — Kingfisher enumerates every repo, clones each one, scans the full
-commit history, runs all 942 detection rules, and validates findings against
+That single command enumerates the org, clones each repository, scans working
+tree content plus git history, and validates supported findings against
 provider APIs.
 
 ## Tuning for real-world orgs
 
-Real orgs have huge monorepos, archived junk, and forks you don't care about.
-Three flags do most of the work:
+Real organizations have huge monorepos, archived junk, mirrored forks, and
+repositories you already know are out of scope. Three flags handle most of
+the tuning:
 
 ```bash
 kingfisher scan github --organization my-org \
@@ -61,8 +65,8 @@ kingfisher scan github --organization my-org \
   --output kf-findings.sarif
 ```
 
-- **`--repo-clone-limit`** caps the number of clones per scan. Useful for
-  staged rollouts ("first 500 repos by stars") or to stay under disk budget.
+- **`--repo-clone-limit`** caps the number of clones per scan. It is useful
+  for staged rollouts or staying under a disk budget.
 - **`--github-exclude`** accepts exact `OWNER/REPO` strings or gitignore-style
   globs (`my-org/*-archive`). Repeat the flag for each pattern. Matching is
   case-insensitive.
@@ -72,24 +76,25 @@ kingfisher scan github --organization my-org \
 ## Pulling in issues, wikis, and gists
 
 Secrets don't only live in code. Issues and pull request descriptions are a
-common leak source — someone pastes a stack trace with a JWT, or an
-"oncall handoff" issue with a temporary token that never got rotated. Add
+common leak source: someone pastes a stack trace with a JWT, or an
+"on-call handoff" issue with a temporary token that never gets rotated. Add
 `--repo-artifacts` to fetch these:
 
 ```bash
 kingfisher scan github --organization my-org --repo-artifacts
 ```
 
-This pulls each repo's issues (including PRs), wiki, and any **public** gists
-owned by the repo owner, and scans them all. It does cost API calls, so plan
-accordingly if you're near a rate limit.
+This pulls each repo's issues, pull requests, wiki, and any **public** gists
+owned by the repo owner, then scans that material as well. It does consume API
+calls, so budget for that if the org is large or your token is already near a
+rate limit.
 
 ## Following the people, not just the org
 
-This is the trick that catches what every other scanner misses. Developers
-leak secrets in *personal* repositories — side projects, dotfiles, throwaway
-forks. If a contributor to your org has a public personal repo with an active
-token that grants access to org infrastructure, that's a real incident.
+Developers also leak secrets in *personal* repositories: side projects,
+dotfiles, and throwaway forks. If a contributor to your org has a public repo
+containing a still-live credential that reaches company infrastructure, that is
+still your incident.
 
 Pass a single repo URL with `--include-contributors` and Kingfisher will
 enumerate the contributors, then clone and scan **every public repo they own**:
@@ -100,14 +105,14 @@ kingfisher scan https://github.com/my-org/critical-service \
   --repo-clone-limit 200
 ```
 
-This is a noisy operation — start with one or two critical repos rather than
-the whole org. GitHub will rate-limit aggressive enumeration, so a token
-(`KF_GITHUB_TOKEN`) is required in practice.
+This is a noisy operation. Start with one or two critical repositories rather
+than the entire organization. GitHub will also rate-limit aggressive
+enumeration, so `KF_GITHUB_TOKEN` is effectively required.
 
 ## Reading the output
 
-The default `pretty` output is human-friendly for terminals. For automation,
-pick the format that matches your downstream tool:
+The default `pretty` output is fine for interactive terminal use. For
+automation, pick a format that matches your downstream consumer:
 
 ```bash
 # JSON for custom tooling
@@ -120,9 +125,9 @@ kingfisher scan github --organization my-org --format sarif --output findings.sa
 kingfisher scan github --organization my-org --format toon
 ```
 
-The interactive HTML report is often the fastest way to triage a large scan —
-filter by rule, by validation status, or by repository, and click through to
-the exact commit and line:
+The interactive HTML report is often the fastest way to triage a large scan.
+You can filter by rule, validation status, or repository, then click through
+to the exact commit and line:
 
 ```bash
 kingfisher scan github --organization my-org --format html --output kf-report.html
@@ -130,40 +135,39 @@ kingfisher scan github --organization my-org --format html --output kf-report.ht
 
 ## Triage by validation status
 
-The single most important column in the output is **validation**. A live
-credential is a fire — a never-was-valid one is noise. Filter to live findings
-first:
+The single most important field in the output is **validation**. A live
+credential should be triaged immediately; a value that never authenticated is
+usually just cleanup work. Filter to live findings first:
 
 ```bash
-jq '.[] | select(.validation.status == "Active")' findings.json
+jq '.findings[] | select(.validation.status == "Active")' findings.json
 ```
 
-Then walk those credentials in order of blast radius. For AWS, GCP, GitHub,
-GitLab, and Slack tokens, Kingfisher already maps what each one can access —
-look at the `access_map` field in the JSON output, or the **Blast Radius**
-panel in the HTML report.
+Then prioritize by blast radius. For AWS, GCP, GitHub, GitLab, and Slack
+tokens, Kingfisher can already map what each credential can access. Look at
+the `access_map` field in JSON output, or the **Blast Radius** panel in the
+HTML report.
 
 ## Revoke from the CLI
 
-For supported providers, you don't need to log into a console — Kingfisher can
-revoke directly:
+For supported providers, you do not need to pivot into the provider console.
+Kingfisher can revoke directly:
 
 ```bash
 kingfisher revoke --rule kingfisher.aws.access_key.1 AKIAEXAMPLE...
 ```
 
-Each rule that supports revocation declares the API call in its YAML. Today
-this works for AWS, GitHub, GitLab, Slack, and a growing list of SaaS
-providers — see [`docs/RULES.md`](https://github.com/mongodb/kingfisher/blob/main/docs/RULES.md)
-for the current list and how to add revocation to a custom rule.
+Each rule that supports revocation declares the API call in its YAML. See
+[`docs/RULES.md`](https://github.com/mongodb/kingfisher/blob/main/docs/RULES.md)
+for the schema and the current approach.
 
 ## Wiring it into a recurring job
 
-A first scan is the one-shot baseline. The real value is recurring scans
-catching new leaks within hours, not months. The simplest pattern is a nightly
-GitHub Action or scheduled CI job that runs the org scan, diffs against
-yesterday's findings, and pages on net-new live credentials. We'll cover that
-end-to-end in the next post.
+The first scan gives you a baseline. The real value comes from running the
+same workflow continuously so new leaks are caught within hours instead of
+months. A simple starting point is a nightly GitHub Action or scheduled CI
+job that runs the org scan, diffs against yesterday's findings, and alerts on
+net-new live credentials.
 
 ## What's next
 
@@ -174,5 +178,5 @@ end-to-end in the next post.
 - **Docker image scanning** — pulling images directly and scanning every
   layer for embedded secrets.
 
-If there's a workflow you'd like us to cover, open an issue at
+If there is a workflow you want us to cover, open an issue at
 [mongodb/kingfisher](https://github.com/mongodb/kingfisher/issues).

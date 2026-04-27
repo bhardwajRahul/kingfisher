@@ -23,6 +23,9 @@ use crate::{
     cli::global::TlsMode,
     location::OffsetSpan,
     matcher::{OwnedBlobMatch, SerializableCaptures},
+    provider_endpoints::{
+        ProviderEndpointOverrides, endpoint_var_names, hydrate_endpoint_globals_for_rule,
+    },
     rules::rule::Validation,
     validation_body::{self},
 };
@@ -441,6 +444,7 @@ pub async fn validate_single_match(
     validation_timeout: Duration,
     validation_retries: u32,
     rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
+    provider_endpoints: &ProviderEndpointOverrides,
     max_body_len: usize,
 ) {
     let fp = validation_dedup_key(m);
@@ -456,6 +460,7 @@ pub async fn validate_single_match(
             validation_timeout,
             validation_retries,
             rate_limiter,
+            provider_endpoints,
             max_body_len,
         )
         .boxed(),
@@ -499,6 +504,7 @@ async fn timed_validate_single_match<'a>(
     validation_timeout: Duration,
     validation_retries: u32,
     rate_limiter: Option<&crate::validation_rate_limit::ValidationRateLimiter>,
+    provider_endpoints: &ProviderEndpointOverrides,
     max_body_len: usize,
 ) {
     // Select the appropriate HTTP client based on rule's TLS mode preference
@@ -595,6 +601,8 @@ async fn timed_validate_single_match<'a>(
 
     let mut globals = Object::new();
     populate_globals_from_captures(&mut globals, &captured_values);
+    hydrate_endpoint_globals_for_rule(m.rule.id(), &mut globals);
+    provider_endpoints.apply_scan_overrides(&mut globals);
 
     // Persist named captures (non-TOKEN) for validate/revoke command generation.
     // This is especially important for gRPC validators like Modal where TOKEN_ID is required.
@@ -603,6 +611,13 @@ async fn timed_validate_single_match<'a>(
             continue;
         }
         m.dependent_captures.entry(k.to_uppercase()).or_insert_with(|| v.clone());
+    }
+    for endpoint_var in endpoint_var_names() {
+        if let Some(value) = globals.get(*endpoint_var).and_then(|v| v.as_scalar()) {
+            m.dependent_captures
+                .entry((*endpoint_var).to_string())
+                .or_insert_with(|| value.to_kstr().to_string());
+        }
     }
 
     {
