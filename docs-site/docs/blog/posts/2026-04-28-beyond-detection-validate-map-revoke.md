@@ -1,5 +1,5 @@
 ---
-date: 2026-04-26
+date: 2026-04-28
 title: "Beyond Detection: Live Validation, Blast Radius, and One-Command Revocation"
 description: >
   Detection alone is noise. Kingfisher answers the three questions that
@@ -32,18 +32,22 @@ Kingfisher answers the three questions that actually matter:
 
 ## 1. Live validation, not just pattern matching
 
-Out of Kingfisher's 820 standalone detectors, **484 include live validation
-logic**. When a provider exposes a safe check call, Kingfisher uses that
+Kingfisher can drastically reduce false positives by identifying
+secrets that are still active and valid.
+
+When a provider exposes a safe check call, Kingfisher uses that
 provider's own API to report each credential as `Active`, `Inactive`, or
 `NotAttempted`.
 
 That changes the output from "thousands of regex matches" to a much shorter
 list of findings that actually authenticate today.
 
-Validation runs automatically when you scan:
+Validation runs automatically when you run a scan:
 
 ```bash
-kingfisher scan github --organization my-org
+kingfisher scan github --organization my-org --view-report
+
+kingfisher scan https://github.com/leaktk/fake-leaks.git --view-report
 ```
 
 Or you can run it standalone when you've already pulled a suspicious value

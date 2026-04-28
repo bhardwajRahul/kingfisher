@@ -1,5 +1,5 @@
 ---
-date: 2026-04-26
+date: 2026-04-28
 title: "Scanning an Entire GitHub Organization for Leaked Secrets"
 description: >
   Step-by-step guide to scanning every repository in a GitHub organization
