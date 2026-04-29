@@ -21,6 +21,7 @@ use tracing::debug;
 use crate::{
     cli::{commands::validate::ValidateArgs, global::GlobalArgs},
     liquid_filters::register_all,
+    provider_endpoints::{ProviderEndpointOverrides, hydrate_endpoint_globals_for_rule},
     rule_loader::RuleLoader,
     rules::{HttpValidation, Validation, rule::Rule},
     template_vars::extract_template_vars,
@@ -210,18 +211,25 @@ fn extract_validation_vars(validation: &Validation) -> BTreeSet<String> {
 /// - `variables`: Named variables in NAME=VALUE format (explicit overrides)
 /// - `template_vars`: Set of variable names used in the validation template
 fn build_globals(
+    rule_id: &str,
     secret: &str,
     args: &[String],
     variables: &[String],
     template_vars: &BTreeSet<String>,
+    endpoint_overrides: &ProviderEndpointOverrides,
 ) -> Result<Object> {
     let mut globals = Object::new();
 
     // Set TOKEN to the provided secret
     globals.insert("TOKEN".into(), Value::scalar(secret.to_string()));
 
+    endpoint_overrides.apply_defaults(&mut globals);
+
     // Get non-TOKEN variables in alphabetical order for auto-assignment
-    let auto_assign_vars: Vec<&String> = template_vars.iter().filter(|v| *v != "TOKEN").collect();
+    let auto_assign_vars: Vec<&String> = template_vars
+        .iter()
+        .filter(|v| *v != "TOKEN" && !globals.contains_key(v.as_str()))
+        .collect();
 
     // Auto-assign --arg values to template variables
     for (i, arg_value) in args.iter().enumerate() {
@@ -247,6 +255,8 @@ fn build_globals(
 
         globals.insert(name.into(), Value::scalar(value));
     }
+
+    hydrate_endpoint_globals_for_rule(rule_id, &mut globals);
 
     Ok(globals)
 }
@@ -469,6 +479,7 @@ pub async fn run_direct_validation(
 
     // Build Liquid parser
     let parser = register_all(liquid::ParserBuilder::with_stdlib()).build()?;
+    let endpoint_overrides = ProviderEndpointOverrides::from_global_args(global_args)?;
 
     let timeout = Duration::from_secs(args.timeout);
     let rate_limiter =
@@ -525,7 +536,14 @@ pub async fn run_direct_validation(
             }
         }
 
-        let globals = build_globals(&secret, &args.args, &args.variables, &template_vars)?;
+        let globals = build_globals(
+            &rule_id,
+            &secret,
+            &args.args,
+            &args.variables,
+            &template_vars,
+            &endpoint_overrides,
+        )?;
 
         // Log auto-assignment info for debugging
         if !non_token_vars.is_empty() && !args.args.is_empty() {

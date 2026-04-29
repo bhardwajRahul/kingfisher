@@ -1,13 +1,13 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 942 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 945 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **942 detection rules** across **580 providers**
-(820 detectors + 122 dependent rules).
-Of these, **605** include live validation and **57** support direct revocation.
+Kingfisher ships with **945 detection rules** across **581 providers**
+(822 detectors + 123 dependent rules).
+Of these, **485** include live validation and **50** support direct revocation.
 
 !!! tip "Search"
     Use the search box below to filter rules by provider name, rule ID, or confidence level.
@@ -127,7 +127,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Agora</td>
 <td>Agora App ID</td>
 <td><code>kingfisher.agora.1</code></td>
-<td>Low</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -351,6 +351,22 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Anypoint</td>
 <td>Anypoint API Key</td>
 <td><code>kingfisher.anypoint.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Anypoint</td>
+<td>Anypoint OAuth Client ID</td>
+<td><code>kingfisher.anypoint.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Anypoint</td>
+<td>Anypoint OAuth Client Secret</td>
+<td><code>kingfisher.anypoint.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>
@@ -1572,6 +1588,22 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Confluence</td>
+<td>Confluence Data Center Personal Access Token</td>
+<td><code>kingfisher.confluence.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Confluence</td>
+<td>Confluence Data Center Domain</td>
+<td><code>kingfisher.confluence.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td>Confluent</td>
 <td>Confluent Client ID</td>
 <td><code>kingfisher.confluent.1</code></td>
@@ -2096,7 +2128,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>DocuSign API Secret Key</td>
 <td><code>kingfisher.docusign.1</code></td>
 <td>Medium</td>
-<td>Yes</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2940,6 +2972,14 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td></td>
 </tr>
 <tr>
+<td>Github</td>
+<td>GitHub App Server-to-Server Token (stateless JWT format)</td>
+<td><code>kingfisher.github.9</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
 <td>Gitlab</td>
 <td>GitLab Private Token</td>
 <td><code>kingfisher.gitlab.1</code></td>
@@ -3463,7 +3503,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Huawei</td>
 <td>Huawei Open Platform Client ID</td>
 <td><code>kingfisher.huawei.1</code></td>
-<td>Low</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>
@@ -3697,6 +3737,22 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td><code>kingfisher.jira.2</code></td>
 <td>Medium</td>
 <td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Jira Data Center Personal Access Token</td>
+<td><code>kingfisher.jira.3</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Jira Data Center Domain</td>
+<td><code>kingfisher.jira.4</code></td>
+<td>Medium</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -7215,7 +7271,7 @@ Of these, **605** include live validation and **57** support direct revocation.
 <td>Webex</td>
 <td>Webex Integration Client ID</td>
 <td><code>kingfisher.webex.1</code></td>
-<td>Low</td>
+<td>Medium</td>
 <td></td>
 <td></td>
 </tr>

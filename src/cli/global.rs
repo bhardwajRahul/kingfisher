@@ -1,4 +1,5 @@
 use std::io::IsTerminal;
+use std::path::PathBuf;
 
 use std::sync::LazyLock;
 
@@ -144,6 +145,16 @@ pub struct GlobalArgs {
     #[arg(global = true, long = "user-agent-suffix", value_name = "SUFFIX")]
     pub user_agent_suffix: Option<String>,
 
+    /// Override provider API endpoints for validation/revocation (PROVIDER=URL), repeatable.
+    ///
+    /// Supported providers: github, gitlab, gitea, jira, jira-cloud, confluence, artifactory.
+    #[arg(global = true, long = "endpoint", value_name = "PROVIDER=URL")]
+    pub endpoint: Vec<String>,
+
+    /// YAML file containing provider endpoint overrides.
+    #[arg(global = true, long = "endpoint-config", value_name = "FILE")]
+    pub endpoint_config: Option<PathBuf>,
+
     // Internal fields (not CLI arguments)
     #[clap(skip)]
     pub color: Mode,
@@ -163,6 +174,8 @@ impl Default for GlobalArgs {
             self_update: false,
             no_update_check: false,
             user_agent_suffix: None,
+            endpoint: Vec::new(),
+            endpoint_config: None,
             color: Mode::Auto,
             progress: Mode::Auto,
         }

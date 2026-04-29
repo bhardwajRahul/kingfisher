@@ -23,6 +23,7 @@ use crate::{
     findings_store::{FindingsStore, FindingsStoreMessage},
     location::OffsetSpan,
     matcher::OwnedBlobMatch,
+    provider_endpoints::ProviderEndpointOverrides,
     rules::rule::Validation,
     validation::{
         CachedResponse, collect_variables_and_dependencies, utils, validate_single_match,
@@ -421,6 +422,7 @@ pub async fn run_secret_validation(
     range: Option<std::ops::Range<usize>>,
     access_map: Option<AccessMapCollector>,
     rate_limiter: Option<Arc<ValidationRateLimiter>>,
+    provider_endpoints: Arc<ProviderEndpointOverrides>,
     validation_timeout: Duration,
     validation_retries: u32,
     max_body_len: usize,
@@ -536,6 +538,7 @@ pub async fn run_secret_validation(
             let pb = pb.clone();
             let access_map = access_map.clone();
             let rate_limiter = rate_limiter.clone();
+            let provider_endpoints = provider_endpoints.clone();
             let empty_dep_vars = &empty_dep_vars;
             let empty_missing = &empty_missing;
             let empty_cache = empty_cache.clone();
@@ -577,6 +580,7 @@ pub async fn run_secret_validation(
                     &cache_glob,
                     access_map.as_ref(),
                     rate_limiter.as_deref(),
+                    &provider_endpoints,
                     validation_timeout,
                     validation_retries,
                     max_body_len,
@@ -690,6 +694,7 @@ pub async fn run_secret_validation(
                     let cache_glob = cache.clone();
                     let access_map = access_map.clone();
                     let rate_limiter = rate_limiter.clone();
+                    let provider_endpoints = provider_endpoints.clone();
                     let validation_timeout = validation_timeout;
                     let validation_retries = validation_retries;
 
@@ -730,6 +735,7 @@ pub async fn run_secret_validation(
                                 let cache_glob = cache_glob.clone();
                                 let access_map = access_map.clone();
                                 let rate_limiter = rate_limiter.clone();
+                                let provider_endpoints = provider_endpoints.clone();
                                 async move {
                                     validate_single(
                                         &mut rep,
@@ -744,6 +750,7 @@ pub async fn run_secret_validation(
                                         &cache_glob,
                                         access_map.as_ref(),
                                         rate_limiter.as_deref(),
+                                        &provider_endpoints,
                                         validation_timeout,
                                         validation_retries,
                                         max_body_len,
@@ -839,6 +846,7 @@ async fn validate_single(
     cache2: &Arc<SkipMap<String, CachedResponse>>,
     access_map: Option<&AccessMapCollector>,
     rate_limiter: Option<&ValidationRateLimiter>,
+    provider_endpoints: &Arc<ProviderEndpointOverrides>,
     validation_timeout: Duration,
     validation_retries: u32,
     max_body_len: usize,
@@ -905,6 +913,7 @@ async fn validate_single(
             validation_timeout,
             validation_retries,
             rate_limiter,
+            provider_endpoints.as_ref(),
             max_body_len,
         )
         .boxed(),

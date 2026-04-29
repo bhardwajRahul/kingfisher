@@ -274,6 +274,57 @@ kingfisher validate --rule aws --arg AKIAEXAMPLE "secret_key"
 kingfisher validate --rule aws --var AKID=AKIAEXAMPLE "secret_key"
 ```
 
+**Provider endpoint overrides (`--endpoint` and `--endpoint-config`):**
+
+Rules for providers that can run outside the public SaaS control plane can be pointed at a different instance without editing rule YAML.
+
+- `--endpoint PROVIDER=URL` sets an endpoint for the current command. Repeat it for multiple providers.
+- `--endpoint-config FILE` loads a YAML file with reusable endpoint overrides.
+- For self-hosted instances on private IPs or `localhost`, combine endpoint overrides with `--allow-internal-ips`.
+
+Supported provider keys for endpoint overrides are:
+
+- `github`
+- `gitlab`
+- `gitea`
+- `jira` (Jira Data Center / self-managed)
+- `jira-cloud`
+- `confluence`
+- `artifactory`
+
+```bash
+# Validate a GitHub Enterprise token against a self-hosted instance
+kingfisher validate --rule github \
+  --endpoint github=https://ghe.corp.example.com \
+  "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Revoke a self-managed GitLab PAT
+kingfisher revoke --rule gitlab \
+  --endpoint gitlab=https://gitlab.corp.example.com \
+  "glpat-xxxxxxxxxxxxxxxxxxxx"
+
+# Scan with an internal Artifactory validator target
+kingfisher scan ./repo \
+  --endpoint artifactory=http://localhost:8071 \
+  --allow-internal-ips
+```
+
+Example endpoint config file:
+
+```yaml
+endpoints:
+  github: https://ghe.corp.example.com
+  gitlab: https://gitlab.corp.example.com
+  gitea: https://gitea.corp.example.com
+  jira: https://jira.corp.example.com
+  confluence: https://wiki.corp.example.com
+  artifactory: http://localhost:8071
+```
+
+```bash
+kingfisher scan ./repo --endpoint-config ./kingfisher-endpoints.yml --allow-internal-ips
+```
+
 **Rule prefix matching:** Use partial rule IDs like `opsgenie` instead of the full `kingfisher.opsgenie.1`. If the prefix matches multiple rules, **all matching rules with compatible variables are tried**:
 
 ```bash
@@ -1082,8 +1133,11 @@ If you are scanning infrastructure that uses internal endpoints for credential v
 # Scan with SSRF protection disabled (allows requests to internal IPs)
 kingfisher scan --allow-internal-ips ./repo
 
-# Also works with the validate command
-kingfisher validate --allow-internal-ips --rule kingfisher.artifactory.1
+# Also works with direct validation against a self-hosted endpoint
+kingfisher validate --allow-internal-ips \
+  --endpoint artifactory=http://localhost:8071 \
+  --rule kingfisher.artifactory.1 \
+  "AKCp..."
 ```
 
 > **Warning:** Only use `--allow-internal-ips` when you trust the content being scanned. Malicious content could cause Kingfisher to make requests to internal services.

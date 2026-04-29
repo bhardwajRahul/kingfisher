@@ -23,6 +23,7 @@ use crate::{
     gitea, github, gitlab,
     liquid_filters::register_all,
     matcher::MatcherStats,
+    provider_endpoints::ProviderEndpointOverrides,
     reporter::styles::Styles,
     rule_loader::RuleLoader,
     rule_profiling::ConcurrentRuleProfiler,
@@ -46,12 +47,14 @@ use crate::{
     validation_rate_limit::ValidationRateLimiter,
 };
 
-/// Shared validation dependencies: (liquid parser, HTTP clients, validation cache, rate limiter).
+/// Shared validation dependencies:
+/// (liquid parser, HTTP clients, validation cache, rate limiter, provider endpoint overrides).
 type ValidationDeps = Arc<(
     liquid::Parser,
     crate::validation::ValidationClients,
     Arc<SkipMap<String, CachedResponse>>,
     Option<Arc<ValidationRateLimiter>>,
+    Arc<ProviderEndpointOverrides>,
 )>;
 
 pub async fn run_scan(
@@ -159,6 +162,7 @@ pub async fn run_async_scan(
     let validation_rate_limiter =
         ValidationRateLimiter::from_cli(args.validation_rps, &args.validation_rps_rule)?
             .map(Arc::new);
+    let provider_endpoints = Arc::new(ProviderEndpointOverrides::from_global_args(global_args)?);
 
     let validation_deps: Option<ValidationDeps> = if !args.no_validate {
         info!("Starting secret validation phase...");
@@ -170,6 +174,7 @@ pub async fn run_async_scan(
             )?,
             Arc::new(SkipMap::new()),
             validation_rate_limiter.clone(),
+            Arc::clone(&provider_endpoints),
         )))
     } else {
         None
@@ -517,8 +522,8 @@ async fn run_validation_phase(
     access_map_collector: Option<AccessMapCollector>,
 ) -> Result<()> {
     if let Some(validation) = validation_deps {
-        let (parser, clients, cache, rate_limiter) =
-            (&validation.0, &validation.1, &validation.2, &validation.3);
+        let (parser, clients, cache, rate_limiter, provider_endpoints) =
+            (&validation.0, &validation.1, &validation.2, &validation.3, &validation.4);
         run_secret_validation(
             Arc::clone(datastore),
             parser,
@@ -528,6 +533,7 @@ async fn run_validation_phase(
             match_range,
             access_map_collector,
             rate_limiter.clone(),
+            provider_endpoints.clone(),
             Duration::from_secs(args.validation_timeout),
             args.validation_retries,
             effective_max_validation_body_len(args),
@@ -661,8 +667,8 @@ async fn run_parallel_scan(
 
     // Validate initial (non-repo) matches
     if let Some(validation) = validation_deps {
-        let (parser, clients, cache, rate_limiter) =
-            (&validation.0, &validation.1, &validation.2, &validation.3);
+        let (parser, clients, cache, rate_limiter, provider_endpoints) =
+            (&validation.0, &validation.1, &validation.2, &validation.3, &validation.4);
         let initial_match_count = { datastore.lock().unwrap().get_matches().len() };
         if initial_match_count > 0 {
             run_secret_validation(
@@ -674,6 +680,7 @@ async fn run_parallel_scan(
                 Some(0..initial_match_count),
                 access_map_collector.clone(),
                 rate_limiter.clone(),
+                provider_endpoints.clone(),
                 Duration::from_secs(args.validation_timeout),
                 args.validation_retries,
                 effective_max_validation_body_len(args),
@@ -749,8 +756,13 @@ async fn run_parallel_scan(
                         }
 
                         if let Some(validation) = validation_deps.clone() {
-                            let (parser, clients, cache, rate_limiter) =
-                                (&validation.0, &validation.1, &validation.2, &validation.3);
+                            let (parser, clients, cache, rate_limiter, provider_endpoints) = (
+                                &validation.0,
+                                &validation.1,
+                                &validation.2,
+                                &validation.3,
+                                &validation.4,
+                            );
                             let match_count =
                                 { repo_datastore.lock().unwrap().get_matches().len() };
                             if match_count > 0 {
@@ -763,6 +775,7 @@ async fn run_parallel_scan(
                                     Some(0..match_count),
                                     access_map.clone(),
                                     rate_limiter.clone(),
+                                    provider_endpoints.clone(),
                                     Duration::from_secs(args.validation_timeout),
                                     args.validation_retries,
                                     effective_max_validation_body_len(&args),

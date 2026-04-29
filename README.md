@@ -7,17 +7,20 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" style="height: 24px;" />
   </a>
   <a href="https://github.com/mongodb/kingfisher">
-    <img src="https://img.shields.io/badge/Detection%20Rules-942-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
+    <img src="https://img.shields.io/badge/Detection%20Rules-945-2ea043.svg" alt="Detection Rules" style="height: 24px;" />
   </a>
   <br>
   <a href="https://github.com/mongodb/kingfisher/pkgs/container/kingfisher">
     <img src="https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher" alt="ghcr downloads" />
   </a>
+  <a href="https://github.com/mongodb/kingfisher/releases">
+    <img src="https://img.shields.io/github/downloads/mongodb/kingfisher/total" alt="GitHub Downloads" style="height: 24px;" />
+  </a>
   <br>
 
 Kingfisher is an open source secret scanner and **live secret validation** tool built in Rust.
 
-It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and ships with [942 built-in rules](https://mongodb.github.io/kingfisher/rules/builtin-rules/) to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
+It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and ships with [945 built-in rules](https://mongodb.github.io/kingfisher/rules/builtin-rules/) to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
 
 Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted copy of the viewer](https://mongodb.github.io/kingfisher/viewer/) is published on the Kingfisher docs site.
 
@@ -51,9 +54,9 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 
 </div>
 
-### Performance, Accuracy, and 942 Rules
+### Performance, Accuracy, and 945 Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
-- **Extensible rules**: 942 built-in rules (484 with live validation) plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))
+- **Extensible rules**: 945 built-in rules (485 with live validation) plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))
 - **Validate & Revoke**: live validation of discovered secrets, plus direct revocation for supported platforms (GitHub, GitLab, Slack, AWS, GCP, and more) ([docs/USAGE.md](/docs/USAGE.md))
 - **Revocation support matrix**: current built-in revocation coverage across providers and rule IDs ([docs/REVOCATION_PROVIDERS.md](/docs/REVOCATION_PROVIDERS.md))
 - **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports 42 providers (see table below).
@@ -375,7 +378,7 @@ kingfisher scan /path/to/scan --access-map --view-report
 
 # Detection Rules
 
-Kingfisher ships with [942 built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
+Kingfisher ships with [945 built-in rules](crates/kingfisher-rules/data/rules/) covering cloud keys, AI tokens, CI/CD secrets, database credentials, and SaaS API keys. Below is an overview — see the full list in [crates/kingfisher-rules/data/rules/](crates/kingfisher-rules/data/rules/):
 
 | Category | What we catch |
 |----------|---------------|
@@ -392,7 +395,7 @@ Kingfisher ships with [942 built-in rules](crates/kingfisher-rules/data/rules/) 
 
 ## Write Custom Rules
 
-Kingfisher ships with 484 built-in rules that include HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
+Of Kingfisher's 945 built-in rules, 485 include HTTP and service-specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
 However, you may want to add your own custom rules, or modify a detection to better suit your needs / environment.
 

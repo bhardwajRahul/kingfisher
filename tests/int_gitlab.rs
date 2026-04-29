@@ -188,6 +188,8 @@ fn test_gitlab_remote_scan() -> Result<()> {
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: false,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
 
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
@@ -364,6 +366,8 @@ fn test_gitlab_remote_scan_no_history() -> Result<()> {
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: false,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
 
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
