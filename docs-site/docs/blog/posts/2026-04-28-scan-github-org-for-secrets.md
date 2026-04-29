@@ -29,7 +29,7 @@ you can focus on what needs rotation first.
 
 ## What you need
 
-- Kingfisher installed (`brew install mongodb/brew/kingfisher`, or grab a
+- Kingfisher installed (`brew install kingfisher`, or grab a
   release from [GitHub](https://github.com/mongodb/kingfisher/releases)).
 - A GitHub personal access token exported as `KF_GITHUB_TOKEN`. A classic
   token with `repo` and `read:org` scopes is enough for private repos; for

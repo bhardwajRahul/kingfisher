@@ -1,8 +1,10 @@
+use std::io::Write;
+
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::cli::commands::access_map::{AccessMapArgs, AccessMapProvider};
+use crate::cli::commands::access_map::{AccessMapArgs, AccessMapOutputFormat, AccessMapProvider};
 
 mod airtable;
 mod algolia;
@@ -112,15 +114,16 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Asana => asana::map_access(&args).await?,
     };
 
-    let json = serde_json::to_string_pretty(&result)?;
-    if let Some(path) = args.json_out {
-        std::fs::write(path, json)?;
-    } else {
-        println!("{json}");
-    }
-
-    if let Some(path) = args.html_out {
-        report::generate_html_report_multi(&[result], &path)?;
+    let mut writer = args.output_args.get_writer()?;
+    match args.output_args.format {
+        AccessMapOutputFormat::Json => {
+            serde_json::to_writer_pretty(&mut writer, &result)?;
+            writeln!(writer)?;
+        }
+        AccessMapOutputFormat::Html => {
+            let html = report::render_html_report_multi(&[result])?;
+            writer.write_all(html.as_bytes())?;
+        }
     }
 
     Ok(())

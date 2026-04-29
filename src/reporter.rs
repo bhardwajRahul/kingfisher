@@ -706,6 +706,11 @@ impl DetailsReporter {
         ds.teams_links().get(path).cloned()
     }
 
+    fn postman_resource_url(&self, path: &std::path::Path) -> Option<String> {
+        let ds = self.datastore.lock().ok()?;
+        ds.postman_links().get(path).cloned()
+    }
+
     fn repo_artifact_url(&self, path: &std::path::Path) -> Option<String> {
         let ds = self.datastore.lock().ok()?;
         ds.repo_links().get(path).cloned()
@@ -1064,6 +1069,7 @@ impl DetailsReporter {
                 .or_else(|| self.confluence_page_url(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.slack_message_url(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.teams_message_url(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| self.postman_resource_url(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.s3_display_path(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| self.docker_display_path(&e.path).and_then(Self::non_empty_string))
                 .or_else(|| Self::non_empty_string(e.path.display().to_string())),
@@ -1726,6 +1732,12 @@ mod tests {
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
                 teams_query: None,
                 teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
+                postman_workspaces: Vec::new(),
+                postman_collections: Vec::new(),
+                postman_environments: Vec::new(),
+                postman_all: false,
+                postman_include_mocks_monitors: false,
+                postman_api_url: Url::parse("https://api.getpostman.com/").unwrap(),
                 max_results: 100,
                 s3_bucket: None,
                 s3_prefix: None,

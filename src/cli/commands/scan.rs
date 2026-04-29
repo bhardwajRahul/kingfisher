@@ -508,6 +508,26 @@ impl ScanCommandArgs {
                     scan_args.input_specifier_args.max_results = args.max_results;
                     None
                 }
+                ScanInputCommand::Postman(args) => {
+                    if !args.all
+                        && args.workspaces.is_empty()
+                        && args.collections.is_empty()
+                        && args.environments.is_empty()
+                    {
+                        bail!(
+                            "Specify --workspace, --collection, --environment, or --all when using the postman subcommand"
+                        );
+                    }
+                    scan_args.input_specifier_args.postman_workspaces = args.workspaces;
+                    scan_args.input_specifier_args.postman_collections = args.collections;
+                    scan_args.input_specifier_args.postman_environments = args.environments;
+                    scan_args.input_specifier_args.postman_all = args.all;
+                    scan_args.input_specifier_args.postman_include_mocks_monitors =
+                        args.include_mocks_monitors;
+                    scan_args.input_specifier_args.postman_api_url = args.api_url;
+                    scan_args.input_specifier_args.max_results = args.max_results;
+                    None
+                }
                 ScanInputCommand::S3(args) => {
                     scan_args.input_specifier_args.s3_bucket = Some(args.bucket);
                     scan_args.input_specifier_args.s3_prefix = args.prefix;
@@ -648,6 +668,9 @@ pub enum ScanInputCommand {
 
     /// Scan Confluence content using CQL
     Confluence(ConfluenceScanArgs),
+
+    /// Scan Postman workspaces, collections, and environments
+    Postman(PostmanScanArgs),
 
     /// Scan an S3 bucket
     S3(S3ScanArgs),
@@ -865,6 +888,46 @@ pub struct ConfluenceScanArgs {
     pub cql: String,
 
     /// Maximum number of results to fetch
+    #[arg(long = "max-results", default_value_t = 100)]
+    pub max_results: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PostmanScanArgs {
+    /// Scan a Postman workspace by ID or web URL (repeatable)
+    #[arg(long = "workspace", alias = "postman-workspace", value_name = "ID_OR_URL")]
+    pub workspaces: Vec<String>,
+
+    /// Scan a single Postman collection by UID or web URL (repeatable)
+    #[arg(long = "collection", alias = "postman-collection", value_name = "UID_OR_URL")]
+    pub collections: Vec<String>,
+
+    /// Scan a single Postman environment by UID (repeatable)
+    #[arg(long = "environment", alias = "postman-environment", value_name = "UID")]
+    pub environments: Vec<String>,
+
+    /// Scan every workspace, collection, and environment visible to the API key
+    #[arg(
+        long = "all",
+        alias = "postman-all",
+        conflicts_with_all = ["workspaces", "collections", "environments"],
+    )]
+    pub all: bool,
+
+    /// Include Postman mocks and monitors when scanning a workspace (off by default)
+    #[arg(long = "include-mocks-monitors", alias = "postman-include-mocks-monitors")]
+    pub include_mocks_monitors: bool,
+
+    /// Override the Postman API base URL
+    #[arg(
+        long = "api-url",
+        alias = "postman-api-url",
+        default_value = "https://api.getpostman.com/",
+        value_hint = ValueHint::Url,
+    )]
+    pub api_url: Url,
+
+    /// Maximum number of resources to fetch
     #[arg(long = "max-results", default_value_t = 100)]
     pub max_results: usize,
 }
