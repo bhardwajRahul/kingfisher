@@ -94,10 +94,10 @@ clap = { version = "4.5", features = [
 anyhow = "1.0"
 bstr = { version = "1.12", features = ["serde"] }
 fixedbitset = "0.5"
-gix = { version = "0.81", features = ["max-performance-safe", "serde", "blocking-network-client"] }
+gix = { version = "0.83", features = ["max-performance-safe", "serde", "blocking-network-client"] }
 ignore = "0.4"
 petgraph = "0.8"
-roaring = "0.11.3"
+roaring = "0.11.4"
 schemars = "0.8"
 serde = { version = "1.0", features = ["derive", "rc"] }
 smallvec = { version = "1", features = [
@@ -168,13 +168,13 @@ tree_magic_mini = "3.2"
 content_inspector = "0.2.4"
 rustc-hash = "2.1.1"
 bzip2-rs = "0.1.2"
-zip = { version = "8.5.0", default-features = false, features = ["deflate", "deflate64", "time"] }
+zip = { version = "8.6.0", default-features = false, features = ["deflate", "deflate64", "time"] }
 tar = "0.4.44"
 lzma-rs = "0.3.0"
 asar = "0.3.0"
 cfb = "0.14"
 rusqlite = { version = "0.39", features = ["bundled"] }
-blake3 = "1.8.2"
+blake3 = "1.8.5"
 memchr = "2.7"
 memmap2 = "0.9.9"
 futures = "0.3.31"
@@ -195,7 +195,7 @@ mimalloc = { version = "0.1.48", features = ["override"] }
 thread_local = "1.1.9"
 bloomfilter = "3.0.1"
 uuid = "1.19.0"
-rand = "0.10.0"
+rand = "0.10.1"
 percent-encoding = "2.3.2"
 self_update = { version = "0.44.0", default-features = false, features = ["reqwest", "rustls", "archive-tar", "archive-zip", "compression-flate2"] }
 semver = "1.0.27"
@@ -209,7 +209,7 @@ aws-sdk-iam = { version = "1.104.0", default-features = false, features = ["defa
 aws-sdk-ec2 = { version = "1.211.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-dynamodb = { version = "1.105.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-lambda = { version = "1.116.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
-aws-sdk-kms = { version = "1.100.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-sdk-kms = { version = "1.106.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-secretsmanager = { version = "1.100.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-sqs = { version = "1.90.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
 aws-sdk-sns = { version = "1.89.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
