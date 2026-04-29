@@ -1,12 +1,12 @@
 ---
 title: "Built-in Rules List"
-description: "Complete list of all 943 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
+description: "Complete list of all 945 built-in secret detection rules in Kingfisher. Searchable and filterable by provider, confidence level, and validation support."
 ---
 
 # Built-in Rules
 
-Kingfisher ships with **943 detection rules** across **581 providers**
-(821 detectors + 122 dependent rules).
+Kingfisher ships with **945 detection rules** across **581 providers**
+(822 detectors + 123 dependent rules).
 Of these, **485** include live validation and **50** support direct revocation.
 
 !!! tip "Search"
@@ -351,6 +351,22 @@ Of these, **485** include live validation and **50** support direct revocation.
 <td>Anypoint</td>
 <td>Anypoint API Key</td>
 <td><code>kingfisher.anypoint.1</code></td>
+<td>Medium</td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>Anypoint</td>
+<td>Anypoint OAuth Client ID</td>
+<td><code>kingfisher.anypoint.2</code></td>
+<td>Medium</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Anypoint</td>
+<td>Anypoint OAuth Client Secret</td>
+<td><code>kingfisher.anypoint.3</code></td>
 <td>Medium</td>
 <td>Yes</td>
 <td></td>

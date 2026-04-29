@@ -55,7 +55,7 @@ impl ProviderEndpointOverrides {
     }
 
     pub fn apply_scan_overrides(&self, globals: &mut Object) {
-        self.config.apply(globals, false);
+        self.config.apply(globals, true);
         apply_builtin_defaults(globals);
         self.cli.apply(globals, true);
     }
@@ -121,7 +121,7 @@ impl EndpointVars {
                     );
                 }
                 _ => bail!(
-                    "Unsupported endpoint provider '{}'. Supported values: github, gitlab, gitea, jira, jira-cloud, confluence, artifactory",
+                    "Unsupported endpoint provider '{}'. Supported values: github, gitlab, gitea, jira (alias: jira-dc), jira-cloud, confluence (alias: confluence-dc), artifactory (alias: jfrog)",
                     provider
                 ),
             }

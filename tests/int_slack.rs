@@ -333,6 +333,8 @@ async fn test_scan_slack_messages() -> Result<()> {
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: false,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
 
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));

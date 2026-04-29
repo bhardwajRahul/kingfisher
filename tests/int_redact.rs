@@ -166,6 +166,8 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: false,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
 
     let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;

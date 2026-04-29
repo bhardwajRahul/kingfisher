@@ -145,8 +145,8 @@ jq '.findings[] | select(.validation.status == "Active")' findings.json
 
 Then prioritize by blast radius. For AWS, GCP, GitHub, GitLab, and Slack
 tokens, Kingfisher can already map what each credential can access. Look at
-the `access_map` field in JSON output, or the **Blast Radius** panel in the
-HTML report.
+the `access_map` field in JSON output, or the **Access Map** panel in the
+HTML report (`kingfisher view ./report.json` or `kingfisher scan /path/to/code --view-report`)
 
 ## Revoke from the CLI
 
@@ -165,9 +165,149 @@ for the schema and the current approach.
 
 The first scan gives you a baseline. The real value comes from running the
 same workflow continuously so new leaks are caught within hours instead of
-months. A simple starting point is a nightly GitHub Action or scheduled CI
-job that runs the org scan, diffs against yesterday's findings, and alerts on
-net-new live credentials.
+months. A practical starting point is a scheduled GitHub Action in a dedicated
+security repository. For the token, prefer a fine-grained PAT scoped to the
+target organization with read-only access to repository contents and
+organization metadata, or a GitHub App installation token if you're operating
+at scale — a classic PAT with `repo` works but grants more than the scan
+needs. Store it in `KF_GITHUB_TOKEN`, pin a specific Kingfisher image tag (a
+floating `:latest` will silently change findings between runs as rules
+update), and upload the JSON report as an artifact:
+
+```yaml
+name: nightly-org-secret-scan
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: kingfisher-nightly
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions: {}
+    steps:
+      - name: Prepare output directory
+        run: mkdir -p reports
+
+      - name: Scan the GitHub organization
+        env:
+          KF_GITHUB_TOKEN: ${{ secrets.KF_GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            -e KF_GITHUB_TOKEN \
+            -v "$PWD/reports:/reports" \
+            ghcr.io/mongodb/kingfisher:v<PINNED_VERSION> \
+            scan github --organization my-org \
+              --git-history none \
+              --format json \
+              --output /reports/findings.json
+
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kingfisher-findings-${{ github.run_id }}
+          path: reports/findings.json
+```
+
+A few notes on the choices above. `--git-history none` scans only what's
+currently checked out at `HEAD` of each repo; for a midsize org this can be
+the difference between a job that finishes in minutes and one that runs for
+hours and exhausts the runner's ~14 GB of free disk. If you also need
+historical coverage, run a *separate weekly* job with `--git-history full`
+rather than paying that cost every night. The same goes for
+`--repo-artifacts`, which fetches each repo's issues, wiki, and gists — it's
+worth running, just not nightly. `concurrency` keeps a slow run from piling
+up on the next cron tick, `timeout-minutes` caps a hung run before it burns
+the default six hours, and `if: always()` on the upload step ensures you
+still get the report even when the scan exits non-zero (e.g. once you start
+gating the workflow on Active findings). The run-ID-suffixed artifact name
+makes it easy to diff last night's report against tonight's.
+
+For larger orgs, consider sharding by feeding `gh repo list` into a job
+matrix so several runners scan in parallel — the total minutes are similar,
+but each runner gets its own disk budget and the wall-clock time drops
+sharply. Above a certain size, a self-hosted runner (or a dedicated VM
+running the same `docker run` command on cron) becomes cheaper and removes
+the disk cap entirely.
+
+From there, add whatever response path fits your process: open an issue, post
+to Slack, diff against the previous artifact, or fail the workflow if `jq`
+finds any `Active` credentials in `findings.json`.
+
+### A weekly deep scan
+
+The nightly above is intentionally narrow: current `HEAD` content, no
+ancillary artifacts. Pair it with a *weekly* job that pays the cost of full
+history and `--repo-artifacts` so issues, wiki pages, and rewritten commits
+don't slip through unnoticed:
+
+```yaml
+name: weekly-org-deep-scan
+
+on:
+  schedule:
+    - cron: "23 4 * * 6"  # Saturday 04:23 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: kingfisher-weekly
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1080  # up to 18h; tune to your org size
+    permissions: {}
+    steps:
+      - name: Prepare output directory
+        run: mkdir -p reports
+
+      - name: Deep-scan the GitHub organization
+        env:
+          KF_GITHUB_TOKEN: ${{ secrets.KF_GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            -e KF_GITHUB_TOKEN \
+            -v "$PWD/reports:/reports" \
+            ghcr.io/mongodb/kingfisher:v<PINNED_VERSION> \
+            scan github --organization my-org \
+              --git-history full \
+              --repo-artifacts \
+              --format json \
+              --output /reports/findings.json
+
+      - name: Upload deep-scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kingfisher-deep-${{ github.run_id }}
+          path: reports/findings.json
+```
+
+The deep scan is where `ubuntu-latest`'s ~14 GB disk limit will bite first.
+If your org is large enough that the weekly job fails on disk or runs past
+its timeout, that's the signal to shard the repo list across a job matrix
+or move this workload to a self-hosted runner. A simple matrix looks like:
+
+```yaml
+strategy:
+  fail-fast: false
+  matrix:
+    shard: [0, 1, 2, 3]
+# ...then in the scan step, list repos with `gh repo list my-org --limit 1000`
+# and filter to those whose name hash mod 4 == matrix.shard, scanning each
+# with `kingfisher scan <git-url> --git-history full --repo-artifacts`.
+```
+
+Each shard gets its own runner and its own disk budget, and you can upload
+one artifact per shard for triage.
 
 ## What's next
 

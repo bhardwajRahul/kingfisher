@@ -371,7 +371,6 @@ rules:
         ghs_[0-9]+_
         [A-Za-z0-9_-]+ \. [A-Za-z0-9_-]+ \. [A-Za-z0-9_-]+
       )
-      \b
     min_entropy: 3.5
     examples:
       - 'ghs_12345_eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDU1NjgwMDAsImV4cCI6MTc0NTU2ODM2MCwiaXNzIjoiMTIzNDUiLCJzdWIiOiJnaXRodWJ8MTIzNDUifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'

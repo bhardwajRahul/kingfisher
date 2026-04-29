@@ -264,6 +264,8 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: true,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
     let update_status = UpdateStatus::default();
 

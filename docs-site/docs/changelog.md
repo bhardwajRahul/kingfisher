@@ -8,7 +8,7 @@ description: "Kingfisher release history: new features, rules, bug fixes, and im
 All notable changes to this project will be documented in this file.
 
 ## [unreleased v1.98.0]
-- Fixed [#359](https://github.com/mongodb/kingfisher/issues/359): added `kingfisher.github.9` to detect the new ~520-character stateless GitHub App installation token format (`ghs_<APP_ID>_<JWT>`). The legacy 36-character `ghs_` rule (`kingfisher.github.5`) is retained for older / GHES-issued tokens that are still in circulation.
+- Fixed [#359](https://github.com/mongodb/kingfisher/issues/359): added `kingfisher.github.9` to detect the new ~520-character stateless GitHub App installation token format (`ghs_<APP_ID>_<JWT>`). The legacy 36-character `ghs_` rule (`kingfisher.github.5`) is retained for older / GHES-issued tokens that are still in circulation. 
 - Added provider endpoint overrides for validation and revocation via global `--endpoint PROVIDER=URL` and `--endpoint-config FILE`, with built-in support for self-hosted GitHub, GitLab, Gitea, Jira, Confluence, and Artifactory instances.
 
 ## [v1.97.0]

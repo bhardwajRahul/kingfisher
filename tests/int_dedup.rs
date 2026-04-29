@@ -203,6 +203,8 @@ rules:
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
         allow_internal_ips: false,
+        endpoint: Vec::new(),
+        endpoint_config: None,
     };
 
     // ── load rules once ─────────────────────────────────────────────
