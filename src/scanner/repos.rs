@@ -25,6 +25,7 @@ use crate::{
     gitea, github, gitlab, huggingface, jira,
     matcher::{Match, Matcher, MatcherStats},
     origin::{Origin, OriginSet},
+    postman,
     rules_database::RulesDatabase,
     s3,
     scanner::processing::BlobProcessor,
@@ -736,6 +737,45 @@ pub async fn fetch_slack_messages(
         let mut ds = datastore.lock().unwrap();
         for (path, link) in &paths {
             ds.register_slack_message(path.clone(), link.clone());
+        }
+    }
+    Ok(vec![output_dir])
+}
+
+pub async fn fetch_postman_resources(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<findings_store::FindingsStore>>,
+) -> Result<Vec<PathBuf>> {
+    let selectors = postman::PostmanSelectors {
+        workspaces: args.input_specifier_args.postman_workspaces.clone(),
+        collections: args.input_specifier_args.postman_collections.clone(),
+        environments: args.input_specifier_args.postman_environments.clone(),
+        all: args.input_specifier_args.postman_all,
+        include_mocks_monitors: args.input_specifier_args.postman_include_mocks_monitors,
+    };
+    if selectors.is_empty() {
+        return Ok(Vec::new());
+    }
+    let api_url = args.input_specifier_args.postman_api_url.clone();
+    let max_results = args.input_specifier_args.max_results;
+    let output_root = {
+        let ds = datastore.lock().unwrap();
+        ds.clone_root()
+    };
+    let output_dir = output_root.join("postman");
+    let paths = postman::download_postman_to_dir(
+        api_url,
+        selectors,
+        max_results,
+        global_args.ignore_certs,
+        &output_dir,
+    )
+    .await?;
+    {
+        let mut ds = datastore.lock().unwrap();
+        for (path, link) in &paths {
+            ds.register_postman_resource(path.clone(), link.clone());
         }
     }
     Ok(vec![output_dir])

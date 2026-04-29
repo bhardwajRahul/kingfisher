@@ -12,7 +12,7 @@ Key capabilities:
 - Direct secret revocation from CLI
 - Blast radius mapping (AWS, GCP, Azure, GitHub, GitLab, Slack)
 - Output formats: TOON, JSON, SARIF, interactive HTML
-- Platform integrations: GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, S3, GCS, Docker, Jira, Confluence, Slack
+- Platform integrations: GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, S3, GCS, Docker, Jira, Confluence, Slack, Microsoft Teams, Postman
 
 ## Scope
 - Applies to the entire repository rooted at this file.

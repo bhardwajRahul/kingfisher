@@ -514,12 +514,11 @@ kingfisher scan ./my-project \
 ## Scanning Platform-Specific Targets
 
 > **Deprecated**
-> Legacy scan flags such as `--github-user`, `--gitlab-group`,
-> `--bitbucket-workspace`, `--azure-organization`, `--huggingface-user`,
+> Older documentation may refer to legacy provider flags such as
+> `--github-user`, `--gitlab-group`, `--bitbucket-workspace`,
 > `--slack-query`, `--jira-url`, `--confluence-url`, `--s3-bucket`,
-> `--gcs-bucket`, and `--docker-image` still work for now, but they trigger a
-> warning and will be removed in a future release. Migrate to the
-> `kingfisher scan <provider>` subcommands below to future-proof your automations.
+> `--gcs-bucket`, and `--docker-image`. Use the
+> `kingfisher scan <provider>` subcommands below instead.
 
 ---
 
@@ -761,10 +760,10 @@ kingfisher scan gitlab --group my-group --gitlab-exclude my-group/**/legacy-* --
 ### Scan Azure Repos organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)
 
 ```bash
-kingfisher scan azure --organization my-org
+kingfisher scan azure --azure-organization my-org
 
 # Azure Repos Server example
-KF_AZURE_PAT="pat" kingfisher scan azure --organization DefaultCollection --azure-base-url https://ado.internal.example/tfs/
+KF_AZURE_PAT="pat" kingfisher scan azure --azure-organization DefaultCollection --base-url https://ado.internal.example/tfs/
 ```
 
 ### Scan specific Azure Repos projects
@@ -772,8 +771,8 @@ KF_AZURE_PAT="pat" kingfisher scan azure --organization DefaultCollection --azur
 Projects are specified as `ORGANIZATION/PROJECT`. Repeat the flag for multiple projects.
 
 ```bash
-kingfisher scan azure --project my-org/payments \
-  --project my-org/core-platform
+kingfisher scan azure --azure-project my-org/payments \
+  --azure-project my-org/core-platform
 ```
 
 ### Skip specific Azure repositories during enumeration
@@ -781,7 +780,7 @@ kingfisher scan azure --project my-org/payments \
 Repeat `--azure-exclude` to ignore repositories when scanning organizations or projects. Use identifiers like `ORGANIZATION/PROJECT/REPOSITORY`. Repositories that share the same name as their project can be excluded with `ORGANIZATION/PROJECT`, and gitignore-style patterns such as `my-org/*/archive-*` are also supported.
 
 ```bash
-kingfisher scan azure --organization my-org \
+kingfisher scan azure --azure-organization my-org \
   --azure-exclude my-org/payments/legacy-service \
   --azure-exclude my-org/**/archive-*
 ```
@@ -789,11 +788,11 @@ kingfisher scan azure --organization my-org \
 ### List Azure repositories
 
 ```bash
-kingfisher scan azure --organization my-org --list-only
+kingfisher scan azure --azure-organization my-org --list-only
 # list repositories for specific projects
-kingfisher scan azure --project my-org/app --project my-org/api --list-only
+kingfisher scan azure --azure-project my-org/app --azure-project my-org/api --list-only
 # skip specific repositories while listing (supports glob patterns)
-kingfisher scan azure --organization my-org --azure-exclude my-org/**/experimental-* --list-only
+kingfisher scan azure --azure-organization my-org --azure-exclude my-org/**/experimental-* --list-only
 ```
 
 ---
@@ -805,7 +804,7 @@ kingfisher scan azure --organization my-org --azure-exclude my-org/**/experiment
 ```bash
 kingfisher scan gitea --organization my-org
 # self-hosted example
-KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --organization platform --gitea-api-url https://gitea.internal.example/api/v1/
+KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --organization platform --api-url https://gitea.internal.example/api/v1/
 ```
 
 ### Scan Gitea user
@@ -842,9 +841,9 @@ KF_GITEA_TOKEN="gtoken" KF_GITEA_USERNAME="org" \
 ```bash
 kingfisher scan gitea --organization my-org --list-only
 # enumerate every organization visible to the authenticated user
-KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --all-gitea-organizations --list-only
+KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --all-organizations --list-only
 # self-hosted example
-KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --user johndoe --gitea-api-url https://gitea.internal.example/api/v1/ --list-only
+KF_GITEA_TOKEN="gtoken" kingfisher scan gitea --user johndoe --api-url https://gitea.internal.example/api/v1/ --list-only
 ```
 
 ---
@@ -917,7 +916,7 @@ Bitbucket no longer supports App Tokens as of September 9, 2025: https://support
 
 ### Self-hosted Bitbucket Server
 
-Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, for example `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with `KF_BITBUCKET_USERNAME` plus either `KF_BITBUCKET_TOKEN` or `KF_BITBUCKET_PASSWORD`, and pass `--tls-mode=off` (or the legacy `--ignore-certs`) when connecting to HTTP or otherwise insecure instances.
+Use `--api-url` to point Kingfisher at your server's REST endpoint, for example `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with `KF_BITBUCKET_USERNAME` plus either `KF_BITBUCKET_TOKEN` or `KF_BITBUCKET_PASSWORD`, and pass `--tls-mode=off` (or the legacy `--ignore-certs`) when connecting to HTTP or otherwise insecure instances.
 
 ---
 
@@ -928,13 +927,13 @@ Hugging Face hosts git repositories for models, datasets, and Spaces. Kingfisher
 ### Scan Hugging Face user
 
 ```bash
-kingfisher scan huggingface --user <username>
+kingfisher scan huggingface --huggingface-user <username>
 ```
 
 ### Scan Hugging Face organization
 
 ```bash
-kingfisher scan huggingface --organization <orgname>
+kingfisher scan huggingface --huggingface-organization <orgname>
 ```
 
 ### Scan specific Hugging Face resources
@@ -942,9 +941,9 @@ kingfisher scan huggingface --organization <orgname>
 Scan individual repositories by ID (owner/name) or by passing the full HTTPS URL:
 
 ```bash
-kingfisher scan huggingface --model <owner/model>
-kingfisher scan huggingface --dataset https://huggingface.co/datasets/<owner>/<dataset>
-kingfisher scan huggingface --space <owner/space>
+kingfisher scan huggingface --huggingface-model <owner/model>
+kingfisher scan huggingface --huggingface-dataset https://huggingface.co/datasets/<owner>/<dataset>
+kingfisher scan huggingface --huggingface-space <owner/space>
 ```
 
 Use `--huggingface-exclude` to omit results returned by user or organization enumeration. Prefix values with `model:`, `dataset:`, or `space:` when you only want to skip a specific resource type.
@@ -952,7 +951,7 @@ Use `--huggingface-exclude` to omit results returned by user or organization enu
 ### List Hugging Face repositories
 
 ```bash
-kingfisher scan huggingface --user <username> --list-only
+kingfisher scan huggingface --huggingface-user <username> --list-only
 ```
 
 ### Authenticate to Hugging Face
@@ -1010,7 +1009,7 @@ KF_CONFLUENCE_USER="user@example.com" KF_CONFLUENCE_TOKEN="token" \
     --max-results 500
 ```
 
-Use the base URL of your Confluence site for `--confluence-url`. Kingfisher automatically adds `/rest/api` to the end, so `https://example.com/wiki` and `https://example.com` both work depending on your server configuration.
+Use the base URL of your Confluence site for `--url`. Kingfisher automatically adds `/rest/api` to the end, so `https://example.com/wiki` and `https://example.com` both work depending on your server configuration.
 
 Generate a personal access token and set it in the `KF_CONFLUENCE_TOKEN` environment variable. By default, Kingfisher sends the token as a bearer token in the `Authorization` header.
 

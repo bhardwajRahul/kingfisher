@@ -34,7 +34,7 @@ Designed for offensive security engineers and blue-team defenders alike, Kingfis
 
 Kingfisher is a high-performance, open source secret detection tool for source code and developer platforms. If you are searching for a "GitHub secret scanner," "API key scanner," "token leak detection," or "Git secrets scanner," this project is built for that workflow.
 
-- Scan code, Git history, and integrated platforms (GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, Jira, Confluence, Slack, Microsoft Teams, Docker, AWS S3, and Google Cloud Storage)
+- Scan code, Git history, and integrated platforms (GitHub, GitLab, Azure Repos, Bitbucket, Gitea, Hugging Face, Jira, Confluence, Slack, Microsoft Teams, Postman, Docker, AWS S3, and Google Cloud Storage)
 - Validate discovered credentials against provider APIs to reduce false positives
 - Revoke supported secrets directly from the CLI
 - Generate JSON, SARIF, TOON, and HTML outputs for security teams, compliance, and CI
@@ -194,7 +194,7 @@ KF_GITLAB_TOKEN="glpat-..." kingfisher scan gitlab --group my-group
 ### 8: Scan Azure Repos
 
 ```bash
-KF_AZURE_PAT="pat" kingfisher scan azure --organization my-org
+KF_AZURE_PAT="pat" kingfisher scan azure --azure-organization my-org
 ```
 
 ### 9: Scan Bitbucket workspace
@@ -212,7 +212,7 @@ KF_GITEA_TOKEN="token" kingfisher scan gitea --organization my-org
 ### 11: Scan Hugging Face
 
 ```bash
-KF_HUGGINGFACE_TOKEN="hf_..." kingfisher scan huggingface --organization my-org
+KF_HUGGINGFACE_TOKEN="hf_..." kingfisher scan huggingface --huggingface-organization my-org
 ```
 
 ### 12: Scan an S3 bucket
@@ -623,6 +623,7 @@ Kingfisher can scan multiple platforms and services directly:
 - Confluence (pages via CQL queries)
 - Slack (messages via search queries)
 - Microsoft Teams (messages via Microsoft Graph search)
+- Postman (workspaces, collections, and environments — including plaintext "secret"-typed environment variables)
 
 See **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)** for complete integration documentation and authentication setup.
 
@@ -645,7 +646,7 @@ kingfisher scan github --organization my-org
 kingfisher scan gitlab --group my-group
 
 # Scan Azure Repos
-kingfisher scan azure --organization my-org
+kingfisher scan azure --azure-organization my-org
 
 # Scan Jira issues
 KF_JIRA_TOKEN="token" kingfisher scan jira --url https://jira.company.com \
@@ -666,6 +667,9 @@ KF_SLACK_TOKEN="xoxp-..." kingfisher scan slack "from:username has:link"
 
 # Scan Microsoft Teams messages
 KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key"
+
+# Scan every Postman workspace, collection, and environment visible to the API key
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman --all
 ```
 
 **For detailed integration instructions and authentication setup, see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).**
@@ -690,6 +694,7 @@ KF_TEAMS_TOKEN="eyJ0..." kingfisher scan teams "password OR api_key"
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
 | `KF_TEAMS_TOKEN`  | Microsoft Graph API token for Teams message search |
+| `KF_POSTMAN_TOKEN` / `POSTMAN_API_KEY` | Postman API key for workspace, collection, and environment scanning |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY`, `KF_AWS_SECRET`, and `KF_AWS_SESSION_TOKEN` | AWS credentials for S3 bucket scanning. Session token is optional, for temporary credentials |
 
@@ -799,7 +804,7 @@ Since then it has evolved far beyond that starting point, introducing live valid
 - **Hundreds of new built-in rules** and an expanded YAML rule schema  
 - **Baseline management** to suppress known findings over time  
 - **Parser-based context verification** layered on Hyperscan for language-aware detection  
-- **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, Microsoft Teams, S3, GCS, Docker, Hugging Face, etc.)  
+- **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, Microsoft Teams, Postman, S3, GCS, Docker, Hugging Face, etc.)  
 - **Compressed Files**, **SQLite database**, and **Python bytecode (.pyc)** scanning support
 - **New storage model** (in-memory + Bloom filter, replacing SQLite)  
 - **Unified workflow** with JSON/BSON/SARIF outputs  

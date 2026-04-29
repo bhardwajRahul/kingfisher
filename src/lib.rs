@@ -40,6 +40,7 @@ pub mod location;
 pub mod matcher;
 pub mod origin;
 pub mod parser;
+pub mod postman;
 pub mod provider_endpoints;
 pub mod pyc;
 pub mod reporter;

@@ -1,10 +1,6 @@
-// tests/int_github.rs
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use kingfisher::{
     cli::{
         GlobalArgs,
@@ -22,32 +18,115 @@ use kingfisher::{
         global::{Mode, TlsMode},
     },
     findings_store::FindingsStore,
-    git_url::GitUrl,
-    scanner::{load_and_record_rules, run_scan},
+    rule_loader::RuleLoader,
+    rules_database::RulesDatabase,
+    scanner::run_async_scan,
     update::UpdateStatus,
 };
 use tempfile::TempDir;
-use tokio::runtime::Runtime;
 use url::Url;
-/// Helper function to determine exit code based on findings
-fn determine_exit_code(total_findings: usize, validated_findings: usize) -> i32 {
-    if total_findings == 0 {
-        0 // No findings discovered
-    } else if validated_findings > 0 {
-        205 // Validated findings discovered
-    } else {
-        200 // Findings discovered but none validated
-    }
-}
-#[test]
-fn test_github_remote_scan() -> Result<()> {
-    // Create a temporary directory for the scan
-    let temp_dir = TempDir::new().context("Failed to create temporary directory")?;
+use wiremock::{
+    Mock, MockServer, ResponseTemplate,
+    matchers::{method, path},
+};
+
+#[tokio::test]
+async fn test_scan_postman_all() -> Result<()> {
+    use std::env;
+
+    let server = MockServer::start().await;
+
+    // Workspace listing
+    let workspaces_response = serde_json::json!({
+        "workspaces": [
+            { "id": "ws-uid-1", "name": "demo", "type": "team", "visibility": "private" }
+        ]
+    });
+    Mock::given(method("GET"))
+        .and(path("/workspaces"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(workspaces_response))
+        .mount(&server)
+        .await;
+
+    // Workspace detail (collections + environments embedded)
+    let workspace_detail = serde_json::json!({
+        "workspace": {
+            "id": "ws-uid-1",
+            "name": "demo",
+            "type": "team",
+            "collections": [
+                { "id": "col-uid-1", "uid": "col-uid-1", "name": "demo collection" }
+            ],
+            "environments": [
+                { "id": "env-uid-1", "uid": "env-uid-1", "name": "prod" }
+            ],
+            "mocks": [],
+            "monitors": []
+        }
+    });
+    Mock::given(method("GET"))
+        .and(path("/workspaces/ws-uid-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(workspace_detail))
+        .mount(&server)
+        .await;
+
+    // Collection detail — plant a GitHub PAT in a request bearer token
+    let collection_response = serde_json::json!({
+        "collection": {
+            "info": { "name": "demo collection" },
+            "item": [{
+                "name": "auth call",
+                "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "https://api.example.com/v1/me" },
+                    "auth": {
+                        "type": "bearer",
+                        "bearer": [{
+                            "key": "token",
+                            "value": "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",
+                            "type": "string"
+                        }]
+                    }
+                }
+            }]
+        }
+    });
+    Mock::given(method("GET"))
+        .and(path("/collections/col-uid-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(collection_response))
+        .mount(&server)
+        .await;
+
+    // Environment detail — plant a second GitHub PAT in a "secret"-typed variable
+    // (this exercises the headline finding: the API returns plaintext for "secret"
+    // env vars, so Kingfisher can detect what the UI would otherwise mask).
+    let environment_response = serde_json::json!({
+        "environment": {
+            "id": "env-uid-1",
+            "name": "prod",
+            "values": [
+                {
+                    "key": "API_TOKEN",
+                    "value": "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",
+                    "type": "secret",
+                    "enabled": true
+                }
+            ]
+        }
+    });
+    Mock::given(method("GET"))
+        .and(path("/environments/env-uid-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(environment_response))
+        .mount(&server)
+        .await;
+
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { env::set_var("KF_POSTMAN_TOKEN", "test-key") };
+
+    let temp_dir = TempDir::new()?;
     let clone_dir = temp_dir.path().to_path_buf();
-    // Create test repository URL
-    let test_repo_url = "https://github.com/micksmix/SecretsTest.git";
-    let git_url = GitUrl::from_str(test_repo_url).expect("Failed to parse Git URL");
-    // Create scan arguments
+
     let scan_args = ScanArgs {
         num_jobs: 2,
         rules: RuleSpecifierArgs {
@@ -57,7 +136,7 @@ fn test_github_remote_scan() -> Result<()> {
         },
         input_specifier_args: InputSpecifierArgs {
             path_inputs: Vec::new(),
-            git_url: vec![git_url],
+            git_url: Vec::new(),
             git_clone_dir: None,
             keep_clones: false,
             repo_clone_limit: None,
@@ -68,7 +147,6 @@ fn test_github_remote_scan() -> Result<()> {
             all_github_organizations: false,
             github_api_url: Url::parse("https://api.github.com/").unwrap(),
             github_repo_type: GitHubRepoType::Source,
-            // new GitLab defaults
             gitlab_user: Vec::new(),
             gitlab_group: Vec::new(),
             gitlab_exclude: Vec::new(),
@@ -76,21 +154,18 @@ fn test_github_remote_scan() -> Result<()> {
             gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
-
             huggingface_user: Vec::new(),
             huggingface_organization: Vec::new(),
             huggingface_model: Vec::new(),
             huggingface_dataset: Vec::new(),
             huggingface_space: Vec::new(),
             huggingface_exclude: Vec::new(),
-
             gitea_user: Vec::new(),
             gitea_organization: Vec::new(),
             gitea_exclude: Vec::new(),
             all_gitea_organizations: false,
             gitea_api_url: Url::parse("https://gitea.com/api/v1/").unwrap(),
             gitea_repo_type: GiteaRepoType::Source,
-
             bitbucket_user: Vec::new(),
             bitbucket_workspace: Vec::new(),
             bitbucket_project: Vec::new(),
@@ -99,21 +174,18 @@ fn test_github_remote_scan() -> Result<()> {
             bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
             bitbucket_repo_type: BitbucketRepoType::Source,
             bitbucket_auth: BitbucketAuthArgs::default(),
-
             azure_organization: Vec::new(),
             azure_project: Vec::new(),
             azure_exclude: Vec::new(),
             all_azure_projects: false,
             azure_base_url: Url::parse("https://dev.azure.com/").unwrap(),
             azure_repo_type: AzureRepoType::Source,
-
             jira_url: None,
             jql: None,
             jira_include_comments: false,
             jira_include_changelog: false,
             confluence_url: None,
             cql: None,
-            max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
             teams_query: None,
@@ -121,10 +193,10 @@ fn test_github_remote_scan() -> Result<()> {
             postman_workspaces: Vec::new(),
             postman_collections: Vec::new(),
             postman_environments: Vec::new(),
-            postman_all: false,
+            postman_all: true,
             postman_include_mocks_monitors: false,
-            postman_api_url: Url::parse("https://api.getpostman.com/").unwrap(),
-            // s3
+            postman_api_url: Url::parse(&format!("{}/", server.uri()))?,
+            max_results: 10,
             s3_bucket: None,
             s3_prefix: None,
             role_arn: None,
@@ -132,9 +204,7 @@ fn test_github_remote_scan() -> Result<()> {
             gcs_bucket: None,
             gcs_prefix: None,
             gcs_service_account: None,
-            // Docker image scanning
             docker_image: Vec::new(),
-            // git clone / history options
             git_clone: GitCloneMode::Bare,
             git_history: GitHistoryMode::Full,
             commit_metadata: true,
@@ -148,22 +218,21 @@ fn test_github_remote_scan() -> Result<()> {
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,
-            no_extract_archives: false,
             extraction_depth: 2,
             no_binary: true,
-            exclude: Vec::new(), // Exclude patterns
+            no_extract_archives: false,
+            exclude: Vec::new(),
         },
-        confidence: ConfidenceLevel::Medium,
-        no_validate: false,
+        confidence: ConfidenceLevel::Low,
+        no_validate: true,
         access_map: false,
         rule_stats: false,
         only_valid: false,
-        min_entropy: None,
+        min_entropy: Some(0.0),
         redact: false,
-        git_repo_timeout: 1800, // 30 minutes
+        git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: true,
-        view_report: false,
         baseline_file: None,
         manage_baseline: false,
         skip_regex: Vec::new(),
@@ -175,6 +244,7 @@ fn test_github_remote_scan() -> Result<()> {
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        view_report: false,
         view_report_port: 7890,
         view_report_address: "127.0.0.1".to_string(),
         validation_retries: 1,
@@ -184,14 +254,14 @@ fn test_github_remote_scan() -> Result<()> {
         full_validation_response: false,
         max_validation_response_length: 2048,
     };
-    // Create global arguments
+
     let global_args = GlobalArgs {
         verbose: 0,
-        quiet: false,
+        quiet: true,
         color: Mode::Auto,
-        progress: Mode::Auto,
         no_update_check: false,
         self_update: false,
+        progress: Mode::Never,
         ignore_certs: false,
         user_agent_suffix: None,
         tls_mode: TlsMode::Strict,
@@ -199,37 +269,31 @@ fn test_github_remote_scan() -> Result<()> {
         endpoint: Vec::new(),
         endpoint_config: None,
     };
-    // Create in-memory datastore
-    let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
-    // Create the runtime first
-    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-    // Load rules
-    let rules_db =
-        Arc::new(load_and_record_rules(&scan_args, &datastore, global_args.use_progress())?);
-    let update_status = UpdateStatus::default();
-    // Run the scan using runtime.block_on
-    runtime.block_on(async {
-        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status).await
-    })?;
-    // Get scan results
-    let ds = datastore.lock().unwrap();
-    let matches = ds.get_matches();
-    let total_findings = matches.len();
-    let validated_findings = matches.iter().filter(|arc| arc.as_ref().2.validation_success).count();
 
-    // Print validation statistics
-    println!("Total findings: {}, Validated findings: {}", total_findings, validated_findings);
-    // Check total number of findings
-    assert!(total_findings >= 10, "Expected at least 10 findings, but got {}", total_findings);
-    // Determine exit code
-    let exit_code = determine_exit_code(total_findings, validated_findings);
-    // Test passes if we found some kind of findings (exit code >= 200)
+    let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
+    let resolved = loaded.resolve_enabled_rules()?;
+    let rules_db = Arc::new(RulesDatabase::from_rules(resolved.into_iter().cloned().collect())?);
+
+    let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
+    let update_status = UpdateStatus::default();
+
+    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db, &update_status)
+        .await?;
+
+    let ds = datastore.lock().unwrap();
+    let findings = ds.get_matches().len();
     assert!(
-        exit_code >= 200,
-        "Test failed: Expected to find vulnerabilities (exit code >= 200), got exit code {}",
-        exit_code
+        findings >= 2,
+        "expected at least two findings (collection bearer + secret env value), got {}",
+        findings
     );
-    // Drop the runtime explicitly here, outside of async context
-    drop(runtime);
+
+    // Both findings should resolve to a Postman web URL via the link map.
+    let postman_link_count = ds.postman_links().len();
+    assert!(
+        postman_link_count >= 2,
+        "expected postman_links registered for collection + environment (got {})",
+        postman_link_count
+    );
     Ok(())
 }

@@ -100,16 +100,16 @@ you've fished out of a paste or a customer report:
 
 ```bash
 # What does this AWS keypair actually own?
-kingfisher access-map aws ./aws.json --json-out aws.access-map.json
+kingfisher access-map aws ./aws.json --format json > aws.access-map.json
 
 # Same for a GitHub token
-kingfisher access-map github ./github.token --json-out github.access-map.json
+kingfisher access-map github ./github.token --format json > github.access-map.json
 
 # Or a GCP service account
-kingfisher access-map gcp ./service-account.json --json-out gcp.access-map.json
+kingfisher access-map gcp ./service-account.json --format json > gcp.access-map.json
 ```
 
-The HTML report viewer (`--format html`) renders the access map as a
+The access-map HTML report renders the access map as a
 clickable tree: identity at the root, then services, then individual
 resources and permissions. It is a much faster way to explain severity to
 an incident commander or manager than pasting IAM JSON into chat.

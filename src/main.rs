@@ -585,6 +585,12 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             teams_query: None,
             teams_api_url: Url::parse("https://graph.microsoft.com/").unwrap(),
 
+            postman_workspaces: Vec::new(),
+            postman_collections: Vec::new(),
+            postman_environments: Vec::new(),
+            postman_all: false,
+            postman_include_mocks_monitors: false,
+            postman_api_url: Url::parse("https://api.getpostman.com/").unwrap(),
             // Docker image scanning
             docker_image: Vec::new(),
 
