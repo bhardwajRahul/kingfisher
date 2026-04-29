@@ -22,7 +22,7 @@ Kingfisher is an open source secret scanner and **live secret validation** tool 
 
 It combines Intel's SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and ships with [945 built-in rules](https://mongodb.github.io/kingfisher/rules/builtin-rules/) to detect, **validate**, and triage leaked API keys, tokens, and credentials before they ever reach production.
 
-Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted copy of the viewer](https://mongodb.github.io/kingfisher/viewer/) is published on the Kingfisher docs site.
+Kingfisher also ships a **browser-based report viewer** that visualizes and triages findings from Kingfisher **and** from Gitleaks and TruffleHog JSON reports — so you can import scans from other tools and triage them in the same UI. A [hosted copy of the viewer](https://mongodb.github.io/kingfisher/viewer/) is published on the Kingfisher docs site [or run locally](#3-scan-and-view-results-in-browser)
 
 Designed for offensive security engineers and blue-team defenders alike, Kingfisher helps you scan repositories, cloud storage, chat, docs, and CI pipelines to find and verify exposed secrets quickly.
 
@@ -48,9 +48,9 @@ Kingfisher is a high-performance, open source secret detection tool for source c
 |:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|:-------------:|
 | <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure Repos"/><br/><sub>Azure Repos</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |<img src="./docs/assets/icons/huggingface.svg" height="40" width="40" alt="Hugging Face"/><br/><sub>Hugging Face</sub> |
 
-| Docker | Jira | Confluence | Slack | Teams | AWS S3 | Google Cloud |
-|:------:|:----:|:-----------:|:-----:|:-----:|:------:|:---:|
-| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/teams.svg" height="40" alt="Microsoft Teams"/><br/><sub>Teams</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |  <img src="./docs/assets/icons/gcs.svg" height="40" alt="Google Cloud Storage"/><br/><sub>Cloud Storage</sub> |
+| Docker | Jira | Confluence | Slack | Teams | Postman | AWS S3 | Google Cloud |
+|:------:|:----:|:-----------:|:-----:|:-----:|:-------:|:------:|:---:|
+| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/teams.svg" height="40" alt="Microsoft Teams"/><br/><sub>Teams</sub> | <img src="./docs/assets/icons/postman.svg" height="40" alt="Postman"/><br/><sub>Postman</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |  <img src="./docs/assets/icons/gcs.svg" height="40" alt="Google Cloud Storage"/><br/><sub>Cloud Storage</sub> |
 
 </div>
 

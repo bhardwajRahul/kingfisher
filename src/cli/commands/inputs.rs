@@ -467,6 +467,10 @@ impl InputSpecifierArgs {
             || self.confluence_url.is_some()
             || self.slack_query.is_some()
             || self.teams_query.is_some()
+            || !self.postman_workspaces.is_empty()
+            || !self.postman_collections.is_empty()
+            || !self.postman_environments.is_empty()
+            || self.postman_all
             || self.s3_bucket.is_some()
             || self.gcs_bucket.is_some()
             || !self.docker_image.is_empty()
