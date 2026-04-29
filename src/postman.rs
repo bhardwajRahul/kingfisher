@@ -86,15 +86,57 @@ fn token_from_env() -> Result<String> {
 
 /// Best-effort UID extraction. Accepts:
 /// - bare UID strings (returned unchanged)
-/// - Postman web URLs: take the last URL path segment
+/// - Postman web URLs of the form `.../{workspace,collection,environment,mock,monitor}[s]/<uid>[/<suffix>]`:
+///   the UID following the type marker is preferred. Falls back to the last
+///   non-suffix path segment if no type marker is present.
 fn resolve_uid(input: &str) -> String {
     if !input.starts_with("http://") && !input.starts_with("https://") {
         return input.to_string();
     }
-    if let Ok(parsed) = Url::parse(input)
-        && let Some(seg) = parsed.path_segments().and_then(|mut segs| segs.rfind(|s| !s.is_empty()))
-    {
-        return seg.to_string();
+    let Ok(parsed) = Url::parse(input) else {
+        return input.to_string();
+    };
+    let Some(segs) = parsed.path_segments() else {
+        return input.to_string();
+    };
+    let segs: Vec<&str> = segs.filter(|s| !s.is_empty()).collect();
+
+    // Prefer the segment immediately after the *last* known type marker.
+    // Postman web URLs commonly nest workspace + collection + suffix; the deepest
+    // type marker is the one the user pasted the URL to scan.
+    const TYPE_MARKERS: &[&str] = &[
+        "workspace",
+        "workspaces",
+        "collection",
+        "collections",
+        "environment",
+        "environments",
+        "mock",
+        "mocks",
+        "monitor",
+        "monitors",
+    ];
+    if let Some(window) = segs.windows(2).rev().find(|w| TYPE_MARKERS.contains(&w[0])) {
+        return window[1].to_string();
+    }
+
+    // Fall back to the last segment that is not a known terminal suffix
+    // (e.g. /overview, /edit, /run on Postman web URLs).
+    const TERMINAL_SUFFIXES: &[&str] = &[
+        "overview",
+        "edit",
+        "run",
+        "documentation",
+        "info",
+        "history",
+        "tests",
+        "request",
+        "fork",
+        "watch",
+        "comments",
+    ];
+    if let Some(last) = segs.iter().rev().find(|s| !TERMINAL_SUFFIXES.contains(s)) {
+        return last.to_string();
     }
     input.to_string()
 }
@@ -222,7 +264,7 @@ pub async fn download_postman_to_dir(
         .build()
         .context("Failed to build HTTP client")?;
 
-    std::fs::create_dir_all(output_dir)?;
+    tokio::fs::create_dir_all(output_dir).await?;
 
     let mut paths: Vec<(PathBuf, String)> = Vec::new();
 
@@ -378,12 +420,22 @@ mod tests {
     }
 
     #[test]
-    fn resolve_uid_extracts_last_segment_from_url() {
+    fn resolve_uid_extracts_uid_after_type_marker() {
         assert_eq!(
             resolve_uid("https://www.postman.com/team/workspace/abc-uid-123"),
             "abc-uid-123"
         );
-        assert_eq!(resolve_uid("https://www.postman.com/team/workspace/abc/overview"), "overview");
+        // Terminal `/overview` must not be mistaken for the UID.
+        assert_eq!(
+            resolve_uid("https://www.postman.com/team/workspace/abc-uid-123/overview"),
+            "abc-uid-123"
+        );
+        // Type marker preference: the segment after `collection/` is the UID, not the trailing segment.
+        assert_eq!(
+            resolve_uid("https://go.postman.co/workspace/wks-1/collection/col-9/run"),
+            "col-9"
+        );
+        assert_eq!(resolve_uid("https://go.postman.co/workspace/wks-1/environment/env-9"), "env-9");
     }
 
     #[test]

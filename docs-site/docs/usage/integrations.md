@@ -613,27 +613,27 @@ Kingfisher fetches Postman workspaces, collections, and environments via the pub
 ### Scan every workspace, collection, and environment visible to the API key
 
 ```bash
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan --postman-all
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman --all
 ```
 
 ### Scan a specific workspace (by ID or web URL)
 
 ```bash
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan \
-    --postman-workspace 11111111-2222-3333-4444-555555555555
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman \
+    --workspace 11111111-2222-3333-4444-555555555555
 
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan \
-    --postman-workspace https://www.postman.com/team-handle/workspace/abc-uid-123
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman \
+    --workspace https://www.postman.com/team-handle/workspace/abc-uid-123
 ```
 
 ### Scan a single collection or environment
 
 ```bash
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan \
-    --postman-collection 12345678-abcd-efgh-ijkl-mnopqrstuvwx
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman \
+    --collection 12345678-abcd-efgh-ijkl-mnopqrstuvwx
 
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan \
-    --postman-environment 12345678-abcd-efgh-ijkl-mnopqrstuvwx
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman \
+    --environment 12345678-abcd-efgh-ijkl-mnopqrstuvwx
 ```
 
 ### Include mocks and monitors
@@ -641,20 +641,22 @@ KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan \
 Mocks and monitors are scanned only when explicitly requested (they are lower-yield surfaces):
 
 ```bash
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan --postman-all \
-    --postman-include-mocks-monitors
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman --all \
+    --include-mocks-monitors
 ```
 
 ### Self-hosted / enterprise endpoint
 
 ```bash
-KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan --postman-all \
-    --postman-api-url https://postman.internal.example.com/
+KF_POSTMAN_TOKEN="PMAK-..." kingfisher scan postman --all \
+    --api-url https://postman.internal.example.com/
 ```
 
 The token is sent as the `X-Api-Key` header. Either `KF_POSTMAN_TOKEN` or `POSTMAN_API_KEY` is accepted (the latter matches the env var Postman's own docs reference). Mint a key from postman.com → Settings → API keys.
 
-**Out of scope:** Postman Vault secrets are client-side and not reachable via the API. The Postman API Network does not expose a search endpoint; supply specific public-workspace IDs via `--postman-workspace` to scan public surfaces.
+> Top-level `kingfisher scan --postman-*` flags remain accepted as hidden aliases for backward compatibility, but new usage should prefer the `kingfisher scan postman` subcommand shown above.
+
+**Out of scope:** Postman Vault secrets are client-side and not reachable via the API. The Postman API Network does not expose a search endpoint; supply specific public-workspace IDs via `kingfisher scan postman --workspace` to scan public surfaces.
 
 ## Environment Variables
 
