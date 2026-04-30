@@ -34,9 +34,6 @@ rules:
                 - 200
               type: StatusMatch
             - words:
-                - '"id"'
-              type: WordMatch
-            - words:
                 - '"type":"Unauthorized"'
               type: WordMatch
               negative: true

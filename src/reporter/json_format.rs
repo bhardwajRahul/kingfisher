@@ -12,8 +12,24 @@ impl DetailsReporter {
             // scan path: one envelope per repo) concatenate into valid
             // JSONL that `kingfisher view` can parse. Pipe through `jq .`
             // for human-readable pretty output.
-            serde_json::to_writer(&mut writer, &envelope)?;
-            writeln!(writer)?;
+            //
+            // Serialize into a single buffer and write it atomically while
+            // holding stdout's reentrant lock. The parallel scan path
+            // emits one envelope per repo from many rayon threads, each
+            // with its own `BufWriter<Stdout>`. Without this lock, the
+            // multiple `write()` calls produced by `serde_json::to_writer`
+            // and the eventual BufWriter flush can interleave across
+            // threads and corrupt JSONL lines. Stdout's lock is reentrant
+            // so internal `Stdout::write` calls during the flush don't
+            // deadlock with the explicit lock acquired here. For non-stdout
+            // writers (e.g. file output) the stdout lock is harmless extra
+            // contention.
+            let mut buf = Vec::with_capacity(8 * 1024);
+            serde_json::to_writer(&mut buf, &envelope)?;
+            buf.push(b'\n');
+            let _stdout_lock = std::io::stdout().lock();
+            writer.write_all(&buf)?;
+            writer.flush()?;
         }
         Ok(())
     }
