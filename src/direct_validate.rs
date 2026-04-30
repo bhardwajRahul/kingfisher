@@ -602,7 +602,11 @@ pub async fn run_direct_validation(
         // tools (and integration tests) unable to distinguish "no rule"
         // from "validation attempted, infrastructure failed". Match the
         // pattern used by AWS / GCP / raw branches below: surface the
-        // error as a non-valid result with the error in `message`.
+        // failure as a non-valid result with a generic `message`. The
+        // underlying error is intentionally NOT included in stdout or in
+        // debug logs because the rendered URL / headers / body can
+        // contain `{{ TOKEN }}` substituted to the secret (and any
+        // `--var` / `--arg` values).
         let mut result = match validation {
             Validation::Http(http_validation) => {
                 match execute_http_validation(
@@ -617,20 +621,19 @@ pub async fn run_direct_validation(
                 .await
                 {
                     Ok(r) => r,
-                    Err(e) => {
-                        // Don't surface the underlying error: it can embed
-                        // the rendered URL with `{{ TOKEN }}` substituted
-                        // (i.e. the secret) or `--var` / `--arg` values.
-                        // Log the detail for debugging and emit a generic
-                        // message to stdout.
-                        debug!("HTTP validation failed: {e}");
+                    Err(_e) => {
+                        // Intentionally drop the underlying error: it can
+                        // embed the rendered URL with `{{ TOKEN }}`
+                        // substituted (i.e. the secret) or `--var` /
+                        // `--arg` values. Logging it (even at debug) would
+                        // leak credentials into stderr when -v is on.
+                        debug!("HTTP validation failed");
                         DirectValidationResult {
                             rule_id: String::new(),
                             rule_name: String::new(),
                             is_valid: false,
                             status_code: None,
-                            message: "HTTP validation failed (see debug logs for details)"
-                                .to_string(),
+                            message: "HTTP validation failed".to_string(),
                         }
                     }
                 }
@@ -646,15 +649,14 @@ pub async fn run_direct_validation(
                 .await
                 {
                     Ok(r) => r,
-                    Err(e) => {
-                        debug!("gRPC validation failed: {e}");
+                    Err(_e) => {
+                        debug!("gRPC validation failed");
                         DirectValidationResult {
                             rule_id: String::new(),
                             rule_name: String::new(),
                             is_valid: false,
                             status_code: None,
-                            message: "gRPC validation failed (see debug logs for details)"
-                                .to_string(),
+                            message: "gRPC validation failed".to_string(),
                         }
                     }
                 }
