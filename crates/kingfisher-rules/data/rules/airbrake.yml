@@ -33,9 +33,7 @@ rules:
             - status:
                 - 200
               type: StatusMatch
-            - words:
-                - '"id"'
-              type: WordMatch
+            - type: JsonValid
             - words:
                 - '"type":"Unauthorized"'
               type: WordMatch

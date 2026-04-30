@@ -12,8 +12,22 @@ impl DetailsReporter {
             // scan path: one envelope per repo) concatenate into valid
             // JSONL that `kingfisher view` can parse. Pipe through `jq .`
             // for human-readable pretty output.
-            serde_json::to_writer(&mut writer, &envelope)?;
-            writeln!(writer)?;
+            //
+            // Serialize into a single buffer and emit via a single
+            // `write_all` so callers that need cross-thread atomicity
+            // (e.g. the parallel scan path emitting one envelope per repo
+            // to stdout) can synchronize at the call site by holding
+            // `std::io::stdout().lock()` around this call. We intentionally
+            // do NOT acquire the stdout lock here because this method is
+            // generic over any `Write` and is also called with file
+            // writers and `Cursor<Vec<u8>>` in tests. Flushing is the
+            // caller's responsibility — flushing here would defeat
+            // upstream `BufWriter` buffering and turn an otherwise-benign
+            // BrokenPipe into a hard error.
+            let mut buf = Vec::with_capacity(8 * 1024);
+            serde_json::to_writer(&mut buf, &envelope)?;
+            buf.push(b'\n');
+            writer.write_all(&buf)?;
         }
         Ok(())
     }

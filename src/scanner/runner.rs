@@ -941,13 +941,42 @@ async fn run_parallel_scan(
                         }
 
                         if !output_to_file {
-                            crate::reporter::run(
+                            // Per-repo emit goes to stdout from many rayon
+                            // threads in parallel. Render the report into
+                            // an in-memory buffer first (CPU work, no
+                            // contention), then take the stdout lock only
+                            // around the final atomic write+flush so two
+                            // threads' envelopes can't interleave and
+                            // corrupt JSONL output.
+                            let mut buf: Vec<u8> = Vec::with_capacity(8 * 1024);
+                            crate::reporter::run_with_writer(
                                 global_args,
                                 Arc::clone(&repo_datastore),
                                 &args,
                                 None,
+                                &mut buf,
                             )
                             .context("Failed to run report command")?;
+                            if !buf.is_empty() {
+                                use std::io::Write;
+                                let mut stdout = std::io::stdout().lock();
+                                // Treat a closed downstream pipe (e.g.
+                                // `kingfisher scan ... | head`) as a normal
+                                // early exit, matching `summary.rs::safe_println!`.
+                                // Any other I/O error is a real failure.
+                                if let Err(err) = stdout.write_all(&buf) {
+                                    if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                        std::process::exit(0);
+                                    }
+                                    return Err(err.into());
+                                }
+                                if let Err(err) = stdout.flush() {
+                                    if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                        std::process::exit(0);
+                                    }
+                                    return Err(err.into());
+                                }
+                            }
                         }
 
                         {

@@ -507,17 +507,30 @@ pub fn run(
     args: &cli::commands::scan::ScanArgs,
     audit_context: Option<ScanAuditContext>,
 ) -> Result<()> {
+    let writer = args.output_args.get_writer()?;
+    run_with_writer(global_args, ds, args, audit_context, writer)
+}
+
+/// Same as [`run`], but writes into a caller-provided `Write` instead of
+/// constructing one from `args.output_args`. Useful when the caller wants
+/// to render into an in-memory buffer first (e.g. so a stdout lock can be
+/// held only around the final atomic emit, not around the report's CPU
+/// work).
+pub fn run_with_writer<W: std::io::Write>(
+    global_args: &GlobalArgs,
+    ds: Arc<Mutex<findings_store::FindingsStore>>,
+    args: &cli::commands::scan::ScanArgs,
+    audit_context: Option<ScanAuditContext>,
+    writer: W,
+) -> Result<()> {
     global_args.use_color(std::io::stdout());
     let stdout_is_tty = std::io::stdout().is_terminal();
     let use_color = stdout_is_tty && !args.output_args.has_output();
     let styles = Styles::new(use_color);
 
     let ds_clone = Arc::clone(&ds);
-    // Initialize the reporter
     let reporter =
         DetailsReporter { datastore: ds_clone, styles, only_valid: args.only_valid, audit_context };
-    let writer = args.output_args.get_writer()?;
-    // Generate and write the report in the specified format
     reporter.report(args.output_args.format, writer, args)
 }
 pub struct DetailsReporter {
