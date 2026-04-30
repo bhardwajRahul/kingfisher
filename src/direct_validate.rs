@@ -617,13 +617,22 @@ pub async fn run_direct_validation(
                 .await
                 {
                     Ok(r) => r,
-                    Err(e) => DirectValidationResult {
-                        rule_id: String::new(),
-                        rule_name: String::new(),
-                        is_valid: false,
-                        status_code: None,
-                        message: format!("HTTP validation error: {}", e),
-                    },
+                    Err(e) => {
+                        // Don't surface the underlying error: it can embed
+                        // the rendered URL with `{{ TOKEN }}` substituted
+                        // (i.e. the secret) or `--var` / `--arg` values.
+                        // Log the detail for debugging and emit a generic
+                        // message to stdout.
+                        debug!("HTTP validation failed: {e}");
+                        DirectValidationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            is_valid: false,
+                            status_code: None,
+                            message: "HTTP validation failed (see debug logs for details)"
+                                .to_string(),
+                        }
+                    }
                 }
             }
             Validation::Grpc(grpc_validation_cfg) => {
@@ -637,13 +646,17 @@ pub async fn run_direct_validation(
                 .await
                 {
                     Ok(r) => r,
-                    Err(e) => DirectValidationResult {
-                        rule_id: String::new(),
-                        rule_name: String::new(),
-                        is_valid: false,
-                        status_code: None,
-                        message: format!("gRPC validation error: {}", e),
-                    },
+                    Err(e) => {
+                        debug!("gRPC validation failed: {e}");
+                        DirectValidationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            is_valid: false,
+                            status_code: None,
+                            message: "gRPC validation failed (see debug logs for details)"
+                                .to_string(),
+                        }
+                    }
                 }
             }
 
