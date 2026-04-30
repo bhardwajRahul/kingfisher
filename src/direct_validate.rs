@@ -595,10 +595,21 @@ pub async fn run_direct_validation(
             }
         }
 
-        // Execute validation based on type
+        // Execute validation based on type. Errors from the HTTP / gRPC
+        // pathways (DNS failure, SSRF preflight, request build, request
+        // execution, timeout) used to short-circuit the whole `validate`
+        // command via `?`, which left stdout empty and made downstream
+        // tools (and integration tests) unable to distinguish "no rule"
+        // from "validation attempted, infrastructure failed". Match the
+        // pattern used by AWS / GCP / raw branches below: surface the
+        // failure as a non-valid result with a generic `message`. The
+        // underlying error is intentionally NOT included in stdout or in
+        // debug logs because the rendered URL / headers / body can
+        // contain `{{ TOKEN }}` substituted to the secret (and any
+        // `--var` / `--arg` values).
         let mut result = match validation {
             Validation::Http(http_validation) => {
-                execute_http_validation(
+                match execute_http_validation(
                     http_validation,
                     &globals,
                     &client,
@@ -607,17 +618,48 @@ pub async fn run_direct_validation(
                     args.retries,
                     global_args.allow_internal_ips,
                 )
-                .await?
+                .await
+                {
+                    Ok(r) => r,
+                    Err(_e) => {
+                        // Intentionally drop the underlying error: it can
+                        // embed the rendered URL with `{{ TOKEN }}`
+                        // substituted (i.e. the secret) or `--var` /
+                        // `--arg` values. Logging it (even at debug) would
+                        // leak credentials into stderr when -v is on.
+                        debug!("HTTP validation failed");
+                        DirectValidationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            is_valid: false,
+                            status_code: None,
+                            message: "HTTP validation failed".to_string(),
+                        }
+                    }
+                }
             }
             Validation::Grpc(grpc_validation_cfg) => {
-                execute_grpc_validation(
+                match execute_grpc_validation(
                     grpc_validation_cfg,
                     &globals,
                     &parser,
                     timeout,
                     global_args.allow_internal_ips,
                 )
-                .await?
+                .await
+                {
+                    Ok(r) => r,
+                    Err(_e) => {
+                        debug!("gRPC validation failed");
+                        DirectValidationResult {
+                            rule_id: String::new(),
+                            rule_name: String::new(),
+                            is_valid: false,
+                            status_code: None,
+                            message: "gRPC validation failed".to_string(),
+                        }
+                    }
+                }
             }
 
             Validation::AWS => {
