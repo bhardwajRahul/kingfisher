@@ -723,6 +723,12 @@ async fn run_sequential_scan(
     })();
     input_roots.extend(streamed_roots);
 
+    // Drop the receiver before joining producers. If `scan_result` is Err,
+    // the loop exited early and producers could be blocked on `send` against
+    // a full bounded channel; dropping `repo_rx` makes those sends return Err
+    // so the threads can exit and `join()` doesn't deadlock.
+    drop(repo_rx);
+
     if let Some(handle) = repo_clone_handle {
         let _ = handle.join();
     }

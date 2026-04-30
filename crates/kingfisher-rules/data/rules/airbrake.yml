@@ -36,8 +36,8 @@ rules:
             - words:
                 - '"id"'
               type: WordMatch
-            - type: Word
-              match_words:
+            - words:
                 - '"type":"Unauthorized"'
+              type: WordMatch
               negative: true
           url: https://api.airbrake.io/api/v4/projects?key={{ TOKEN }}
