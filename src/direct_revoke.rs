@@ -264,8 +264,9 @@ fn extract_value_from_response(
                 serde_json::from_str(body).context("Response body is not valid JSON")?;
 
             // Simple JSONPath implementation supporting basic paths like:
-            // $.field, $.field.nested, $.array[0], $.array[0].field
-            let path_parts: Vec<&str> = path.trim_start_matches("$.").split('.').collect();
+            // $.field, $.field.nested, $.array[0], $.array[0].field, $[0], $[0].field
+            let normalized = path.trim_start_matches('$').trim_start_matches('.');
+            let path_parts: Vec<&str> = normalized.split('.').collect();
 
             let mut current = &json;
             for part in path_parts {
@@ -834,6 +835,25 @@ mod tests {
     fn jsonpath_array_second_element() {
         let ext = ResponseExtractor::JsonPath { path: "$.data[1].name".into() };
         let body = r#"{"data":[{"name":"a"},{"name":"b"}]}"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "b");
+    }
+
+    #[test]
+    fn jsonpath_root_array_index_field() {
+        // Used by kingfisher.jira.3 revocation: GET /rest/pat/latest/tokens
+        // returns a JSON array at the document root, and the rule extracts
+        // JIRA_TOKEN_ID with path "$[0].id".
+        let ext = ResponseExtractor::JsonPath { path: "$[0].id".into() };
+        let body = r#"[{"id":278,"name":"ITSYSENG-8330"}]"#;
+        let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
+        assert_eq!(result.unwrap(), "278");
+    }
+
+    #[test]
+    fn jsonpath_root_array_index_scalar() {
+        let ext = ResponseExtractor::JsonPath { path: "$[1]".into() };
+        let body = r#"["a","b","c"]"#;
         let result = extract_value_from_response(&ext, body, &HeaderMap::new(), &StatusCode::OK);
         assert_eq!(result.unwrap(), "b");
     }

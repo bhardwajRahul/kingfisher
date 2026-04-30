@@ -224,8 +224,15 @@ async fn test_scan_teams_messages() -> Result<()> {
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
     let update_status = UpdateStatus::default();
 
-    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db, &update_status)
-        .await?;
+    run_async_scan(
+        &global_args,
+        &scan_args,
+        Arc::clone(&datastore),
+        &rules_db,
+        &update_status,
+        false,
+    )
+    .await?;
 
     let findings = {
         let ds = datastore.lock().unwrap();

@@ -231,6 +231,7 @@ rules:
         Arc::clone(&datastore),
         &rules_db,
         &update_status,
+        false,
     ))?;
 
     let x = Ok(datastore.lock().unwrap().get_matches().len());

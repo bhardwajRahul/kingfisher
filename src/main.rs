@@ -299,6 +299,12 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         };
                         let keep_clones = scan_args.input_specifier_args.keep_clones
                             && scan_args.input_specifier_args.git_clone_dir.is_none();
+                        // When clones go into the temp dir and the user hasn't asked to
+                        // keep them, delete each clone as soon as it has been scanned so
+                        // disk usage stays bounded for very large fan-outs (e.g.
+                        // --include-contributors expanding to thousands of repos).
+                        let auto_cleanup_clones = !scan_args.input_specifier_args.keep_clones
+                            && scan_args.input_specifier_args.git_clone_dir.is_none();
 
                         let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
                         info!(
@@ -326,6 +332,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                             &rules_db,
                             Arc::clone(&datastore),
                             &update_status,
+                            auto_cleanup_clones,
                         )
                         .await?;
                         if update_status.is_outdated {

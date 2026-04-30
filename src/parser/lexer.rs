@@ -636,7 +636,10 @@ fn extract_literal_values(input: &str, allow_bare: bool) -> Vec<String> {
                 idx += 1;
                 while idx < bytes.len() {
                     if bytes[idx] == b'\\' && quote != b'`' {
-                        idx += 2;
+                        // Skip the escape byte and the byte that follows;
+                        // clamp so a trailing backslash can't push idx past
+                        // the end of the input.
+                        idx = (idx + 2).min(bytes.len());
                         continue;
                     }
                     if bytes[idx] == quote {
@@ -645,7 +648,8 @@ fn extract_literal_values(input: &str, allow_bare: bool) -> Vec<String> {
                     }
                     idx += 1;
                 }
-                values.push(input[start..idx].to_string());
+                let end = idx.min(bytes.len());
+                values.push(input[start..end].to_string());
             }
             b'[' | b'(' | b'{' => {
                 let (close, start) = match bytes[idx] {
@@ -663,7 +667,9 @@ fn extract_literal_values(input: &str, allow_bare: bool) -> Vec<String> {
                             idx += 1;
                             while idx < bytes.len() {
                                 if bytes[idx] == b'\\' && quote != b'`' {
-                                    idx += 2;
+                                    // Clamp so a trailing backslash inside a
+                                    // bracketed string can't escape past EOF.
+                                    idx = (idx + 2).min(bytes.len());
                                     continue;
                                 }
                                 if bytes[idx] == quote {
@@ -1059,6 +1065,28 @@ mod tests {
     fn extract_literals_escaped_quotes() {
         let vals = extract_literal_values(r#""he said \"hi\"""#, false);
         assert_eq!(vals, vec![r#""he said \"hi\"""#]);
+    }
+
+    #[test]
+    fn extract_literals_trailing_backslash_does_not_panic() {
+        // Regression: a string literal ending in a lone backslash used to
+        // push idx past bytes.len() and panic at `input[start..idx]`.
+        // The unterminated literal should be returned as-is (without the
+        // closing quote that doesn't exist) and contain the trailing
+        // backslash.
+        let single = extract_literal_values("'foo \\", false);
+        assert_eq!(single, vec!["'foo \\"]);
+
+        let double = extract_literal_values("\"foo \\", false);
+        assert_eq!(double, vec!["\"foo \\"]);
+
+        // The bracketed form should also recurse into the unterminated
+        // string without panicking; the result may be empty if no inner
+        // values were closed, but the call must return.
+        let bracketed = extract_literal_values("['foo \\']", false);
+        // Only assert non-panic; exact shape depends on bracket matching
+        // around an unterminated string.
+        let _ = bracketed;
     }
 
     #[test]

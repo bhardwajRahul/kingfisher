@@ -275,8 +275,15 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
     };
     let update_status = UpdateStatus::default();
 
-    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db, &update_status)
-        .await?;
+    run_async_scan(
+        &global_args,
+        &scan_args,
+        Arc::clone(&datastore),
+        &rules_db,
+        &update_status,
+        false,
+    )
+    .await?;
 
     /* --------------------------------------------------------- *
      * 6. Assertions                                             *

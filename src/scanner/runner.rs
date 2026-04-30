@@ -63,10 +63,18 @@ pub async fn run_scan(
     rules_db: &RulesDatabase,
     datastore: Arc<Mutex<FindingsStore>>,
     update_status: &crate::update::UpdateStatus,
+    auto_cleanup_clones: bool,
 ) -> Result<()> {
-    run_async_scan(global_args, scan_args, Arc::clone(&datastore), rules_db, update_status)
-        .await
-        .context("Failed to run scan command")
+    run_async_scan(
+        global_args,
+        scan_args,
+        Arc::clone(&datastore),
+        rules_db,
+        update_status,
+        auto_cleanup_clones,
+    )
+    .await
+    .context("Failed to run scan command")
 }
 
 pub async fn run_async_scan(
@@ -75,6 +83,7 @@ pub async fn run_async_scan(
     datastore: Arc<Mutex<findings_store::FindingsStore>>,
     rules_db: &RulesDatabase,
     update_status: &crate::update::UpdateStatus,
+    auto_cleanup_clones: bool,
 ) -> Result<()> {
     // ── Phase 1: Input validation and environment setup ──────────────────
     validate_inputs(args)?;
@@ -93,20 +102,37 @@ pub async fn run_async_scan(
     let repo_urls = enumerate_all_repos(args, global_args).await?;
 
     let mut input_roots = args.input_specifier_args.path_inputs.clone();
-    let (repo_tx, repo_rx) = crossbeam_channel::unbounded();
-    let repo_clone_handle =
-        start_repo_cloning(&repo_urls, args, global_args, &datastore, repo_tx, progress_enabled);
+    // Bound the channel feeding the scan loop. Both the cloner pool and the
+    // artifact-fetching task push into this channel; bounding it caps how
+    // many cloned-but-unscanned repos sit on disk while the scanner catches
+    // up. Combined with the inner cloner→dispatcher channel (also
+    // 2*num_jobs) and the per-repo cleanup after scan, the worst-case
+    // on-disk count is roughly 6*num_jobs (inner queue + outer queue +
+    // active cloners + active scans), i.e. O(num_jobs).
+    let scan_channel_cap = std::cmp::max(2, args.num_jobs * 2);
+    let (repo_tx, repo_rx) = crossbeam_channel::bounded(scan_channel_cap);
 
-    // ── Phase 3: Artifact fetching ──────────────────────────────────────
-    fetch_all_artifacts(
+    // ── Phase 3: Spawn cloning + artifact-fetching concurrently ─────────
+    // The scan loop will start consuming from `repo_rx` as soon as we get
+    // there in Phase 5; both producers feed it as their work completes.
+    let repo_clone_handle = start_repo_cloning(
+        &repo_urls,
+        args,
+        global_args,
+        &datastore,
+        repo_tx.clone(),
+        progress_enabled,
+    );
+    let artifact_handle = start_artifact_fetching(
         args,
         global_args,
         &repo_urls,
         &datastore,
-        &mut input_roots,
+        repo_tx.clone(),
         progress_enabled,
-    )
-    .await?;
+    );
+    // Drop the local sender so the channel closes once all producers finish.
+    drop(repo_tx);
 
     // ── Phase 4: Scan configuration ─────────────────────────────────────
     let shared_profiler = Arc::new(ConcurrentRuleProfiler::new());
@@ -138,7 +164,15 @@ pub async fn run_async_scan(
 
     let has_remote_objects = args.input_specifier_args.s3_bucket.is_some()
         || args.input_specifier_args.gcs_bucket.is_some();
-    if input_roots.is_empty() && repo_urls.is_empty() && !has_remote_objects {
+    // The artifact task pushes into `repo_rx` asynchronously, so we can't
+    // observe its work via `input_roots`. Defer to the type to know which
+    // flags schedule artifact fetching so this stays in sync as new sources
+    // are added.
+    if input_roots.is_empty()
+        && repo_urls.is_empty()
+        && !has_remote_objects
+        && !args.input_specifier_args.has_artifact_sources()
+    {
         bail!("No inputs to scan");
     }
 
@@ -190,6 +224,7 @@ pub async fn run_async_scan(
             &mut input_roots,
             repo_rx,
             repo_clone_handle,
+            artifact_handle,
             &shared_profiler,
             enable_profiling,
             &matcher_stats,
@@ -200,6 +235,7 @@ pub async fn run_async_scan(
             start_time,
             scan_started_at,
             update_status,
+            auto_cleanup_clones,
         )
         .await?;
         return Ok(());
@@ -213,6 +249,7 @@ pub async fn run_async_scan(
         &repo_roots,
         repo_rx,
         repo_clone_handle,
+        artifact_handle,
         &shared_profiler,
         enable_profiling,
         &matcher_stats,
@@ -223,6 +260,7 @@ pub async fn run_async_scan(
         start_time,
         scan_started_at,
         update_status,
+        auto_cleanup_clones,
     )
     .await
 }
@@ -338,53 +376,123 @@ fn start_repo_cloning(
     Some(handle)
 }
 
-/// Fetches artifacts from various platforms (issues, wikis, Jira, Confluence, Slack, Docker).
+/// Spawns a dedicated thread (with its own multi-threaded tokio runtime)
+/// that streams artifact directories into `out_tx` as each fetch completes.
+/// Decoupling from the parent runtime ensures the artifact task can make
+/// progress regardless of how the parent runtime is configured (including
+/// `#[tokio::test]`'s default single-threaded runtime), while the scan
+/// loops on the parent thread block on sync `repo_rx.iter()`.
+///
+/// # Panics
+///
+/// Panics if the OS refuses to spawn the worker thread (e.g. resource
+/// exhaustion). This is treated as unrecoverable on the main scan path
+/// because every other concurrent component would face the same limit.
+fn start_artifact_fetching(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    repo_urls: &[crate::git_url::GitUrl],
+    datastore: &Arc<Mutex<FindingsStore>>,
+    out_tx: crossbeam_channel::Sender<PathBuf>,
+    progress_enabled: bool,
+) -> std::thread::JoinHandle<Result<()>> {
+    let args = args.clone();
+    let global_args = global_args.clone();
+    let repo_urls = repo_urls.to_vec();
+    let datastore = Arc::clone(datastore);
+    std::thread::Builder::new()
+        .name("artifact-fetcher".to_string())
+        .spawn(move || -> Result<()> {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(args.num_jobs.max(1))
+                .enable_all()
+                .build()
+                .context("Failed to build artifact-fetcher runtime")?;
+            rt.block_on(fetch_all_artifacts(
+                &args,
+                &global_args,
+                &repo_urls,
+                &datastore,
+                out_tx,
+                progress_enabled,
+            ))
+        })
+        .expect("failed to spawn artifact-fetcher thread")
+}
+
+/// Fetches artifacts from various platforms (issues, wikis, Jira, Confluence,
+/// Slack, Docker) and streams each produced directory into `out_tx` as soon
+/// as it is ready, so the scan loop can process them concurrently with
+/// further fetches and with cloning. Returns when all sources are exhausted
+/// or when the receiver has been dropped (scan aborted).
 async fn fetch_all_artifacts(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,
     repo_urls: &[crate::git_url::GitUrl],
     datastore: &Arc<Mutex<FindingsStore>>,
-    input_roots: &mut Vec<PathBuf>,
+    out_tx: crossbeam_channel::Sender<PathBuf>,
     progress_enabled: bool,
 ) -> Result<()> {
     let bitbucket_auth = bitbucket::AuthConfig::from_env();
     let bitbucket_host =
         args.input_specifier_args.bitbucket_api_url.host_str().map(|s| s.to_string());
 
+    let push = |dir: PathBuf, tx: &crossbeam_channel::Sender<PathBuf>| -> bool {
+        // send blocks on bounded channel (intended backpressure); errors
+        // only happen if all receivers have been dropped (scan aborted).
+        match tx.send(dir) {
+            Ok(()) => true,
+            Err(_) => {
+                debug!("scan channel closed; stopping artifact fetcher");
+                false
+            }
+        }
+    };
+
     if args.input_specifier_args.repo_artifacts {
-        let repo_artifact_dirs = fetch_git_host_artifacts(
+        fetch_git_host_artifacts(
             repo_urls,
             &args.input_specifier_args.bitbucket_api_url,
             &bitbucket_auth,
             bitbucket_host.clone(),
             global_args,
             datastore,
+            args.num_jobs,
+            out_tx.clone(),
         )
         .await?;
-        input_roots.extend(repo_artifact_dirs);
     }
 
-    // Fetch Jira issues if requested
-    let jira_dirs = fetch_jira_issues(args, global_args, datastore).await?;
-    input_roots.extend(jira_dirs);
+    for d in fetch_jira_issues(args, global_args, datastore).await? {
+        if !push(d, &out_tx) {
+            return Ok(());
+        }
+    }
 
-    // Fetch Confluence pages if requested
-    let confluence_dirs = fetch_confluence_pages(args, global_args, datastore).await?;
-    input_roots.extend(confluence_dirs);
+    for d in fetch_confluence_pages(args, global_args, datastore).await? {
+        if !push(d, &out_tx) {
+            return Ok(());
+        }
+    }
 
-    // Fetch Slack messages if requested
-    let slack_dirs = fetch_slack_messages(args, global_args, datastore).await?;
-    input_roots.extend(slack_dirs);
+    for d in fetch_slack_messages(args, global_args, datastore).await? {
+        if !push(d, &out_tx) {
+            return Ok(());
+        }
+    }
 
-    // Fetch Teams messages if requested
-    let teams_dirs = fetch_teams_messages(args, global_args, datastore).await?;
-    input_roots.extend(teams_dirs);
+    for d in fetch_teams_messages(args, global_args, datastore).await? {
+        if !push(d, &out_tx) {
+            return Ok(());
+        }
+    }
 
-    // Fetch Postman resources if requested
-    let postman_dirs = fetch_postman_resources(args, global_args, datastore).await?;
-    input_roots.extend(postman_dirs);
+    for d in fetch_postman_resources(args, global_args, datastore).await? {
+        if !push(d, &out_tx) {
+            return Ok(());
+        }
+    }
 
-    // Save Docker images if specified
     if !args.input_specifier_args.docker_image.is_empty() {
         let clone_root = {
             let ds = datastore.lock().unwrap();
@@ -401,7 +509,9 @@ async fn fetch_all_artifacts(
                 let mut ds = datastore.lock().unwrap();
                 ds.register_docker_image(dir.clone(), img);
             }
-            input_roots.push(dir);
+            if !push(dir, &out_tx) {
+                return Ok(());
+            }
         }
     }
 
@@ -560,6 +670,7 @@ async fn run_sequential_scan(
     input_roots: &mut Vec<PathBuf>,
     repo_rx: crossbeam_channel::Receiver<PathBuf>,
     repo_clone_handle: Option<std::thread::JoinHandle<()>>,
+    artifact_handle: std::thread::JoinHandle<Result<()>>,
     shared_profiler: &Arc<ConcurrentRuleProfiler>,
     enable_profiling: bool,
     matcher_stats: &Arc<Mutex<MatcherStats>>,
@@ -570,39 +681,60 @@ async fn run_sequential_scan(
     start_time: Instant,
     scan_started_at: chrono::DateTime<chrono::Local>,
     update_status: &crate::update::UpdateStatus,
+    auto_cleanup_clones: bool,
 ) -> Result<()> {
     let mut streamed_roots = Vec::new();
-    if !input_roots.is_empty() {
-        let _inputs = enumerate_filesystem_inputs(
-            args,
-            datastore.clone(),
-            input_roots,
-            progress_enabled,
-            rules_db,
-            enable_profiling,
-            Arc::clone(shared_profiler),
-            matcher_stats.as_ref(),
-        )?;
-    }
+    // Run the scan loop in a closure so that, even if a per-repo
+    // `enumerate_filesystem_inputs` returns Err and short-circuits via `?`,
+    // we still drop `repo_rx` and join the cloning + artifact-fetching
+    // threads before returning. Without this, the producer threads would
+    // continue cloning into `/tmp` after the scan has already failed.
+    let scan_result: Result<()> = (|| {
+        if !input_roots.is_empty() {
+            let _inputs = enumerate_filesystem_inputs(
+                args,
+                datastore.clone(),
+                input_roots,
+                progress_enabled,
+                rules_db,
+                enable_profiling,
+                Arc::clone(shared_profiler),
+                matcher_stats.as_ref(),
+            )?;
+        }
 
-    for repo_root in repo_rx.iter() {
-        enumerate_filesystem_inputs(
-            args,
-            datastore.clone(),
-            &[repo_root.clone()],
-            progress_enabled,
-            rules_db,
-            enable_profiling,
-            Arc::clone(shared_profiler),
-            matcher_stats.as_ref(),
-        )?;
-        streamed_roots.push(repo_root);
-    }
+        for repo_root in repo_rx.iter() {
+            enumerate_filesystem_inputs(
+                args,
+                datastore.clone(),
+                &[repo_root.clone()],
+                progress_enabled,
+                rules_db,
+                enable_profiling,
+                Arc::clone(shared_profiler),
+                matcher_stats.as_ref(),
+            )?;
+            if auto_cleanup_clones && let Err(e) = fs::remove_dir_all(&repo_root) {
+                debug!("Failed to remove scanned clone {}: {e}", repo_root.display());
+            }
+            streamed_roots.push(repo_root);
+        }
+        Ok(())
+    })();
     input_roots.extend(streamed_roots);
 
     if let Some(handle) = repo_clone_handle {
         let _ = handle.join();
     }
+    let artifact_result = match artifact_handle.join() {
+        Ok(r) => r,
+        Err(_) => Err(anyhow::anyhow!("artifact fetch thread panicked")),
+    };
+
+    // Surface the scan error first; if scanning succeeded, surface any
+    // artifact-fetching error.
+    scan_result?;
+    artifact_result.map_err(|e| e.context("artifact fetching failed"))?;
 
     deduplicate_new_matches(datastore, global_args, args, 0)?;
     apply_baseline_if_configured(args, datastore, baseline_path.as_ref(), input_roots)?;
@@ -655,6 +787,7 @@ async fn run_parallel_scan(
     repo_roots: &[PathBuf],
     repo_rx: crossbeam_channel::Receiver<PathBuf>,
     repo_clone_handle: Option<std::thread::JoinHandle<()>>,
+    artifact_handle: std::thread::JoinHandle<Result<()>>,
     shared_profiler: &Arc<ConcurrentRuleProfiler>,
     enable_profiling: bool,
     matcher_stats: &Arc<Mutex<MatcherStats>>,
@@ -665,6 +798,7 @@ async fn run_parallel_scan(
     start_time: Instant,
     scan_started_at: chrono::DateTime<chrono::Local>,
     update_status: &crate::update::UpdateStatus,
+    auto_cleanup_clones: bool,
 ) -> Result<()> {
     deduplicate_new_matches(datastore, global_args, args, 0)?;
     apply_baseline_if_configured(args, datastore, baseline_path.as_ref(), repo_roots)?;
@@ -709,7 +843,15 @@ async fn run_parallel_scan(
         .build()
         .context("Failed to build repo scan thread pool")?
         .scope(|scope| {
-            let spawn_repo_scan = |root: PathBuf| {
+            // Distinguishes user-supplied `repo_roots` (must be preserved)
+            // from clones / artifact dirs that arrive via `repo_rx` and
+            // are eligible for post-scan cleanup.
+            #[derive(Clone, Copy)]
+            enum ScanRootSource {
+                UserPath,
+                Streamed,
+            }
+            let spawn_repo_scan = |root: PathBuf, source: ScanRootSource| {
                 let repo_rules = repo_rules.clone();
                 let base_clone_root = base_clone_root.clone();
                 let baseline_path = Arc::clone(baseline_path);
@@ -815,20 +957,33 @@ async fn run_parallel_scan(
                         error!("Repository scan failed: {e}");
                         repo_errors.lock().unwrap().push(e);
                     }
+
+                    if matches!(source, ScanRootSource::Streamed)
+                        && auto_cleanup_clones
+                        && let Err(e) = fs::remove_dir_all(&root)
+                    {
+                        debug!("Failed to remove scanned clone {}: {e}", root.display());
+                    }
                 });
             };
 
             for root in repo_roots.iter().cloned() {
-                spawn_repo_scan(root);
+                spawn_repo_scan(root, ScanRootSource::UserPath);
             }
 
             for root in repo_rx.iter() {
-                spawn_repo_scan(root);
+                spawn_repo_scan(root, ScanRootSource::Streamed);
             }
         });
 
     if let Some(handle) = repo_clone_handle {
         let _ = handle.join();
+    }
+    // Surface artifact-fetching errors after all per-repo scans have finished.
+    match artifact_handle.join() {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => return Err(e.context("artifact fetching failed")),
+        Err(_) => return Err(anyhow::anyhow!("artifact fetch thread panicked")),
     }
 
     if let Some(err) = repo_errors.lock().unwrap().pop() {

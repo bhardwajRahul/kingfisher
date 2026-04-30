@@ -182,8 +182,15 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
     let update_status = UpdateStatus::default();
 
     let datastore = Arc::new(Mutex::new(FindingsStore::new(temp_dir.path().to_path_buf())));
-    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db, &update_status)
-        .await?;
+    run_async_scan(
+        &global_args,
+        &scan_args,
+        Arc::clone(&datastore),
+        &rules_db,
+        &update_status,
+        false,
+    )
+    .await?;
 
     let ds = datastore.lock().unwrap();
     let matches = ds.get_matches();

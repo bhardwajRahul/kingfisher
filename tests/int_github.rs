@@ -209,7 +209,8 @@ fn test_github_remote_scan() -> Result<()> {
     let update_status = UpdateStatus::default();
     // Run the scan using runtime.block_on
     runtime.block_on(async {
-        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status).await
+        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status, false)
+            .await
     })?;
     // Get scan results
     let ds = datastore.lock().unwrap();
