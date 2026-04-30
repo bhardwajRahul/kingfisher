@@ -941,6 +941,14 @@ async fn run_parallel_scan(
                         }
 
                         if !output_to_file {
+                            // Per-repo emit goes to stdout from many rayon
+                            // threads in parallel. Hold stdout's reentrant
+                            // lock for the duration of `reporter::run` so
+                            // the report's writes (and the eventual
+                            // `BufWriter<Stdout>::flush` on drop) can't
+                            // interleave with another thread's report,
+                            // which would otherwise corrupt JSONL output.
+                            let _stdout_lock = std::io::stdout().lock();
                             crate::reporter::run(
                                 global_args,
                                 Arc::clone(&repo_datastore),
