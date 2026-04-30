@@ -960,8 +960,22 @@ async fn run_parallel_scan(
                             if !buf.is_empty() {
                                 use std::io::Write;
                                 let mut stdout = std::io::stdout().lock();
-                                stdout.write_all(&buf)?;
-                                stdout.flush()?;
+                                // Treat a closed downstream pipe (e.g.
+                                // `kingfisher scan ... | head`) as a normal
+                                // early exit, matching `summary.rs::safe_println!`.
+                                // Any other I/O error is a real failure.
+                                if let Err(err) = stdout.write_all(&buf) {
+                                    if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                        std::process::exit(0);
+                                    }
+                                    return Err(err.into());
+                                }
+                                if let Err(err) = stdout.flush() {
+                                    if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                        std::process::exit(0);
+                                    }
+                                    return Err(err.into());
+                                }
                             }
                         }
 
