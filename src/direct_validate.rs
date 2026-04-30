@@ -595,10 +595,17 @@ pub async fn run_direct_validation(
             }
         }
 
-        // Execute validation based on type
+        // Execute validation based on type. Errors from the HTTP / gRPC
+        // pathways (DNS failure, SSRF preflight, request build, request
+        // execution, timeout) used to short-circuit the whole `validate`
+        // command via `?`, which left stdout empty and made downstream
+        // tools (and integration tests) unable to distinguish "no rule"
+        // from "validation attempted, infrastructure failed". Match the
+        // pattern used by AWS / GCP / raw branches below: surface the
+        // error as a non-valid result with the error in `message`.
         let mut result = match validation {
             Validation::Http(http_validation) => {
-                execute_http_validation(
+                match execute_http_validation(
                     http_validation,
                     &globals,
                     &client,
@@ -607,17 +614,37 @@ pub async fn run_direct_validation(
                     args.retries,
                     global_args.allow_internal_ips,
                 )
-                .await?
+                .await
+                {
+                    Ok(r) => r,
+                    Err(e) => DirectValidationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        is_valid: false,
+                        status_code: None,
+                        message: format!("HTTP validation error: {}", e),
+                    },
+                }
             }
             Validation::Grpc(grpc_validation_cfg) => {
-                execute_grpc_validation(
+                match execute_grpc_validation(
                     grpc_validation_cfg,
                     &globals,
                     &parser,
                     timeout,
                     global_args.allow_internal_ips,
                 )
-                .await?
+                .await
+                {
+                    Ok(r) => r,
+                    Err(e) => DirectValidationResult {
+                        rule_id: String::new(),
+                        rule_name: String::new(),
+                        is_valid: false,
+                        status_code: None,
+                        message: format!("gRPC validation error: {}", e),
+                    },
+                }
             }
 
             Validation::AWS => {
