@@ -362,6 +362,7 @@ impl TestContext {
             Arc::clone(&datastore),
             &self.rules_db,
             &update_status,
+            false,
         )
         .await?;
 

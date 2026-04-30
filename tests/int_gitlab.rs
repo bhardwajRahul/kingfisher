@@ -206,7 +206,8 @@ fn test_gitlab_remote_scan() -> Result<()> {
     let update_status = UpdateStatus::default();
 
     rt.block_on(async {
-        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status).await
+        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status, false)
+            .await
     })?;
 
     let ds = datastore.lock().unwrap();
@@ -390,7 +391,8 @@ fn test_gitlab_remote_scan_no_history() -> Result<()> {
     let update_status = UpdateStatus::default();
 
     rt.block_on(async {
-        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status).await
+        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore), &update_status, false)
+            .await
     })?;
 
     let ds = datastore.lock().unwrap();

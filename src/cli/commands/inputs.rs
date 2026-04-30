@@ -476,6 +476,24 @@ impl InputSpecifierArgs {
             || !self.docker_image.is_empty()
     }
 
+    /// Return true when any flag has been set that schedules artifact
+    /// fetching (issues/PRs/wikis, Jira, Confluence, Slack, Teams, Postman,
+    /// or Docker images). Used by the scan runner to decide whether the
+    /// "no inputs" guard should bail out, since artifact dirs arrive via
+    /// the streaming scan channel rather than via `input_roots`.
+    pub fn has_artifact_sources(&self) -> bool {
+        self.repo_artifacts
+            || self.jira_url.is_some()
+            || self.confluence_url.is_some()
+            || self.slack_query.is_some()
+            || self.teams_query.is_some()
+            || !self.postman_workspaces.is_empty()
+            || !self.postman_collections.is_empty()
+            || !self.postman_environments.is_empty()
+            || self.postman_all
+            || !self.docker_image.is_empty()
+    }
+
     /// Emit deprecation warnings for legacy top-level provider flags.
     pub fn emit_deprecated_warnings(&self, used_legacy_git_url_flag: bool) {
         if used_legacy_git_url_flag {

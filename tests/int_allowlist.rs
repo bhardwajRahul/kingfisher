@@ -221,6 +221,7 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         Arc::clone(&datastore),
         &rules_db,
         &update_status,
+        false,
     ))?;
 
     let x = Ok(datastore.lock().unwrap().get_matches().len());

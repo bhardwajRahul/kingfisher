@@ -8,7 +8,11 @@ impl DetailsReporter {
     ) -> Result<()> {
         let envelope = self.build_report_envelope(args)?;
         if !envelope.findings.is_empty() || envelope.access_map.is_some() {
-            serde_json::to_writer_pretty(&mut writer, &envelope)?;
+            // Compact one-envelope-per-line so streaming emits (parallel
+            // scan path: one envelope per repo) concatenate into valid
+            // JSONL that `kingfisher view` can parse. Pipe through `jq .`
+            // for human-readable pretty output.
+            serde_json::to_writer(&mut writer, &envelope)?;
             writeln!(writer)?;
         }
         Ok(())
