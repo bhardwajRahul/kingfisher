@@ -942,20 +942,27 @@ async fn run_parallel_scan(
 
                         if !output_to_file {
                             // Per-repo emit goes to stdout from many rayon
-                            // threads in parallel. Hold stdout's reentrant
-                            // lock for the duration of `reporter::run` so
-                            // the report's writes (and the eventual
-                            // `BufWriter<Stdout>::flush` on drop) can't
-                            // interleave with another thread's report,
-                            // which would otherwise corrupt JSONL output.
-                            let _stdout_lock = std::io::stdout().lock();
-                            crate::reporter::run(
+                            // threads in parallel. Render the report into
+                            // an in-memory buffer first (CPU work, no
+                            // contention), then take the stdout lock only
+                            // around the final atomic write+flush so two
+                            // threads' envelopes can't interleave and
+                            // corrupt JSONL output.
+                            let mut buf: Vec<u8> = Vec::with_capacity(8 * 1024);
+                            crate::reporter::run_with_writer(
                                 global_args,
                                 Arc::clone(&repo_datastore),
                                 &args,
                                 None,
+                                &mut buf,
                             )
                             .context("Failed to run report command")?;
+                            if !buf.is_empty() {
+                                use std::io::Write;
+                                let mut stdout = std::io::stdout().lock();
+                                stdout.write_all(&buf)?;
+                                stdout.flush()?;
+                            }
                         }
 
                         {
