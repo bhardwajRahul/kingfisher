@@ -317,10 +317,7 @@ impl PermissionSummary {
     }
 
     pub fn total(&self) -> usize {
-        self.admin.len()
-            + self.privilege_escalation.len()
-            + self.risky.len()
-            + self.read_only.len()
+        self.admin.len() + self.privilege_escalation.len() + self.risky.len() + self.read_only.len()
     }
 }
 

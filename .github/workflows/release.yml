@@ -347,12 +347,46 @@ jobs:
         run: |
           awk '
             BEGIN            { grabbing = 0 }
-            /^## \[/         { 
+            /^## \[/         {
                                if (grabbing) exit;  # already grabbed latest entry
                                grabbing = 1
                              }
             grabbing         { print }
           ' CHANGELOG.md > .latest_changelog.md
+
+      # ── Sign every release artifact with a SLSA v1 build-provenance attestation.
+      #    actions/attest-build-provenance produces a multi-subject Sigstore Bundle
+      #    in JSONL format and writes it to bundle-path. We ship that file alongside
+      #    the binaries as `multiple.intoto.jsonl` so users can verify offline with
+      #    `gh attestation verify`, `cosign`, or `slsa-verifier` — no GitHub API call
+      #    required at verify time. This also satisfies the OSSF Scorecard
+      #    `Signed-Releases` check, which scans for *.intoto.jsonl in release assets.
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          # Match the actual artifact files under target/release/ (download-artifact
+          # places them in a subdirectory, so we use ** to recurse).
+          subject-path: |
+            target/release/**/kingfisher-*.tgz
+            target/release/**/kingfisher-*.zip
+            target/release/**/kingfisher-*.deb
+            target/release/**/kingfisher-*.rpm
+
+      - name: Stage attestation bundle as a release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_PATH='${{ steps.attest.outputs.bundle-path }}'
+          if [[ -z "${BUNDLE_PATH}" || ! -f "${BUNDLE_PATH}" ]]; then
+            echo "::error::attest-build-provenance did not produce a bundle at '${BUNDLE_PATH}'"
+            exit 1
+          fi
+          # Use the slsa-verifier-recognized filename for multi-subject bundles.
+          mkdir -p target/release
+          cp "${BUNDLE_PATH}" target/release/multiple.intoto.jsonl
+          echo "Bundle line count (one DSSE-wrapped attestation per subject):"
+          wc -l target/release/multiple.intoto.jsonl
 
       # ── create the release using just that snippet ─────────────────────
       - name: Create release & upload assets
@@ -364,11 +398,6 @@ jobs:
           allowUpdates: true
           generateReleaseNotes: false
           artifacts: target/release/**
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-path: 'target/release/*'
 
   # ──────────────── Publish Docker image ────────────────
   publish-docker:

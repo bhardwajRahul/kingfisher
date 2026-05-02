@@ -328,9 +328,7 @@ pub fn rewrite_argv_for_reexec(argv: impl IntoIterator<Item = OsString>) -> Vec<
         #[cfg(not(any(unix, windows)))]
         {
             // Fallback for unknown targets: best-effort UTF-8 conversion.
-            tok.to_str()
-                .map(|s| s.as_bytes().starts_with(prefix))
-                .unwrap_or(false)
+            tok.to_str().map(|s| s.as_bytes().starts_with(prefix)).unwrap_or(false)
         }
     }
 

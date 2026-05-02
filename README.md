@@ -318,18 +318,39 @@ Kingfisher supports multiple installation methods:
 
 ## Verifying Releases
 
-Every Kingfisher release includes GitHub build attestations so you can verify that artifacts were built by our CI pipeline and haven't been tampered with.
+Every release ships [SLSA v1 build-provenance attestations](https://github.com/actions/attest-build-provenance) (Sigstore keyless OIDC) proving the artifact was built by our CI workflow at a known commit and hasn't been tampered with. Attestations are available via the GitHub attestation store or as the `multiple.intoto.jsonl` release asset.
 
-### GitHub attestations
+**Option 1 — `gh attestation verify`** (simplest; requires [GitHub CLI](https://cli.github.com/))
 
-Release artifacts have GitHub build attestations, verifiable with the GitHub CLI:
+```bash
+gh release download <version> --repo mongodb/kingfisher --pattern 'kingfisher-linux-x64.tgz'
+gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
+```
+
+**Option 2 — `cosign`** (offline-friendly; requires [cosign](https://docs.sigstore.dev/system_config/installation/) ≥ 2.x)
 
 ```bash
 gh release download <version> --repo mongodb/kingfisher \
-  --pattern 'kingfisher-linux-x64.tgz'
+  --pattern 'kingfisher-linux-x64.tgz' --pattern 'multiple.intoto.jsonl'
 
-gh attestation verify kingfisher-linux-x64.tgz --repo mongodb/kingfisher
+cosign verify-blob-attestation \
+  --bundle multiple.intoto.jsonl \
+  --new-bundle-format \
+  --certificate-identity-regexp '^https://github.com/mongodb/kingfisher/\.github/workflows/release\.yml@refs/tags/v.*$' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  kingfisher-linux-x64.tgz
 ```
+
+**Option 3 — `slsa-verifier`** (requires [slsa-verifier](https://github.com/slsa-framework/slsa-verifier))
+
+```bash
+slsa-verifier verify-artifact kingfisher-linux-x64.tgz \
+  --provenance-path multiple.intoto.jsonl \
+  --source-uri github.com/mongodb/kingfisher \
+  --source-tag <version>
+```
+
+A successful verification prints `Verified OK`. The attestation proves the artifact's SHA-256, the signing identity (the release workflow at a specific tag), and the source commit — all recorded in the public [Rekor transparency log](https://search.sigstore.dev/).
 
 
 ## Report Viewer (local and hosted)

@@ -1256,11 +1256,8 @@ impl DetailsReporter {
 
             groups.sort_by(|a, b| a.resources.cmp(&b.resources));
 
-            let permissions_by_severity = if result.permissions.is_empty() {
-                None
-            } else {
-                Some(result.permissions.clone())
-            };
+            let permissions_by_severity =
+                if result.permissions.is_empty() { None } else { Some(result.permissions.clone()) };
             let context = AccessIdentityContext::from_summary(&result.identity);
 
             entries.push(AccessMapEntry {

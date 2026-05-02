@@ -138,10 +138,8 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
     for index in &indexes {
         let name = index.name.clone().unwrap_or_else(|| "unknown".to_string());
         let metric = index.metric.as_deref().unwrap_or("unknown");
-        let dimension = index
-            .dimension
-            .map(|d| d.to_string())
-            .unwrap_or_else(|| "unknown".to_string());
+        let dimension =
+            index.dimension.map(|d| d.to_string()).unwrap_or_else(|| "unknown".to_string());
         let ready = index.status.as_ref().and_then(|s| s.ready).unwrap_or(false);
         let state = index
             .status
@@ -175,13 +173,9 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
             }
         }
 
-        let host_suffix =
-            index.host.as_ref().map(|h| format!(" ({h})")).unwrap_or_default();
-        let location_suffix = if location.is_empty() {
-            String::new()
-        } else {
-            format!(" — {location}")
-        };
+        let host_suffix = index.host.as_ref().map(|h| format!(" ({h})")).unwrap_or_default();
+        let location_suffix =
+            if location.is_empty() { String::new() } else { format!(" — {location}") };
         let ready_marker = if ready { "ready" } else { "not ready" };
 
         resources.push(ResourceExposure {
@@ -316,16 +310,12 @@ async fn fetch_collections(client: &Client, token: &str) -> Result<Vec<PineconeC
     Ok(list.collections)
 }
 
-fn derive_severity(
-    indexes: &[PineconeIndex],
-    collections: &[PineconeCollection],
-) -> Severity {
+fn derive_severity(indexes: &[PineconeIndex], collections: &[PineconeCollection]) -> Severity {
     let index_count = indexes.len();
     let collection_count = collections.len();
     let total = index_count + collection_count;
-    let any_unprotected = indexes
-        .iter()
-        .any(|i| i.deletion_protection.as_deref().unwrap_or("disabled") != "enabled");
+    let any_unprotected =
+        indexes.iter().any(|i| i.deletion_protection.as_deref().unwrap_or("disabled") != "enabled");
 
     if index_count > 10 {
         return Severity::High;
