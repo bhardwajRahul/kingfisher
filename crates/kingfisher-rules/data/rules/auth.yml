@@ -10,6 +10,8 @@ rules:
       )
       (?:[^A-Za-z0-9+/=]|$)
     pattern_requirements:
+      min_digits: 1
+      min_lowercase: 1
       ignore_if_contains:
         - "dXNlcjpwYXNz"          # user:pass
         - "dXNlcjpwYXNzd29yZA"    # user:password
@@ -31,7 +33,7 @@ rules:
         - "YOUR_"
         - "$BASIC"
     min_entropy: 3.5
-    confidence: low
+    confidence: medium
     examples:
       - "Authorization: Basic SWxqcmpxZDpld3B3IGdlZmhtZA=="
       - "Authorization: Basic bXpnaGd6cTpsbmFrdWF6cXNx"
@@ -66,7 +68,7 @@ rules:
         - "1234567890abcdef"
         - "xxxxxxxxxxxxxxxx"
     min_entropy: 3.5
-    confidence: low
+    confidence: medium
     examples:
       - "Authorization: Bearer d1fc83f09661bcaf3cb3591ec4b93fe93b07087ef020886a4ead09e8efd8c0df"
       - "  - Bearer 7727d2fa5e8f7d37de25ef385ff8766d265ee2e7384efb311c04069d9c892c6b"

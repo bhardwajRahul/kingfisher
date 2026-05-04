@@ -443,7 +443,8 @@ fn describe_scan_target(args: &InputSpecifierArgs) -> Option<String> {
 fn build_alert_sinks(
     scan_args: &cli::commands::scan::ScanArgs,
 ) -> Vec<kingfisher::alerts::AlertSink> {
-    let cli_count = scan_args.alert_webhook.len() - scan_args.config_webhook_overrides.len();
+    let cli_count =
+        scan_args.alert_webhook.len().saturating_sub(scan_args.config_webhook_overrides.len());
     scan_args
         .alert_webhook
         .iter()
@@ -652,7 +653,20 @@ async fn async_main(args: CommandLineArgs) -> Result<AsyncMainOutcome> {
                                 Ok(records) => {
                                     let target =
                                         describe_scan_target(&scan_args.input_specifier_args);
-                                    let sinks = build_alert_sinks(&scan_args);
+                                    let sinks: Vec<_> = build_alert_sinks(&scan_args)
+                                        .into_iter()
+                                        .filter(|sink| {
+                                            match kingfisher::alerts::validate_webhook_url(
+                                                &sink.url,
+                                            ) {
+                                                Ok(()) => true,
+                                                Err(e) => {
+                                                    warn!("alert dispatch: skipping sink: {}", e);
+                                                    false
+                                                }
+                                            }
+                                        })
+                                        .collect();
                                     kingfisher::alerts::dispatch(&sinks, &records, target).await;
                                 }
                                 Err(e) => warn!("alert dispatch: failed to build findings: {}", e),

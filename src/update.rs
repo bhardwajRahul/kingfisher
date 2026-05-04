@@ -231,9 +231,22 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Upd
     if global_args.self_update {
         match updater.update() {
             Ok(status) => {
-                let message = format!("Updated to version {}", status.version());
-                let _ = writeln!(std::io::stderr(), "{}", styled_heading(&styles, &message));
-                was_self_updated = true;
+                if status.updated() {
+                    let message = format!("Updated to version {}", status.version());
+                    let _ = writeln!(std::io::stderr(), "{}", styled_heading(&styles, &message));
+                    was_self_updated = true;
+                } else {
+                    // Reported `UpToDate` despite the version-comparison branch — race or
+                    // tag mismatch. Skip re-exec to avoid pointless fork+exec.
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "{}",
+                        styled_heading(
+                            &styles,
+                            &format!("Already at version {} — no update applied", status.version()),
+                        )
+                    );
+                }
             }
             Err(e) => match e {
                 UpdError::Io(ref io_err) => match io_err.kind() {

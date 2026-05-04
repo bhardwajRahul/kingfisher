@@ -629,8 +629,8 @@ pub async fn run_direct_validation(
                         // leak credentials into stderr when -v is on.
                         debug!("HTTP validation failed");
                         DirectValidationResult {
-                            rule_id: String::new(),
-                            rule_name: String::new(),
+                            rule_id: rule_id.clone(),
+                            rule_name: rule_name.clone(),
                             is_valid: false,
                             status_code: None,
                             message: "HTTP validation failed".to_string(),
@@ -652,8 +652,8 @@ pub async fn run_direct_validation(
                     Err(_e) => {
                         debug!("gRPC validation failed");
                         DirectValidationResult {
-                            rule_id: String::new(),
-                            rule_name: String::new(),
+                            rule_id: rule_id.clone(),
+                            rule_name: rule_name.clone(),
                             is_valid: false,
                             status_code: None,
                             message: "gRPC validation failed".to_string(),

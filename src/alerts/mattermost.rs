@@ -108,12 +108,13 @@ pub fn build_payload(
         // Setting both `title_link` and a fallback field makes the link
         // visible regardless of how a given client/version renders.
         attachment["title_link"] = Value::String(url.clone());
-        let fields_arr = attachment["fields"].as_array_mut().expect("fields is an array");
-        fields_arr.push(json!({
-            "short": false,
-            "title": "Full report",
-            "value": format!("[Open]({})", url),
-        }));
+        if let Some(fields_arr) = attachment["fields"].as_array_mut() {
+            fields_arr.push(json!({
+                "short": false,
+                "title": "Full report",
+                "value": format!("[Open]({})", url),
+            }));
+        }
     }
 
     json!({

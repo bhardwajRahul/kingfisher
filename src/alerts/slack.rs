@@ -102,7 +102,7 @@ pub fn build_payload(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": format!("<{}|Full report →>", escape_mrkdwn(url))
+                "text": format!("<{}|Full report →>", url)
             }
         }));
     }

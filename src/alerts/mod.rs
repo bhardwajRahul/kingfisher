@@ -87,14 +87,18 @@ impl AlertFormat {
     pub fn infer_from_url(url: &str) -> Self {
         let host = url::Url::parse(url).ok().and_then(|u| u.host_str().map(str::to_lowercase));
         match host.as_deref() {
-            Some(h) if h.contains("slack.com") => AlertFormat::Slack,
-            Some(h) if h.contains("office.com") || h.contains("webhook.office") => {
+            Some(h) if host_matches(h, "slack.com") => AlertFormat::Slack,
+            Some(h)
+                if host_matches(h, "office.com")
+                    || host_matches(h, "webhook.office.com")
+                    || host_matches(h, "webhook.office.net") =>
+            {
                 AlertFormat::Teams
             }
-            Some(h) if h.contains("discord.com") || h.contains("discordapp.com") => {
+            Some(h) if host_matches(h, "discord.com") || host_matches(h, "discordapp.com") => {
                 AlertFormat::Discord
             }
-            Some(h) if h.contains("chat.googleapis.com") => AlertFormat::Googlechat,
+            Some(h) if host_matches(h, "chat.googleapis.com") => AlertFormat::Googlechat,
             _ => AlertFormat::Generic,
         }
     }
@@ -188,9 +192,38 @@ impl AlertSummary {
 fn build_client() -> Result<Client> {
     Client::builder()
         .timeout(Duration::from_secs(15))
+        .connect_timeout(Duration::from_secs(5))
         .user_agent(format!("kingfisher/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .context("failed to build webhook reqwest::Client")
+}
+
+/// Tail-match a hostname against a webhook host so substrings like
+/// `not-slack.com.attacker.example` cannot be misclassified.
+fn host_matches(host: &str, suffix: &str) -> bool {
+    host == suffix || host.ends_with(&format!(".{suffix}"))
+}
+
+/// Validate a webhook URL: must parse, must use http(s) scheme, must have a
+/// host. Returns the parsed URL on success.
+pub fn validate_webhook_url(url: &str) -> Result<()> {
+    let parsed = url::Url::parse(url)
+        .with_context(|| format!("invalid webhook URL `{}`", redact_for_log(url)))?;
+    let scheme = parsed.scheme();
+    if scheme != "https" && scheme != "http" {
+        anyhow::bail!(
+            "webhook URL `{}` uses unsupported scheme `{scheme}` (only http/https are allowed)",
+            redact_for_log(url)
+        );
+    }
+    if parsed.host_str().is_none_or(|h| h.is_empty()) {
+        anyhow::bail!("webhook URL `{}` has no host", redact_for_log(url));
+    }
+    Ok(())
+}
+
+fn redact_for_log(url: &str) -> String {
+    redact_webhook(url)
 }
 
 /// Redact the path/query of a webhook URL so we never log the full secret token

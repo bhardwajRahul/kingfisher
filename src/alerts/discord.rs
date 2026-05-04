@@ -113,12 +113,13 @@ pub fn build_payload(
         embed["url"] = Value::String(url.clone());
         // Append a fields entry too — embed `url` only renders if the title
         // is short enough; the field guarantees the link is visible.
-        let fields_arr = embed["fields"].as_array_mut().expect("fields is an array");
-        fields_arr.push(json!({
-            "name": "Full report",
-            "value": format!("[Open]({})", url),
-            "inline": false,
-        }));
+        if let Some(fields_arr) = embed["fields"].as_array_mut() {
+            fields_arr.push(json!({
+                "name": "Full report",
+                "value": format!("[Open]({})", url),
+                "inline": false,
+            }));
+        }
     }
 
     json!({ "embeds": [embed] })

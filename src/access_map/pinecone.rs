@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::{Context, Result, anyhow};
 use reqwest::{Client, header};
 use serde::Deserialize;
@@ -101,6 +103,8 @@ pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {
 pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
     let client = Client::builder()
         .user_agent(GLOBAL_USER_AGENT.as_str())
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(30))
         .build()
         .context("Failed to build Pinecone HTTP client")?;
 

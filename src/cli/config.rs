@@ -100,17 +100,43 @@ pub struct FiltersConfig {
     pub exclude: Vec<String>,
 }
 
-/// Parse YAML text into a config struct.
+/// Cap on `discover_path` upward walks. Avoids unbounded directory traversal
+/// on networked filesystems or pathological mount layouts.
+const DISCOVER_MAX_DEPTH: usize = 32;
+
+/// Parse YAML text into a config struct, validating webhook URLs and
+/// `skip_regex` patterns at parse time so config errors surface at a sensible
+/// location rather than mid-scan.
 pub fn parse_str(yaml: &str) -> Result<KingfisherConfig> {
-    serde_yaml::from_str(yaml).context("failed to parse kingfisher.yaml")
+    let cfg: KingfisherConfig =
+        serde_yaml::from_str(yaml).context("failed to parse kingfisher.yaml")?;
+    validate(&cfg)?;
+    Ok(cfg)
 }
 
-/// Walk upward from `start` looking for a sibling `kingfisher.yaml`. Returns
-/// the absolute path when found. Performs *no* file reads — the caller does
-/// the read once it has decided which file to use.
+fn validate(cfg: &KingfisherConfig) -> Result<()> {
+    for (idx, w) in cfg.alerts.webhooks.iter().enumerate() {
+        crate::alerts::validate_webhook_url(&w.url)
+            .with_context(|| format!("alerts.webhooks[{idx}].url"))?;
+        if let Some(report_url) = &w.report_url {
+            url::Url::parse(report_url)
+                .with_context(|| format!("alerts.webhooks[{idx}].report_url is not a valid URL"))?;
+        }
+    }
+    for (idx, pattern) in cfg.filters.skip_regex.iter().enumerate() {
+        regex::Regex::new(pattern)
+            .with_context(|| format!("filters.skip_regex[{idx}] is not a valid regex"))?;
+    }
+    Ok(())
+}
+
+/// Walk upward from `start` looking for `kingfisher.yaml` in each ancestor
+/// directory. Returns the absolute path when found. Performs *no* file reads —
+/// the caller does the read once it has decided which file to use. Capped at
+/// [`DISCOVER_MAX_DEPTH`] levels to bound the walk on networked filesystems.
 pub fn discover_path(start: &std::path::Path) -> Option<std::path::PathBuf> {
     let mut current = start.to_path_buf();
-    loop {
+    for _ in 0..=DISCOVER_MAX_DEPTH {
         let candidate = current.join(DEFAULT_CONFIG_NAME);
         if candidate.is_file() {
             return Some(candidate);
@@ -119,6 +145,7 @@ pub fn discover_path(start: &std::path::Path) -> Option<std::path::PathBuf> {
             return None;
         }
     }
+    None
 }
 
 #[cfg(test)]
@@ -156,9 +183,26 @@ filters:
 
     #[test]
     fn empty_yaml_yields_default() {
-        let cfg = parse_str("").unwrap_or_default();
+        // serde_yaml rejects an empty document, so feed it the canonical empty
+        // mapping. This both pins the contract (top-level must be a mapping)
+        // and exercises the "no fields set" path.
+        let cfg = parse_str("{}").unwrap();
         assert!(cfg.alerts.webhooks.is_empty());
         assert!(cfg.filters.skip_words.is_empty());
+    }
+
+    #[test]
+    fn invalid_webhook_url_is_rejected() {
+        let yaml = "alerts:\n  webhooks:\n    - url: not-a-url\n";
+        let err = parse_str(yaml).unwrap_err();
+        assert!(format!("{err:#}").contains("alerts.webhooks[0].url"));
+    }
+
+    #[test]
+    fn invalid_skip_regex_is_rejected() {
+        let yaml = "filters:\n  skip_regex: ['(unclosed']\n";
+        let err = parse_str(yaml).unwrap_err();
+        assert!(format!("{err:#}").contains("filters.skip_regex[0]"));
     }
 
     #[test]

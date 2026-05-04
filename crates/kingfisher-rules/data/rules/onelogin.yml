@@ -49,7 +49,7 @@ rules:
       |
         api[\s_.-]*secret
       |
-        secret
+        [\s_.\-:"'=]secret\b
       )
       (?:.|[\n\r]){0,20}?
       [=:"'\s_-]*
