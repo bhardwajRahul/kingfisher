@@ -346,6 +346,24 @@ fn apply_config(
         }
     }
 
+    /// Like `config_wins`, but also inspects a nested provider subcommand's
+    /// `--api-url` flag. The github/gitlab provider subcommands carry their
+    /// own `api_url` arg (id `api_url`) that gets propagated to
+    /// `scan_args.input_specifier_args.{github,gitlab}_api_url` in
+    /// `into_operation()`. If that nested flag was user-supplied, the config
+    /// must NOT clobber it.
+    fn api_url_config_wins(
+        matches: Option<&clap::ArgMatches>,
+        outer_id: &str,
+        subcommand: &str,
+    ) -> bool {
+        if !config_wins(matches, outer_id) {
+            return false;
+        }
+        let sub = matches.and_then(|m| m.subcommand_matches(subcommand));
+        config_wins(sub, "api_url")
+    }
+
     // ---------- Filters: existing v1 list-typed merges ----------------------
     scan_args.skip_word.extend(cfg.filters.skip_words.iter().cloned());
     scan_args.skip_regex.extend(cfg.filters.skip_regex.iter().cloned());
@@ -631,14 +649,21 @@ fn apply_config(
     // field. parse_str() already validated this — `unwrap_or_default()`
     // would mask a real config bug, so we re-parse and *fail loud* if the
     // string somehow does not parse here.
+    //
+    // The provider subcommands (`scan github`, `scan gitlab`) expose their
+    // own `--api-url` flag whose value is propagated into the same runtime
+    // field by `into_operation()`. `api_url_config_wins` checks both the
+    // outer hidden alias and the nested subcommand flag so an explicit
+    // `kingfisher scan github --api-url ...` is never overridden by the
+    // config file.
     if let Some(u) = &cfg.git.github_api_url
-        && config_wins(scan_matches, "github_api_url")
+        && api_url_config_wins(scan_matches, "github_api_url", "github")
         && let Ok(parsed) = url::Url::parse(u)
     {
         scan_args.input_specifier_args.github_api_url = parsed;
     }
     if let Some(u) = &cfg.git.gitlab_api_url
-        && config_wins(scan_matches, "gitlab_api_url")
+        && api_url_config_wins(scan_matches, "gitlab_api_url", "gitlab")
         && let Ok(parsed) = url::Url::parse(u)
     {
         scan_args.input_specifier_args.gitlab_api_url = parsed;
@@ -2267,5 +2292,96 @@ global:
         assert_eq!(global_args.tls_mode, kingfisher::cli::global::TlsMode::Lax);
         assert!(global_args.allow_internal_ips);
         assert_eq!(global_args.endpoint.len(), 1);
+    }
+
+    /// Regression test: an explicit `--api-url` on the `scan github`
+    /// subcommand must beat `git.github_api_url` from the config file. The
+    /// flag lives on `GithubScanArgs` (id `api_url`), not on the outer scan
+    /// command — checking only the outer matches misses it and the config
+    /// silently overrode the CLI value.
+    #[test]
+    fn github_subcommand_api_url_beats_config() {
+        let yaml = r#"
+git:
+  github_api_url: https://ghe-from-config.example.com/api/v3/
+"#;
+        let cfg = parse_str(yaml).unwrap();
+        let (args, matches) = parse(&[
+            "kingfisher",
+            "scan",
+            "github",
+            "--organization",
+            "my-org",
+            "--api-url",
+            "https://ghe-from-cli.example.com/api/v3/",
+        ]);
+        let mut global_args = args.global_args.clone();
+        let mut scan_args = into_scan(args);
+        super::apply_config(
+            &mut scan_args,
+            &mut global_args,
+            &cfg,
+            matches.subcommand_matches("scan"),
+        );
+        assert_eq!(
+            scan_args.input_specifier_args.github_api_url.as_str(),
+            "https://ghe-from-cli.example.com/api/v3/",
+        );
+    }
+
+    /// And the inverse: when the user did NOT pass `--api-url` at all,
+    /// `git.github_api_url` from the config should still win over the
+    /// built-in default `https://api.github.com/`.
+    #[test]
+    fn github_config_wins_when_subcommand_api_url_default() {
+        let yaml = r#"
+git:
+  github_api_url: https://ghe-from-config.example.com/api/v3/
+"#;
+        let cfg = parse_str(yaml).unwrap();
+        let (args, matches) = parse(&["kingfisher", "scan", "github", "--organization", "my-org"]);
+        let mut global_args = args.global_args.clone();
+        let mut scan_args = into_scan(args);
+        super::apply_config(
+            &mut scan_args,
+            &mut global_args,
+            &cfg,
+            matches.subcommand_matches("scan"),
+        );
+        assert_eq!(
+            scan_args.input_specifier_args.github_api_url.as_str(),
+            "https://ghe-from-config.example.com/api/v3/",
+        );
+    }
+
+    /// Same precedence story for `scan gitlab --api-url`.
+    #[test]
+    fn gitlab_subcommand_api_url_beats_config() {
+        let yaml = r#"
+git:
+  gitlab_api_url: https://gitlab-from-config.example.com/
+"#;
+        let cfg = parse_str(yaml).unwrap();
+        let (args, matches) = parse(&[
+            "kingfisher",
+            "scan",
+            "gitlab",
+            "--group",
+            "my-group",
+            "--api-url",
+            "https://gitlab-from-cli.example.com/",
+        ]);
+        let mut global_args = args.global_args.clone();
+        let mut scan_args = into_scan(args);
+        super::apply_config(
+            &mut scan_args,
+            &mut global_args,
+            &cfg,
+            matches.subcommand_matches("scan"),
+        );
+        assert_eq!(
+            scan_args.input_specifier_args.gitlab_api_url.as_str(),
+            "https://gitlab-from-cli.example.com/",
+        );
     }
 }
