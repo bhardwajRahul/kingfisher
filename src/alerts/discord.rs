@@ -82,18 +82,18 @@ pub fn build_payload(
         let mut detail = String::new();
         for f in findings.iter().take(take) {
             let snippet = if include_secret {
-                truncate(&f.finding.snippet, 32)
+                escape_for_code_span(&truncate(&f.finding.snippet, 32))
             } else {
-                "<redacted>".to_string()
+                "redacted".to_string()
             };
             detail.push_str(&format!(
                 "• `{}` at `{}:{}` — `{}` (validation: {}) — fp:`{}`\n",
-                f.rule.id,
-                f.finding.path,
+                escape_for_code_span(&f.rule.id),
+                escape_for_code_span(&f.finding.path),
                 f.finding.line,
                 snippet,
-                f.finding.validation.status,
-                f.finding.fingerprint,
+                escape_md(&f.finding.validation.status),
+                escape_for_code_span(&f.finding.fingerprint),
             ));
         }
         if findings.len() > take {
@@ -135,6 +135,31 @@ fn truncate(s: &str, n: usize) -> String {
     }
     let prefix: String = s.chars().take(n).collect();
     format!("{prefix}…")
+}
+
+/// Escape a value before embedding it in a backtick code span. Replace
+/// backticks with U+02CB so a user-controlled value cannot terminate the
+/// span and inject Discord markup, and normalize newlines so a single
+/// finding does not fragment the bullet list.
+fn escape_for_code_span(s: &str) -> String {
+    s.replace('`', "\u{02CB}").replace(['\n', '\r'], " ")
+}
+
+/// Escape Discord markdown metacharacters in fields rendered outside a code
+/// span (e.g. validation status). Backslash-escapes the common formatters.
+fn escape_md(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '\\' | '*' | '_' | '~' | '`' | '|' | '>' | '<' | '[' | ']' | '(' | ')' => {
+                out.push('\\');
+                out.push(ch);
+            }
+            '\n' | '\r' => out.push(' '),
+            _ => out.push(ch),
+        }
+    }
+    out
 }
 
 #[cfg(test)]

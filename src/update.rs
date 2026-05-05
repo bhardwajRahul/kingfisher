@@ -349,6 +349,11 @@ pub fn rewrite_argv_for_reexec(argv: impl IntoIterator<Item = OsString>) -> Vec<
     let mut out: Vec<OsString> = Vec::new();
     let mut already_has_no_update_check = false;
     let mut hit_double_dash = false;
+    // Index of the `--` separator inside `out`, if seen. When set, we must
+    // insert any synthesized flags (like `--no-update-check`) *before* this
+    // index — clap stops parsing flags at `--` and treats everything after
+    // as positional.
+    let mut double_dash_idx: Option<usize> = None;
     let had_argv0;
 
     if let Some(argv0) = iter.next() {
@@ -367,6 +372,7 @@ pub fn rewrite_argv_for_reexec(argv: impl IntoIterator<Item = OsString>) -> Vec<
 
         if tok == "--" {
             hit_double_dash = true;
+            double_dash_idx = Some(out.len());
             out.push(tok);
             continue;
         }
@@ -386,11 +392,19 @@ pub fn rewrite_argv_for_reexec(argv: impl IntoIterator<Item = OsString>) -> Vec<
         out.push(tok);
     }
 
-    // Only append --no-update-check when we actually preserved an argv[0]. In the
-    // theoretical empty-input case, returning an empty Vec keeps argv shape-consistent
-    // and lets the caller decide what to do.
+    // Only inject `--no-update-check` when we actually preserved an argv[0].
+    // In the theoretical empty-input case, returning an empty Vec keeps the
+    // argv shape consistent and lets the caller decide what to do.
+    //
+    // If a `--` separator was present, insert the flag *before* it — anything
+    // after `--` is positional, so appending at the end would silently fail
+    // to suppress the update check on the re-exec'd process.
     if had_argv0 && !already_has_no_update_check {
-        out.push(OsString::from("--no-update-check"));
+        let flag = OsString::from("--no-update-check");
+        match double_dash_idx {
+            Some(idx) => out.insert(idx, flag),
+            None => out.push(flag),
+        }
     }
 
     out
@@ -462,6 +476,9 @@ mod tests {
     #[test]
     fn rewrite_argv_preserves_tokens_after_double_dash() {
         // --self-update appearing AFTER `--` is a positional and must be preserved.
+        // The synthesized --no-update-check has to land BEFORE `--`; otherwise it
+        // would be parsed as a positional and the re-exec'd process would still
+        // perform an update check.
         let result = rewrite_argv_for_reexec(argv(&[
             "kingfisher",
             "scan",
@@ -472,7 +489,26 @@ mod tests {
         ]));
         assert_eq!(
             result,
-            argv(&["kingfisher", "scan", "--", "--self-update", "--update", "--no-update-check"])
+            argv(&["kingfisher", "scan", "--no-update-check", "--", "--self-update", "--update"])
+        );
+    }
+
+    #[test]
+    fn rewrite_argv_does_not_duplicate_no_update_check_when_already_present_before_double_dash() {
+        // If --no-update-check is already present before `--`, the function is
+        // a no-op for that flag (no duplicate insertion) and tokens after `--`
+        // pass through verbatim.
+        let result = rewrite_argv_for_reexec(argv(&[
+            "kingfisher",
+            "scan",
+            "--no-update-check",
+            "--self-update",
+            "--",
+            "--self-update",
+        ]));
+        assert_eq!(
+            result,
+            argv(&["kingfisher", "scan", "--no-update-check", "--", "--self-update"])
         );
     }
 

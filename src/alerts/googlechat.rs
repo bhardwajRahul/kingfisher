@@ -41,14 +41,14 @@ pub fn build_payload(
     ];
     if let Some(t) = &summary.target {
         summary_widgets.push(json!({
-            "decoratedText": { "topLabel": "Target", "text": t }
+            "decoratedText": { "topLabel": "Target", "text": escape_html(t) }
         }));
     }
     if !summary.by_rule.is_empty() {
         let lines: Vec<String> = summary
             .by_rule
             .iter()
-            .map(|(rule, count)| format!("• <code>{rule}</code> — {count}"))
+            .map(|(rule, count)| format!("• <code>{}</code> — {count}", escape_html(rule)))
             .collect();
         summary_widgets.push(json!({
             "textParagraph": { "text": format!("<b>Top rules</b><br>{}", lines.join("<br>")) }
@@ -65,18 +65,18 @@ pub fn build_payload(
         let mut detail = String::new();
         for f in findings.iter().take(take) {
             let snippet = if include_secret {
-                truncate(&f.finding.snippet, 32)
+                escape_html(&truncate(&f.finding.snippet, 32))
             } else {
-                "<redacted>".to_string()
+                "redacted".to_string()
             };
             detail.push_str(&format!(
                 "• <b>{}</b> at <code>{}:{}</code> — <code>{}</code> (validation: {}) — fp:<code>{}</code><br>",
-                f.rule.id,
-                f.finding.path,
+                escape_html(&f.rule.id),
+                escape_html(&f.finding.path),
                 f.finding.line,
                 snippet,
-                f.finding.validation.status,
-                f.finding.fingerprint,
+                escape_html(&f.finding.validation.status),
+                escape_html(&f.finding.fingerprint),
             ));
         }
         if findings.len() > take {
@@ -135,6 +135,21 @@ fn truncate(s: &str, n: usize) -> String {
     }
     let prefix: String = s.chars().take(n).collect();
     format!("{prefix}…")
+}
+
+/// Google Chat `textParagraph.text` is HTML-ish — `<b>`, `<code>`, `<br>`, etc.
+/// are rendered as markup. Any user-controlled value (rule id, path, snippet,
+/// fingerprint, validation status) must be HTML-escaped before interpolation,
+/// otherwise an unescaped `<` could break out of a `<code>` span and inject
+/// arbitrary chat markup. Newlines are normalized to spaces so a single
+/// finding does not fragment the bullet list.
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+        .replace(['\n', '\r'], " ")
 }
 
 #[cfg(test)]

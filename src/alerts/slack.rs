@@ -60,12 +60,12 @@ pub fn build_payload(
         let mut detail_lines: Vec<String> = Vec::with_capacity(take);
         for f in findings.iter().take(take) {
             let snippet = if include_secret {
-                truncate(&f.finding.snippet, 32)
+                escape_for_code_span(&truncate(&f.finding.snippet, 32))
             } else {
-                "<redacted>".to_string()
+                "redacted".to_string()
             };
             detail_lines.push(format!(
-                "• `{}` at `{}:{}` — {} (validation: {}) — fp:`{}`",
+                "• `{}` at `{}:{}` — `{}` (validation: {}) — fp:`{}`",
                 escape_mrkdwn(&f.rule.id),
                 escape_mrkdwn(&f.finding.path),
                 f.finding.line,
@@ -129,6 +129,16 @@ fn truncate(s: &str, n: usize) -> String {
 /// Slack mrkdwn requires `<>&` escaping; backticks are fine inside code spans.
 fn escape_mrkdwn(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+}
+
+/// Sanitize a value before it goes inside a backtick code span. We escape
+/// the same `<>&` mrkdwn metacharacters and replace embedded backticks with
+/// a similar-looking U+02CB (modifier letter grave accent) so a user-controlled
+/// value cannot break out of the span and inject Slack markup or `<url|text>`
+/// links. Newlines are normalized to spaces so a single finding does not
+/// fragment the bullet list.
+fn escape_for_code_span(s: &str) -> String {
+    escape_mrkdwn(s).replace('`', "\u{02CB}").replace(['\n', '\r'], " ")
 }
 
 #[cfg(test)]
