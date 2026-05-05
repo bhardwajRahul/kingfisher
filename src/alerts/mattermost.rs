@@ -54,11 +54,18 @@ pub fn build_payload(
         json!({ "short": true, "title": "Unknown",  "value": summary.unknown.to_string() }),
     ];
     if let Some(t) = &summary.target {
-        fields.push(json!({ "short": false, "title": "Target", "value": format!("`{t}`") }));
+        fields.push(json!({
+            "short": false,
+            "title": "Target",
+            "value": format!("`{}`", escape_for_code_span(t)),
+        }));
     }
     if !summary.by_rule.is_empty() {
-        let lines: Vec<String> =
-            summary.by_rule.iter().map(|(rule, count)| format!("• `{rule}` — {count}")).collect();
+        let lines: Vec<String> = summary
+            .by_rule
+            .iter()
+            .map(|(rule, count)| format!("• `{}` — {count}", escape_for_code_span(rule)))
+            .collect();
         fields.push(json!({
             "short": false,
             "title": "Top rules",

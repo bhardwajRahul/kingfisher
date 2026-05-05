@@ -204,22 +204,64 @@ fn host_matches(host: &str, suffix: &str) -> bool {
     host == suffix || host.ends_with(&format!(".{suffix}"))
 }
 
-/// Validate a webhook URL: must parse, must use http(s) scheme, must have a
-/// host. Returns the parsed URL on success.
+/// Validate a webhook URL.
+///
+/// Webhook URLs typically embed a secret token in the path (e.g.
+/// `hooks.slack.com/services/T0/B0/<secret>`) and the payload contains
+/// finding metadata, so the transport must protect both. Default policy:
+///
+/// * Must parse and have a non-empty host.
+/// * Scheme must be `https`.
+/// * `http` is allowed *only* when the host is a loopback address
+///   (`localhost`, `127.0.0.0/8`, `::1`) — useful for local development and
+///   on-host webhook receivers without exposing webhooks-in-the-clear on a
+///   network.
 pub fn validate_webhook_url(url: &str) -> Result<()> {
     let parsed = url::Url::parse(url)
         .with_context(|| format!("invalid webhook URL `{}`", redact_for_log(url)))?;
     let scheme = parsed.scheme();
-    if scheme != "https" && scheme != "http" {
-        anyhow::bail!(
-            "webhook URL `{}` uses unsupported scheme `{scheme}` (only http/https are allowed)",
-            redact_for_log(url)
-        );
-    }
-    if parsed.host_str().is_none_or(|h| h.is_empty()) {
+    let host = parsed.host_str().unwrap_or("");
+    if host.is_empty() {
         anyhow::bail!("webhook URL `{}` has no host", redact_for_log(url));
     }
+    match scheme {
+        "https" => {}
+        "http" if is_loopback_host(host) => {}
+        "http" => {
+            anyhow::bail!(
+                "webhook URL `{}` uses cleartext `http://`; webhook tokens and finding \
+                 metadata must not traverse the network unencrypted. Use `https://`, or a \
+                 loopback host (`localhost`/`127.0.0.1`/`::1`) for local testing.",
+                redact_for_log(url)
+            );
+        }
+        _ => {
+            anyhow::bail!(
+                "webhook URL `{}` uses unsupported scheme `{scheme}` (only `https` is \
+                 allowed; `http` is allowed only for loopback hosts)",
+                redact_for_log(url)
+            );
+        }
+    }
     Ok(())
+}
+
+/// True when `host` resolves unambiguously to the local machine — i.e. the
+/// loopback hostname or any IPv4 in `127.0.0.0/8` or the IPv6 loopback `::1`.
+/// We deliberately do not consult DNS; only literal hostnames and IP
+/// literals count, so a malicious resolver cannot trick us into accepting
+/// `http://` for a remote host.
+fn is_loopback_host(host: &str) -> bool {
+    if host.eq_ignore_ascii_case("localhost") {
+        return true;
+    }
+    // `url::Url::host_str` keeps the surrounding `[...]` on IPv6 literals;
+    // `IpAddr::from_str` rejects that form, so strip the brackets first.
+    let trimmed = host.strip_prefix('[').and_then(|s| s.strip_suffix(']')).unwrap_or(host);
+    if let Ok(ip) = trimmed.parse::<std::net::IpAddr>() {
+        return ip.is_loopback();
+    }
+    false
 }
 
 fn redact_for_log(url: &str) -> String {
@@ -404,6 +446,42 @@ mod tests {
     fn redact_webhook_unparseable() {
         let r = redact_webhook("not a url");
         assert_eq!(r, "<unparseable webhook url>");
+    }
+
+    #[test]
+    fn validate_webhook_accepts_https() {
+        validate_webhook_url("https://hooks.slack.com/services/T0/B0/XXX").unwrap();
+    }
+
+    #[test]
+    fn validate_webhook_rejects_remote_http() {
+        let err = validate_webhook_url("http://example.com/hook").unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("cleartext `http://`"), "got: {msg}");
+    }
+
+    #[test]
+    fn validate_webhook_allows_http_localhost() {
+        validate_webhook_url("http://localhost:8080/hook").unwrap();
+        validate_webhook_url("http://127.0.0.1:9000/hook").unwrap();
+        validate_webhook_url("http://[::1]:9000/hook").unwrap();
+    }
+
+    #[test]
+    fn validate_webhook_rejects_unknown_scheme() {
+        let err = validate_webhook_url("ftp://example.com/hook").unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("unsupported scheme"), "got: {msg}");
+    }
+
+    #[test]
+    fn validate_webhook_rejects_no_host() {
+        // url::Url::parse on a relative-style file URL leaves no host.
+        let err = validate_webhook_url("file:///etc/passwd").unwrap_err();
+        let msg = format!("{err:#}");
+        // Either "no host" or "unsupported scheme" is acceptable; both are
+        // hard rejections.
+        assert!(msg.contains("no host") || msg.contains("unsupported scheme"), "got: {msg}");
     }
 
     #[test]

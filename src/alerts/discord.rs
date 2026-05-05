@@ -56,13 +56,16 @@ pub fn build_payload(
     if let Some(t) = &summary.target {
         fields.push(json!({
             "name": "Target",
-            "value": format!("`{}`", truncate(t, 1000)),
+            "value": format!("`{}`", escape_for_code_span(&truncate(t, 1000))),
             "inline": false,
         }));
     }
     if !summary.by_rule.is_empty() {
-        let lines: Vec<String> =
-            summary.by_rule.iter().map(|(rule, count)| format!("• `{rule}` — {count}")).collect();
+        let lines: Vec<String> = summary
+            .by_rule
+            .iter()
+            .map(|(rule, count)| format!("• `{}` — {count}", escape_for_code_span(rule)))
+            .collect();
         fields.push(json!({
             "name": "Top rules",
             "value": truncate(&lines.join("\n"), 1000),

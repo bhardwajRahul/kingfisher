@@ -35,7 +35,7 @@ pub fn build_payload(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": format!("*Target:* `{}`", escape_mrkdwn(target))
+                "text": format!("*Target:* `{}`", escape_for_code_span(target))
             }
         }));
     }
@@ -44,7 +44,7 @@ pub fn build_payload(
         let lines: Vec<String> = summary
             .by_rule
             .iter()
-            .map(|(rule_id, count)| format!("• `{}` — {}", escape_mrkdwn(rule_id), count))
+            .map(|(rule_id, count)| format!("• `{}` — {}", escape_for_code_span(rule_id), count))
             .collect();
         blocks.push(json!({
             "type": "section",
@@ -66,12 +66,12 @@ pub fn build_payload(
             };
             detail_lines.push(format!(
                 "• `{}` at `{}:{}` — `{}` (validation: {}) — fp:`{}`",
-                escape_mrkdwn(&f.rule.id),
-                escape_mrkdwn(&f.finding.path),
+                escape_for_code_span(&f.rule.id),
+                escape_for_code_span(&f.finding.path),
                 f.finding.line,
                 snippet,
                 escape_mrkdwn(&f.finding.validation.status),
-                escape_mrkdwn(&f.finding.fingerprint),
+                escape_for_code_span(&f.finding.fingerprint),
             ));
         }
         if findings.len() > take {
@@ -98,12 +98,18 @@ pub fn build_payload(
     }
 
     if let Some(url) = &summary.report_url {
+        // Render as a Block Kit `actions` block with a `button` element. The
+        // button takes the URL via a separate JSON field, so we sidestep the
+        // mrkdwn `<url|text>` link syntax entirely — a URL containing `|` or
+        // `>` cannot inject markup or break the link the way it could in
+        // `<{}|Full report →>`.
         blocks.push(json!({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": format!("<{}|Full report →>", url)
-            }
+            "type": "actions",
+            "elements": [{
+                "type": "button",
+                "text": { "type": "plain_text", "text": "Full report" },
+                "url": url,
+            }]
         }));
     }
 

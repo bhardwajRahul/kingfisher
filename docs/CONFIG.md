@@ -55,6 +55,17 @@ omitted to keep the file minimal. Scan-target inputs (paths, `--git-url`,
 GitHub/GitLab/etc. flags, S3/GCS buckets) are stripped — they describe
 *what* this run scans and don't belong in shared project policy.
 
+## Webhook URL policy
+
+`alerts.webhooks[].url` (and `--alert-webhook URL`) **must use `https://`**.
+Webhook URLs typically embed a secret token in the path and the alert
+payload contains finding metadata, so cleartext transport is never the right
+default. `http://` is allowed only when the host is a loopback address
+(`localhost`, `127.0.0.0/8`, `::1`) — useful for local development against an
+on-host receiver. Loopback decisions are made on the literal hostname / IP
+in the URL; we do not consult DNS, so a resolver cannot trick the validator
+into permitting `http://` for a remote host.
+
 ## Caveats
 
 - **`scan.jobs` and the Tokio runtime.** The Tokio runtime is sized from the
