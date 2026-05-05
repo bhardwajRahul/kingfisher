@@ -52,6 +52,11 @@ DOC_MAP = {
         "Deployment",
         "Deployment strategies for Kingfisher: self-serve CLI, CI/pre-commit enforcement, centralized scanning, and embedded library.",
     ),
+    "CONFIG.md": (
+        "usage/configuration.md",
+        "Project Configuration (kingfisher.yaml)",
+        "Use kingfisher.yaml as project-default policy: confidence, filters, output, alerts, and global flags. Loaded only via --config FILE.",
+    ),
     "ACCESS_MAP.md": (
         "features/access-map.md",
         "Access Map (Blast Radius)",

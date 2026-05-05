@@ -973,13 +973,23 @@ fn build_config_yaml(
     }
     // Provider API roots are stored as `Url` on the runtime side; the YAML
     // schema is a `String` so the emitted file matches exactly what the
-    // user typed (Url adds a trailing `/` on bare-host URLs which would
-    // surprise diff-watchers).
+    // user typed. `Url::to_string()` adds a trailing `/` on bare-host URLs
+    // (e.g. `https://gitlab.example.com` → `https://gitlab.example.com/`),
+    // which would silently rewrite the user's input on every `config init`
+    // round-trip. Pull the raw CLI/env string from `ArgMatches` instead so
+    // the emitted YAML matches what the user actually passed.
+    fn raw_arg_string(matches: &clap::ArgMatches, id: &str) -> Option<String> {
+        matches
+            .get_raw(id)
+            .and_then(|mut v| v.next())
+            .and_then(|s| s.to_str())
+            .map(str::to_owned)
+    }
     if user_set(sub_matches, "github_api_url") {
-        git.github_api_url = Some(scan_args.input_specifier_args.github_api_url.to_string());
+        git.github_api_url = raw_arg_string(sub_matches, "github_api_url");
     }
     if user_set(sub_matches, "gitlab_api_url") {
-        git.gitlab_api_url = Some(scan_args.input_specifier_args.gitlab_api_url.to_string());
+        git.gitlab_api_url = raw_arg_string(sub_matches, "gitlab_api_url");
     }
     cfg.git = git;
 
@@ -2241,6 +2251,82 @@ alerts:
         assert_eq!(cfg.alerts.webhooks[0].url, "https://hooks.slack.com/services/T0/B0/AAA");
 
         assert!(matches!(cfg.global.tls_mode, Some(kingfisher::cli::config::ConfigTlsMode::Lax)));
+    }
+
+    /// Regression: `config init --github-api-url ... --gitlab-api-url ...`
+    /// must round-trip the strings the user typed. `Url::to_string()` adds
+    /// a trailing `/` to bare-host URLs, so re-serializing the parsed `Url`
+    /// would silently rewrite `https://gitlab.example.com` →
+    /// `https://gitlab.example.com/` on every `config init` run.
+    #[test]
+    fn config_init_preserves_raw_api_url_strings() {
+        use kingfisher::cli::config::parse_str;
+
+        let argv = &[
+            "kingfisher",
+            "config",
+            "init",
+            // Bare host (no trailing slash) — `Url::to_string()` would add one.
+            "--github-api-url",
+            "https://ghe.corp.example.com/api/v3",
+            "--gitlab-api-url",
+            "https://gitlab.corp.example.com",
+        ];
+        let matches = CommandLineArgs::command().try_get_matches_from(argv).unwrap();
+        let parsed = CommandLineArgs::from_arg_matches(&matches).unwrap();
+        let global_args = parsed.global_args.clone();
+        let init_matches =
+            matches.subcommand_matches("config").unwrap().subcommand_matches("init").unwrap();
+        let scan_args = match parsed.command {
+            Command::Config(c) => match c.command {
+                kingfisher::cli::commands::config_command::ConfigSubcommand::Init(args) => {
+                    args.scan_args
+                }
+            },
+            _ => panic!("expected config init"),
+        };
+
+        let yaml = super::build_config_yaml(&scan_args, &global_args, init_matches).unwrap();
+        let cfg = parse_str(&yaml).expect("emitted YAML must round-trip");
+
+        assert_eq!(
+            cfg.git.github_api_url.as_deref(),
+            Some("https://ghe.corp.example.com/api/v3"),
+            "github_api_url must preserve user input verbatim, no trailing-slash rewrite",
+        );
+        assert_eq!(
+            cfg.git.gitlab_api_url.as_deref(),
+            Some("https://gitlab.corp.example.com"),
+            "gitlab_api_url must preserve user input verbatim, no trailing-slash rewrite",
+        );
+
+        // Sanity: when the user *does* pass a trailing slash, that's preserved too.
+        let argv = &[
+            "kingfisher",
+            "config",
+            "init",
+            "--github-api-url",
+            "https://ghe.corp.example.com/api/v3/",
+        ];
+        let matches = CommandLineArgs::command().try_get_matches_from(argv).unwrap();
+        let parsed = CommandLineArgs::from_arg_matches(&matches).unwrap();
+        let global_args = parsed.global_args.clone();
+        let init_matches =
+            matches.subcommand_matches("config").unwrap().subcommand_matches("init").unwrap();
+        let scan_args = match parsed.command {
+            Command::Config(c) => match c.command {
+                kingfisher::cli::commands::config_command::ConfigSubcommand::Init(args) => {
+                    args.scan_args
+                }
+            },
+            _ => panic!("expected config init"),
+        };
+        let yaml = super::build_config_yaml(&scan_args, &global_args, init_matches).unwrap();
+        let cfg = parse_str(&yaml).expect("emitted YAML must round-trip");
+        assert_eq!(
+            cfg.git.github_api_url.as_deref(),
+            Some("https://ghe.corp.example.com/api/v3/"),
+        );
     }
 
     #[test]

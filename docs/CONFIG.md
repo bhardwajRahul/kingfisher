@@ -38,9 +38,10 @@ but redundant. The one nuance: `rules.enabled` *replaces* the synthetic
 
 ### Step 1 — generate the config
 
-Don't write the YAML by hand. Take your existing `kingfisher scan ...`
-command (or the CI step that builds it) and run the same flags under
-`kingfisher config init`:
+Don't write the YAML by hand. Start from the **scan-default flags** you
+already pass to `kingfisher scan` (the policy-shaped ones — confidence,
+redaction, filters, output, alerts, TLS, self-hosted API roots) and pass
+them to `kingfisher config init`:
 
 ```bash
 # Print to stdout, redirect to file:
@@ -54,6 +55,8 @@ kingfisher config init \
   --alert-min-confidence high \
   --alert-webhook https://hooks.slack.com/services/T0/B0/AAA \
   --tls-mode lax \
+  --github-api-url https://ghe.corp.example.com/api/v3/ \
+  --gitlab-api-url https://gitlab.corp.example.com/ \
   > kingfisher.yaml
 
 # Or write the file directly (pass --force to overwrite):
@@ -62,8 +65,18 @@ kingfisher config init [...flags...] --out kingfisher.yaml
 
 Only flags you actually supply appear in the output; clap defaults are
 omitted to keep the file minimal. Scan-target inputs (paths, `--git-url`,
-GitHub/GitLab/etc. flags, S3/GCS buckets) are stripped — they describe
-*what* this run scans and don't belong in shared project policy.
+GitHub/GitLab/etc. user/org/group flags, S3/GCS buckets) are stripped —
+they describe *what* this run scans and don't belong in shared project
+policy.
+
+> **Important:** `config init` does **not** accept the provider-subcommand
+> form. `kingfisher scan gitlab --group my-group --api-url https://...`
+> cannot be pasted verbatim — `config init` has no `gitlab` subcommand,
+> and `--group` / the subcommand-scoped `--api-url` are not accepted at
+> the top level. Use the top-level aliases instead: `--gitlab-api-url`
+> for the GitLab API root and `--github-api-url` for GHE. Target
+> selectors like `--group` / `--organization` are intentionally CLI-only
+> and have no config-file equivalent.
 
 ### Step 2 — run the scan, passing the config explicitly
 
